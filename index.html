@@ -1020,19 +1020,20 @@ function renderSheet(animate) {
     const cur = db.me.theme || 'teal';
     const sw = Object.entries(THEMES).map(([k, t]) => `<button class="swatch ${cur === k ? 'on' : ''}" aria-pressed="${cur === k}" data-act="theme" data-id="${k}"><i style="background:${t.dark ? 'linear-gradient(135deg,#1B1E22 50%,#5CC8BD 50%)' : t.accent}"></i>${t.name}</button>`).join('');
     const email = authUser && !authUser.is_anonymous ? authUser.email : '';
-    const pendingEmail = authUser && authUser.new_email;
     const account = !CLOUD ? '' : email ? `<div class="card" style="background:var(--bg);box-shadow:none">
         <div class="title" style="font-size:14px">Account</div>
-        <p class="empty" style="font-size:13px">Signed in as <b style="color:var(--ink)">${esc(email)}</b>. Your books are safe and you can use them on any device.</p>
+        <p class="empty" style="font-size:13px">Signed in as <b style="color:var(--ink)">${esc(email)}</b>. Use the same email and password on any other phone or laptop.</p>
         <button class="btn" data-act="sign-out">Sign out</button></div>`
       : `<div class="card" style="background:var(--bg);box-shadow:none">
-        <div class="title" style="font-size:14px">Keep your books safe <span style="font-weight:400;color:var(--muted)">(optional)</span></div>
-        <p class="empty" style="font-size:13px">${pendingEmail ? `We sent a link to <b style="color:var(--ink)">${esc(pendingEmail)}</b>. Tap it to finish.` : 'Add your email so you can open your books on another phone. No password.'}</p>
-        <label class="sr" for="acc-email">Email</label>
+        <div class="title" style="font-size:14px">Create an account <span style="font-weight:400;color:var(--muted)">(optional)</span></div>
+        <p class="empty" style="font-size:13px">Your books are already saved. An account just lets you open them on another phone or laptop.</p>
+        <label class="label" for="acc-email">Email</label>
         <input class="field" id="acc-email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com">
+        <label class="label" for="acc-pw">Password <span style="font-weight:400">(at least 6 characters)</span></label>
+        <input class="field" id="acc-pw" type="password" autocomplete="new-password" minlength="6">
         <div class="grid2">
-          <button class="btn primary" data-act="email-link">Add email</button>
-          <button class="btn" data-act="email-signin">I have an account</button>
+          <button class="btn primary" data-act="acc-create">Create account</button>
+          <button class="btn" data-act="acc-signin">Sign in instead</button>
         </div></div>`;
     inner = `${head('Settings')}
       <label class="label" for="s-name">Your name</label>
@@ -1274,20 +1275,28 @@ const actions = {
     ui.sheetData = error ? { error: "Couldn't load admin data: " + error.message } : { data };
     renderSheet();
   },
-  async 'email-link'() {
+  async 'acc-create'() {
     const email = document.getElementById('acc-email').value.trim();
+    const password = document.getElementById('acc-pw').value;
     if (!/^\S+@\S+\.\S+$/.test(email)) { toast('Enter a valid email'); return; }
-    const { data, error } = await sb.auth.updateUser({ email }, { emailRedirectTo: location.origin + location.pathname });
-    if (error) { toast(/already/i.test(error.message) ? 'That email already has an account. Tap "I have an account".' : error.message); return; }
-    authUser = data.user || authUser; renderSheet(); toast('Check your inbox and tap the link');
+    if (password.length < 6) { toast('Password needs at least 6 characters'); return; }
+    // turns this phone's anonymous account into a normal one, keeping all books
+    let r = await sb.auth.updateUser({ email });
+    if (r.error) { toast(/already|registered|exists/i.test(r.error.message) ? 'That email already has an account. Tap "Sign in instead".' : r.error.message); return; }
+    r = await sb.auth.updateUser({ password });
+    if (r.error) { toast(r.error.message); return; }
+    authUser = r.data.user || authUser;
+    renderSheet(); toast('Account created. Your books are safe.');
   },
-  async 'email-signin'() {
+  async 'acc-signin'() {
     const email = document.getElementById('acc-email').value.trim();
-    if (!/^\S+@\S+\.\S+$/.test(email)) { toast('Enter a valid email'); return; }
-    if (!confirm('Signing in switches this phone to that account. Books added on this phone without an email will not move over. Continue?')) return;
-    const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: false, emailRedirectTo: location.origin + location.pathname } });
-    if (error) { toast(/signups not allowed|not found/i.test(error.message) ? 'No account with that email. Use "Add email" instead.' : error.message); return; }
-    toast('Check your inbox and tap the link to sign in');
+    const password = document.getElementById('acc-pw').value;
+    if (!email || !password) { toast('Enter your email and password'); return; }
+    if (!confirm('This switches this device to that account. Anything added here without an account will not move over. Continue?')) return;
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) { toast(/invalid/i.test(error.message) ? 'Wrong email or password' : error.message); return; }
+    try { localStorage.removeItem(STORE_KEY + ':' + ME); } catch (e) {}
+    location.reload();
   },
   async 'sign-out'() {
     if (!confirm('Sign out on this phone?')) return;
@@ -1528,7 +1537,6 @@ document.addEventListener('change', async e => {
     sb.auth.onAuthStateChange((event, s) => {
       if (s && s.user && s.user.id !== ME) { location.reload(); return; }   // signed in as someone else via email link
       if (s && s.user) { authUser = s.user; if (ui.sheet === 'settings') renderSheet(); }
-      if (event === 'USER_UPDATED' && authUser.email && !authUser.is_anonymous) toast('Email added. Your books are safe.');
     });
     db = load();                 // show cached copy straight away
     ui.loading = !db; render();
