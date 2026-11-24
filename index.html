@@ -467,7 +467,7 @@ async function sync() {
     syncErrShown = false;
   } catch (e) {
     console.error('Sync failed', e);
-    if (!syncErrShown) { toast("Couldn't save to the cloud. Will retry."); syncErrShown = true; }
+    if (!syncErrShown) { toast("Couldn't save to the cloud: " + ((e && e.message) || e)); syncErrShown = true; }
     clearTimeout(syncTimer); syncTimer = setTimeout(sync, 15000);
   } finally {
     syncing = false;
@@ -1540,7 +1540,9 @@ document.addEventListener('change', async e => {
     ui.loading = false;
     db = db || load();
     render();
-    toast("Couldn't reach the server. Showing what's saved on this phone.");
+    const msg = (e && (e.message || e.error_description || e.msg)) || String(e);
+    toast("Couldn't reach the server: " + msg);
+    setTimeout(() => toast("Couldn't reach the server: " + msg), 2600);
   }
 })();
 </script>
