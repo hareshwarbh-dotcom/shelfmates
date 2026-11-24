@@ -579,7 +579,7 @@ async function joinByCode(code) {
   pendingJoin = null;
   if (error || !data) { toast("That invite link didn't work. Ask for a new one."); return; }
   await pull();
-  ui.tab = 'discover'; ui.club = data; ui.sheet = null;
+  ui.clubPage = data; ui.clubTab = 'books'; ui.sheet = null;
   render();
   const g = db.groups.find(x => x.id === data); if (g) toast('You joined ' + g.name + ' 🎉');
 }
@@ -629,7 +629,7 @@ const signedInEmail = () => authUser && !authUser.is_anonymous ? authUser.email 
 
 /* ---------- ui state ---------- */
 const ui = {
-  loading: false, tab: 'home', club: 'all', shelfTab: null,
+  loading: false, tab: 'home', club: 'all', shelfTab: null, clubPage: null, clubTab: 'books',
   sheet: null, sheetData: {},
   share: { bookId: null, reaction: null, text: '', photo: '' },
   search: { q: '', loading: false, results: [], error: '' }
@@ -687,15 +687,18 @@ function render() {
   db.log = db.log || [];
   if (ui.club !== 'all' && !db.groups.find(g => g.id === ui.club)) ui.club = 'all';
   const titles = { home: '', shelf: 'My shelf', discover: 'Discover', share: 'Share' };
-  const body = ui.tab === 'shelf' ? shelfHTML() : ui.tab === 'discover' ? discoverHTML() : ui.tab === 'share' ? shareHTML() : homeHTML();
-  const tab = (k, ic, label) => `<button class="${ui.tab === k ? 'on' : ''}" data-act="tab" data-id="${k}" ${ui.tab === k ? 'aria-current="page"' : ''}><span class="ic">${ic}</span>${label}</button>`;
+  const club = ui.clubPage ? db.groups.find(g => g.id === ui.clubPage) : null;
+  if (ui.clubPage && !club) ui.clubPage = null;
+  const body = club ? clubPageHTML(club) : ui.tab === 'shelf' ? shelfHTML() : ui.tab === 'discover' ? discoverHTML() : ui.tab === 'share' ? shareHTML() : homeHTML();
+  const tab = (k, ic, label) => `<button class="${ui.tab === k && !club ? 'on' : ''}" data-act="tab" data-id="${k}" ${ui.tab === k ? 'aria-current="page"' : ''}><span class="ic">${ic}</span>${label}</button>`;
   app.innerHTML = `
     <header class="hb-header">
-      ${ui.tab === 'home' ? `<h1 class="hb-logo" style="margin:0"><button data-act="about" aria-label="About ${APP.first} ${esc(APP.second)}" style="all:unset;cursor:pointer">${APP.first} <span>${esc(APP.second)}</span></button></h1>` : `<h1 class="hb-logo">${titles[ui.tab]}</h1>`}
-      <button class="iconbtn" aria-label="Settings" data-act="settings">⚙︎${CLOUD ? `<span class="syncdot ${syncState === 'ok' ? '' : syncState}" id="syncdot"></span>` : ''}</button>
+      ${club ? `<div class="row grow" style="gap:.4rem;min-width:0"><button class="iconbtn" style="border:none" aria-label="Back" data-act="club-back">‹</button><h1 class="hb-logo" style="font-size:1.3rem">${esc(club.name)}</h1></div>
+        ${club.demo ? '' : `<button class="btn accent" data-act="invite" data-id="${club.id}">💌 Invite</button>`}` : ui.tab === 'home' ? `<h1 class="hb-logo" style="margin:0"><button data-act="about" aria-label="About ${APP.first} ${esc(APP.second)}" style="all:unset;cursor:pointer">${APP.first} <span>${esc(APP.second)}</span></button></h1>` : `<h1 class="hb-logo">${titles[ui.tab]}</h1>`}
+      ${club ? '' : `<button class="iconbtn" aria-label="Settings" data-act="settings">⚙︎`}${CLOUD ? `<span class="syncdot ${syncState === 'ok' ? '' : syncState}" id="syncdot"></span>` : ''}${club ? '' : '</button>'}
     </header>
     <main class="hb-main">${body}</main>
-    ${ui.tab !== 'share' ? '<button class="fab fixed" aria-label="Add a book" data-act="add-open">+</button>' : ''}
+    ${club || ui.tab !== 'share' ? '<button class="fab fixed" aria-label="Add a book" data-act="add-open">+</button>' : ''}
     <nav class="hb-nav fixed" aria-label="Sections"><div class="inner">
       ${tab('home', '🏠', 'Home')}${tab('shelf', '📚', 'Shelf')}${tab('discover', '🧭', 'Discover')}${tab('share', '✍️', 'Share')}
     </div></nav>`;
@@ -842,42 +845,76 @@ function shelfHTML() {
 }
 
 /* ----- Discover ----- */
-function discoverHTML() {
-  const clubs = myClubs();
-  if (!clubs.length) return `<div class="card empty" style="margin-top:.5rem">Discover is where you see what your clubs are reading.<br><br>
-    <button class="btn accent" data-act="create-open">＋ Create a club</button> ${CLOUD ? '<button class="btn" data-act="w-join">🔑 Join with code</button>' : ''}</div>`;
-  const inScope = ui.club === 'all' ? clubs : clubs.filter(g => g.id === ui.club);
-  const people = new Set(inScope.flatMap(g => g.members));
-  const others = [...people].filter(id => id !== ME);
-  const chips = `<div class="chips"><button class="chip ${ui.club === 'all' ? 'on' : ''}" data-act="club-filter" data-id="all">All clubs</button>${clubs.map(g => `<button class="chip ${ui.club === g.id ? 'on' : ''}" data-act="club-filter" data-id="${g.id}">${esc(g.name)}</button>`).join('')}</div>`;
-  const readingNow = db.books.filter(b => others.includes(b.userId) && b.status === 'reading').sort((a, b) => b.updatedAt - a.updatedAt);
-  const carousel = readingNow.map(b => {
+/* shared pieces for Discover and the club page */
+function readingCarousel(others) {
+  return db.books.filter(b => others.includes(b.userId) && b.status === 'reading').sort((a, b) => b.updatedAt - a.updatedAt).map(b => {
     const u = userById(b.userId) || { name: 'Member' }, saved = onMyShelf(b.title);
     return `<div class="ccard">
-      <div class="who">${avatar(u, 'sm')}<b>${esc(u.name)}</b></div>
+      <button class="who" style="all:unset;cursor:pointer;display:flex;align-items:center;gap:.35rem;font-size:.8rem" data-act="member" data-id="${b.userId}">${avatar(u, 'sm')}<b>${esc(u.name)}</b></button>
       ${fcover(b)}
       ${u.showProgress !== false && tracked(b) ? `<div class="bar"><div style="width:${pct(b)}%"></div></div>` : '<div class="small">Reading</div>'}
       <button class="btn" style="font-size:.78rem" ${saved ? 'disabled' : ''} data-act="save-book" data-id="${b.id}">${saved ? '✓ On my shelf' : '＋ Want to read'}</button>
     </div>`;
   }).join('');
-  const posts = db.posts.filter(p => people.has(p.userId)).sort((a, b) => b.createdAt - a.createdAt).map(p => {
-    const u = userById(p.userId) || { name: 'Member' }, isMe = p.userId === ME, saved = onMyShelf(p.title);
-    return `<article class="card">
-      <div class="row">${avatar(u)}<div class="grow"><div class="item-title">${isMe ? 'You' : esc(u.name)} <span style="font-weight:400;color:var(--muted)">finished a book</span></div><div class="meta">${timeAgo(p.createdAt)}</div></div>
-      ${isMe ? `<button class="iconbtn" style="border:none" aria-label="Delete this post" data-act="delete-post" data-id="${p.id}">🗑️</button>` : ''}</div>
-      ${p.photo ? `<img class="photo" src="${esc(p.photo)}" alt="Photo shared with ${esc(p.title)}">` : ''}
-      ${p.text ? `<p class="thought">${esc(p.text)}</p>` : ''}
-      <div class="book-strip">${coverHTML(p, 36, 54)}
-        <div class="grow"><div class="item-title" style="font-size:.9rem">${esc(p.title)}</div><div class="meta">${reactionPill(p.reaction)}</div></div>
-        ${isMe ? '' : `<button class="btn" style="font-size:.78rem" ${saved ? 'disabled' : ''} data-act="save-post" data-id="${p.id}">${saved ? '✓ Saved' : '＋ Save'}</button>`}
-      </div>
-    </article>`;
-  }).join('');
-  return `${chips}
-    <div class="section-label" style="margin-top:.2rem">Reading right now</div>
-    ${carousel ? `<div class="carousel">${carousel}</div>` : `<div class="card empty">${others.length ? 'Nobody here is mid-book right now.' : "It's just you so far. Open the club on Home to invite people."}</div>`}
+}
+function postCard(p) {
+  const u = userById(p.userId) || { name: 'Member' }, isMe = p.userId === ME, saved = onMyShelf(p.title);
+  return `<article class="card">
+    <div class="row"><button style="all:unset;cursor:pointer" data-act="member" data-id="${p.userId}" aria-label="See ${esc(u.name)}'s shelf">${avatar(u)}</button><div class="grow"><div class="item-title">${isMe ? 'You' : esc(u.name)} <span style="font-weight:400;color:var(--muted)">finished a book</span></div><div class="meta">${timeAgo(p.createdAt)}</div></div>
+    ${isMe ? `<button class="iconbtn" style="border:none" aria-label="Delete this post" data-act="delete-post" data-id="${p.id}">🗑️</button>` : ''}</div>
+    ${p.photo ? `<img class="photo" src="${esc(p.photo)}" alt="Photo shared with ${esc(p.title)}">` : ''}
+    ${p.text ? `<p class="thought">${esc(p.text)}</p>` : ''}
+    <div class="book-strip">${coverHTML(p, 36, 54)}
+      <div class="grow"><div class="item-title" style="font-size:.9rem">${esc(p.title)}</div><div class="meta">${reactionPill(p.reaction)}</div></div>
+      ${isMe ? '' : `<button class="btn" style="font-size:.78rem" ${saved ? 'disabled' : ''} data-act="save-post" data-id="${p.id}">${saved ? '✓ Saved' : '＋ Save'}</button>`}
+    </div>
+  </article>`;
+}
+function feedHTML(people, emptyOthers) {
+  const others = [...people].filter(id => id !== ME);
+  const carousel = readingCarousel(others);
+  const posts = db.posts.filter(p => people.has(p.userId)).sort((a, b) => b.createdAt - a.createdAt).map(postCard).join('');
+  return `<div class="section-label" style="margin-top:.2rem">Reading right now</div>
+    ${carousel ? `<div class="carousel">${carousel}</div>` : `<div class="card empty">${others.length ? 'Nobody here is mid-book right now.' : emptyOthers}</div>`}
     <div class="section-label">What stayed with us</div>
     ${posts || '<div class="card empty">When someone finishes a book and shares a thought, it shows up here.</div>'}`;
+}
+function discoverHTML() {
+  const clubs = myClubs();
+  if (!clubs.length) return `<div class="card empty" style="margin-top:.5rem">Discover is where you see what your clubs are reading.<br><br>
+    <button class="btn accent" data-act="create-open">＋ Create a club</button> ${CLOUD ? '<button class="btn" data-act="w-join">🔑 Join with code</button>' : ''}</div>`;
+  const inScope = ui.club === 'all' ? clubs : clubs.filter(g => g.id === ui.club);
+  const chips = `<div class="chips"><button class="chip ${ui.club === 'all' ? 'on' : ''}" data-act="club-filter" data-id="all">All clubs</button>${clubs.map(g => `<button class="chip ${ui.club === g.id ? 'on' : ''}" data-act="club-filter" data-id="${g.id}">${esc(g.name)}</button>`).join('')}</div>`;
+  return chips + feedHTML(new Set(inScope.flatMap(g => g.members)), "It's just you so far. Open a club on Home and tap Invite.");
+}
+
+/* ----- Club page ----- */
+function clubPageHTML(g) {
+  const t = ui.clubTab || 'books';
+  const chips = `<div class="chips">${[['books', '📖 Books'], ['members', `👥 Members · ${g.members.length}`], ['about', 'ℹ️ About']].map(([k, l]) => `<button class="chip ${t === k ? 'on' : ''}" data-act="club-tab" data-id="${k}">${l}</button>`).join('')}</div>`;
+  let body = '';
+  if (t === 'books') body = feedHTML(new Set(g.members), g.demo ? '' : 'Just you so far. Tap <b>Invite</b> at the top to bring people in.');
+  if (t === 'members') {
+    const ids = [ME, ...g.members.filter(id => id !== ME)].filter(id => g.members.includes(id));
+    body = `<div class="mgroup" style="margin-top:.2rem">${ids.map(id => {
+      const u = userById(id) || { id, name: 'Member' };
+      const now = db.books.filter(b => b.userId === id && b.status === 'reading');
+      const done = db.books.filter(b => b.userId === id && b.status === 'finished').length;
+      return `<button class="mrow" data-act="member" data-id="${id}">${avatar(u)}<span class="mt">${esc(u.name)}${id === ME ? ' (you)' : ''}${id === g.createdBy ? ' <span class="pill info">Started the club</span>' : ''}
+        <small>${now.length ? '📖 ' + now.map(b => esc(b.title)).join(', ') : 'Not reading anything right now'}${done ? ` · ${done} finished` : ''}</small></span><span class="mc">›</span></button>`;
+    }).join('')}</div>
+    ${g.demo ? '' : '<button class="btn block" style="margin-top:.7rem" data-act="invite" data-id="' + g.id + '">💌 Invite people</button>'}`;
+  }
+  if (t === 'about') {
+    const by = userById(g.createdBy);
+    body = `<div class="mgroup" style="margin-top:.2rem">
+        <div class="mrow static"><span class="mi">📅</span><span class="mt">Started<small>${g.createdAt ? new Date(g.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}${by ? ' by ' + esc(by.id === ME ? 'you' : by.name) : ''}</small></span></div>
+        <div class="mrow static"><span class="mi">👥</span><span class="mt">${g.members.length} ${g.members.length === 1 ? 'member' : 'members'}<small>Everyone reads their own books, at their own pace.</small></span></div>
+        ${g.demo ? '<div class="mrow static"><span class="mi">🧪</span><span class="mt">Sample club<small>Pretend people so you can see how it works.</small></span></div>' : ''}
+      </div>
+      ${!g.demo && CLOUD ? `<div class="mgroup"><button class="mrow danger" data-act="leave-club" data-id="${g.id}"><span class="mi">🚪</span><span class="mt">Leave club</span></button></div>` : ''}`;
+  }
+  return chips + body;
 }
 
 /* ----- Share ----- */
@@ -1066,18 +1103,32 @@ function renderSheet(animate) {
       <p class="sub">You'll get a link and a code to invite people next.</p>
       <div class="formbtns"><button class="btn" data-act="close">Cancel</button><button class="btn primary" data-act="create-save">Create</button></div>`;
   }
-  if (ui.sheet === 'club') {
+  if (ui.sheet === 'invite') {
     const g = db.groups.find(x => x.id === d.id);
     if (!g) { ui.sheet = null; return renderSheet(); }
-    const members = g.members.map(id => userById(id)).filter(Boolean);
-    inner = `${title(esc(g.name))}
-      <div class="mgroup">${members.map(u => `<div class="mrow static">${avatar(u, 'sm')}<span class="mt">${u.id === ME ? esc(u.name) + ' (you)' : esc(u.name)}</span><span class="ms">${db.books.filter(b => b.userId === u.id && b.status === 'reading').length} reading</span></div>`).join('')}</div>
-      ${g.demo ? '<p class="sub">This is a sample club, so it has no real invite code.</p>' : `
-      <div class="section-label">Invite people</div>
-      <div class="card"><div class="code" aria-label="Club code ${esc(g.code)}">${esc(g.code.toUpperCase())}</div><p class="sub" style="text-align:center;margin:0">They can tap the link, or use this code in “Join with code”.</p></div>
-      <div class="actions"><button class="btn accent" style="flex:1" data-act="whatsapp" data-id="${g.id}">Send on WhatsApp</button><button class="btn" style="flex:1" data-act="copy-link" data-id="${g.id}">${d.copied ? '✓ Copied' : 'Copy link'}</button></div>`}
-      <div class="formbtns"><button class="btn" data-act="club-discover" data-id="${g.id}">🧭 See their books</button><button class="btn primary" data-act="close">Done</button></div>
-      ${!g.demo && CLOUD ? `<div class="mgroup"><button class="mrow danger" data-act="leave-club" data-id="${g.id}"><span class="mi">🚪</span><span class="mt">Leave club</span></button></div>` : ''}`;
+    inner = `${title('Invite to ' + esc(g.name))}
+      <div class="card"><div class="code" aria-label="Club code ${esc(g.code)}">${esc(g.code.toUpperCase())}</div><p class="sub" style="text-align:center;margin:0">Friends can tap the link, or type this code in “Join with code”. No sign-up needed.</p></div>
+      <div class="formbtns"><button class="btn" data-act="copy-link" data-id="${g.id}">${d.copied ? '✓ Copied' : '🔗 Copy link'}</button><button class="btn accent" data-act="whatsapp" data-id="${g.id}">Send on WhatsApp</button></div>
+      ${close()}`;
+  }
+  if (ui.sheet === 'member') {
+    const u = userById(d.id) || { id: d.id, name: 'Member' };
+    const isMe = d.id === ME;
+    const books = db.books.filter(b => b.userId === d.id);
+    const now = books.filter(b => b.status === 'reading'), done = books.filter(b => b.status === 'finished');
+    const posts = db.posts.filter(p => p.userId === d.id).sort((a, b) => b.createdAt - a.createdAt);
+    const tile = b => { const saved = onMyShelf(b.title); return `<div class="shelf-item">${fcover(b)}<span class="item-title clamp2">${esc(b.title)}</span>
+      ${b.status === 'reading' && u.showProgress !== false && tracked(b) ? `<div class="bar"><div style="width:${pct(b)}%"></div></div>` : ''}
+      ${isMe ? '' : `<button class="btn" style="font-size:.74rem;padding:.2rem .4rem" ${saved ? 'disabled' : ''} data-act="save-book" data-id="${b.id}">${saved ? '✓ Saved' : '＋ Want'}</button>`}</div>`; };
+    tall = true;
+    inner = `<div class="row">${avatar(u)}<h2 class="sheet-title grow" style="margin:0">${esc(u.name)}${isMe ? ' (you)' : ''}</h2></div>
+      <div class="section-label">Reading now</div>
+      ${now.length ? `<div class="shelf">${now.map(tile).join('')}</div>` : '<div class="sub">Nothing on the go right now.</div>'}
+      <div class="section-label">Finished</div>
+      ${done.length ? `<div class="shelf">${done.map(tile).join('')}</div>` : '<div class="sub">No finished books yet.</div>'}
+      <div class="section-label">What stayed with ${isMe ? 'you' : 'them'}</div>
+      ${posts.length ? posts.map(p => `<div class="card"><div class="item-title" style="font-size:.9rem">${esc(p.title)} ${reactionPill(p.reaction)}</div>${p.text ? `<p class="thought" style="margin:.3rem 0 0">${esc(p.text)}</p>` : ''}<div class="meta">${timeAgo(p.createdAt)}</div></div>`).join('') : '<div class="sub">Nothing shared yet.</div>'}
+      ${close()}`;
   }
 
   /* ---- books ---- */
@@ -1313,7 +1364,7 @@ const actions = {
   'about-invite'() {
     const clubs = myClubs().filter(g => !g.demo);
     if (!clubs.length) { openSheet('create'); toast('Start a club first, then share its code'); }
-    else if (clubs.length === 1) openSheet('club', { id: clubs[0].id });
+    else if (clubs.length === 1) openSheet('invite', { id: clubs[0].id });
     else { ui.tab = 'home'; closeSheet(); toast('Tap a club to share its code'); }
   },
   'w-explore'() {
@@ -1343,7 +1394,7 @@ const actions = {
       pendingJoin = code; ui.sheet = null; startApp(name); await finishOnboard();
     } else { ui.sheet = null; render(); await joinByCode(code); }
   },
-  tab(id) { ui.tab = id; render(); scrollTo(0, 0); },
+  tab(id) { ui.tab = id; ui.clubPage = null; render(); scrollTo(0, 0); },
   shelf(id) { ui.shelfTab = id; render(); },
   'club-filter'(id) { ui.club = id; render(); },
   settings(id) { openSheet('settings', { page: id || '' }); },
@@ -1416,12 +1467,16 @@ const actions = {
     const name = document.getElementById('g-name').value.trim();
     if (!name) { toast('Give your club a name'); return; }
     const g = { id: uid(), name, code: joinCode(), members: [ME], createdBy: ME, createdAt: Date.now() };
-    db.groups.push(g); save(); render();
-    openSheet('club', { id: g.id });
+    db.groups.push(g); save();
+    ui.clubPage = g.id; ui.clubTab = 'members'; ui.sheet = null; render();
+    openSheet('invite', { id: g.id });
     toast('Club created. Invite a few people.');
   },
-  club(id) { openSheet('club', { id }); },
-  'club-discover'(id) { ui.club = id; ui.tab = 'discover'; closeSheet(); scrollTo(0, 0); },
+  club(id) { ui.clubPage = id; ui.clubTab = 'books'; ui.sheet = null; render(); scrollTo(0, 0); },
+  'club-back'() { ui.clubPage = null; render(); scrollTo(0, 0); },
+  'club-tab'(id) { ui.clubTab = id; render(); },
+  invite(id) { openSheet('invite', { id }); },
+  member(id) { openSheet('member', { id }); },
   whatsapp(id) {
     const g = db.groups.find(x => x.id === id);
     const msg = `Join my reading club "${g.name}" on ${APP.first} ${APP.second} 📚\n${inviteLink(g)}\nOr use code: ${g.code.toUpperCase()}`;
@@ -1437,7 +1492,7 @@ const actions = {
     if (!confirm(`Leave ${g.name}? You can rejoin with the code.`)) return;
     const { error } = await sb.from('group_members').delete().eq('group_id', id).eq('user_id', ME);
     if (error) { toast(error.message); return; }
-    db.groups = db.groups.filter(x => x.id !== id); save(); closeSheet(); toast('You left ' + g.name);
+    db.groups = db.groups.filter(x => x.id !== id); save(); ui.clubPage = null; closeSheet(); toast('You left ' + g.name);
   },
 
   /* books */
@@ -1447,7 +1502,7 @@ const actions = {
     const r = list && list[+i]; if (!r) return;
     const status = el.dataset.status;
     if (!addBook({ ...r, status })) return;
-    if (status === 'reading') { ui.sheet = null; ui.tab = 'shelf'; render(); scrollTo(0, 0); toast('Happy reading 📖'); }
+    if (status === 'reading') { ui.sheet = null; if (!ui.clubPage) ui.tab = 'shelf'; render(); scrollTo(0, 0); toast('Happy reading 📖'); }
     else { ui.shelfTab = 'want'; render(); renderResults(); toast('Added to Want to read'); }
   },
   'manual-open'() { openSheet('manual', { photo: '', title: ui.search.q || '' }); },
@@ -1457,7 +1512,7 @@ const actions = {
     const b = addBook({ title, author: document.getElementById('m-author').value.trim(), pages: +document.getElementById('m-pages').value || 0, photo: ui.sheetData.photo || '', status: el.dataset.status });
     if (!b) return;
     if (b.status === 'want') ui.shelfTab = 'want';
-    ui.sheet = null; ui.tab = 'shelf'; render(); toast(b.status === 'reading' ? 'Happy reading 📖' : 'Added to Want to read');
+    ui.sheet = null; if (!ui.clubPage) ui.tab = 'shelf'; render(); toast(b.status === 'reading' ? 'Happy reading 📖' : 'Added to Want to read');
   },
   book(id) { openSheet('book', { id }); },
   'track-toggle'(id) {
