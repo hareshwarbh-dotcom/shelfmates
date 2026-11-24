@@ -691,7 +691,7 @@ function render() {
   const tab = (k, ic, label) => `<button class="${ui.tab === k ? 'on' : ''}" data-act="tab" data-id="${k}" ${ui.tab === k ? 'aria-current="page"' : ''}><span class="ic">${ic}</span>${label}</button>`;
   app.innerHTML = `
     <header class="hb-header">
-      ${ui.tab === 'home' ? `<h1 class="hb-logo">${APP.first} <span>${esc(APP.second)}</span></h1>` : `<h1 class="hb-logo">${titles[ui.tab]}</h1>`}
+      ${ui.tab === 'home' ? `<h1 class="hb-logo" style="margin:0"><button data-act="about" aria-label="About ${APP.first} ${esc(APP.second)}" style="all:unset;cursor:pointer">${APP.first} <span>${esc(APP.second)}</span></button></h1>` : `<h1 class="hb-logo">${titles[ui.tab]}</h1>`}
       <button class="iconbtn" aria-label="Settings" data-act="settings">⚙︎${CLOUD ? `<span class="syncdot ${syncState === 'ok' ? '' : syncState}" id="syncdot"></span>` : ''}</button>
     </header>
     <main class="hb-main">${body}</main>
@@ -708,17 +708,22 @@ function setSyncState(s) {
 }
 
 /* ----- Welcome (new visitors) ----- */
+const olCover = isbn => `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg?default=false`;
+const WELCOME_BOOKS = [
+  { title: 'Atomic Habits', author: 'James Clear', coverUrl: olCover('9780735211292') },
+  { title: 'Wings of Fire', author: 'A.P.J. Abdul Kalam', coverUrl: olCover('9788173711466') },
+  { title: 'The Psychology of Money', author: 'Morgan Housel', coverUrl: olCover('9780857197689') },
+  { title: 'Ikigai', author: 'García & Miralles', coverUrl: olCover('9781786330895') }];
+const PILLARS = `<div class="mgroup">
+  <div class="mrow static"><span class="mi">📖</span><span class="mt">Read<small>at your own pace, your own books</small></span></div>
+  <div class="mrow static"><span class="mi">🧭</span><span class="mt">Discover<small>through friends, coworkers and family</small></span></div>
+  <div class="mrow static"><span class="mi">✍️</span><span class="mt">Share<small>what stays with you, in a line or two</small></span></div>
+</div>`;
 function welcomeHTML() {
-  const ol = isbn => `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg?default=false`;
-  const sample = [
-    { title: 'Atomic Habits', author: 'James Clear', coverUrl: ol('9780735211292') },
-    { title: 'Wings of Fire', author: 'A.P.J. Abdul Kalam', coverUrl: ol('9788173711466') },
-    { title: 'The Psychology of Money', author: 'Morgan Housel', coverUrl: ol('9780857197689') },
-    { title: 'Ikigai', author: 'García & Miralles', coverUrl: ol('9781786330895') }];
   return `<div class="welcome">
     <h1 class="hb-logo">${APP.first} <span>${esc(APP.second)}</span></h1>
     <p class="tag">Your books, your pace, shared with friends.</p>
-    ${pendingJoin ? `<div class="banner accent"><span class="b-icon">💌</span><div><div class="item-title" id="invite-title">You've been invited to a club</div><div class="sub">Add your name to join. No sign-up needed.</div></div></div>` : `<div class="wcovers">${sample.map(fcover).join('')}</div>`}
+    ${pendingJoin ? `<div class="banner accent"><span class="b-icon">💌</span><div><div class="item-title" id="invite-title">You've been invited to a club</div><div class="sub">Add your name to join. No sign-up needed.</div></div></div>` : `<div class="wcovers">${WELCOME_BOOKS.map(fcover).join('')}</div>`}
     <div class="mgroup">
       <div class="mrow static"><span class="mi">📖</span><span class="mt">Read<small>at your own pace, your own books</small></span></div>
       <div class="mrow static"><span class="mi">🧭</span><span class="mt">Discover<small>through friends, coworkers and family</small></span></div>
@@ -925,7 +930,7 @@ function renderSheet(animate) {
           ${mrow('set-page', 'display', '🎨', 'Display &amp; theme', { dark: 'Dark', light: 'Light', auto: 'Auto' }[display.theme] + ' · ' + display.accent[0].toUpperCase() + display.accent.slice(1))}
           ${mrow('set-page', 'data', '💾', 'Data &amp; backup', CLOUD ? (syncState === 'error' ? 'Not synced' : 'Synced') : 'This phone only')}
           ${standalone ? '' : mrow('set-page', 'install', '📱', 'Install as an app', '')}
-          ${mrow('set-page', 'help', '📖', 'How to use', '')}
+          ${mrow('about', '', '📖', 'About &amp; how to use', '')}
         </div>
         ${isAdmin ? `<div class="mgroup">${mrow('admin', '', '📊', 'Owner dashboard', 'Only you')}</div>` : ''}
         ${email ? `<div class="mgroup">${mrow('sign-out', '', '🚪', 'Log out', null, 'danger')}</div>` : ''}
@@ -1010,6 +1015,27 @@ function renderSheet(animate) {
             .map(([i, t, x]) => `<div class="mrow static"><span class="mi">${i}</span><span class="mt">${t}<small>${x}</small></span></div>`).join('')}
         </div>${subEnd}`;
     }
+  }
+
+  /* ---- about (for people already using the app) ---- */
+  if (ui.sheet === 'about') {
+    tall = true;
+    inner = `<h2 class="hb-logo" style="font-size:2rem;white-space:normal">${APP.first} <span>${esc(APP.second)}</span></h2>
+      <p class="tag" style="color:var(--muted);margin:.3rem 0 .9rem;font-size:1rem">Your books, your pace, shared with friends.</p>
+      <div class="wcovers">${WELCOME_BOOKS.map(fcover).join('')}</div>
+      ${PILLARS}
+      <div class="banner accent"><span class="b-icon">🌱</span><div class="sub" style="color:var(--ink)">This isn't about how much anyone reads. It's a calm place to read more, find good books through people you know, and enjoy it together.</div></div>
+      <div class="section-label">How to use</div>
+      <div class="mgroup" style="margin-top:0">
+        ${[['🏠', 'Home', 'Your Today dial shows pages you read today. Only you see it.'],
+           ['📚', 'Shelf', 'Books you are reading, want to read, paused and finished. Tracking progress is optional.'],
+           ['🧭', 'Discover', 'What people in your clubs are reading. Save anything to Want to read.'],
+           ['✍️', 'Share', 'Finished a book? React and share a line about what stayed with you.'],
+           ['👥', 'Clubs', 'Create one on Home and send the code. Friends join without signing up.']]
+          .map(([i, t, x]) => `<div class="mrow static"><span class="mi">${i}</span><span class="mt">${t}<small>${x}</small></span></div>`).join('')}
+      </div>
+      <p class="sub" style="text-align:center;margin:1rem 0 0">${APP.first} ${esc(APP.second)} · beta</p>
+      <div class="formbtns"><button class="btn accent" data-act="about-invite">💌 Invite a friend</button><button class="btn primary" data-act="close">Done</button></div>`;
   }
 
   /* ---- welcome flows ---- */
@@ -1282,6 +1308,13 @@ const actions = {
     const name = document.getElementById('ob-name').value.trim();
     if (!name) { toast('Add your name to continue'); document.getElementById('ob-name').focus(); return; }
     startApp(name); await finishOnboard();
+  },
+  about() { openSheet('about'); },
+  'about-invite'() {
+    const clubs = myClubs().filter(g => !g.demo);
+    if (!clubs.length) { openSheet('create'); toast('Start a club first, then share its code'); }
+    else if (clubs.length === 1) openSheet('club', { id: clubs[0].id });
+    else { ui.tab = 'home'; closeSheet(); toast('Tap a club to share its code'); }
   },
   'w-explore'() {
     const name = (document.getElementById('ob-name')?.value || '').trim() || 'You';
