@@ -1,337 +1,363 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0F6E6E">
-<title>The Book Club</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#121419">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Shelfmates">
+<title>Shelfmates &amp; Me</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{
-  --teal:#0F6E6E; --teal-d:#0A4F4F; --teal-l:#E3F1F0; --teal-xl:#F1F8F7;
-  --ink:#1B1F24; --muted:#5B6470; --line:#E6E9ED; --field:#CDD3DA;
-  --bg:#F5F6F4; --card:#FFFFFF; --amber-l:#FCEFD9; --amber:#8A5A1F; --red:#A3412A;
-  --teal-b:#A9D3CE; --on:#FFFFFF; --hero:var(--teal); --hero-ink:#FFFFFF; --glass:rgba(255,255,255,.94);
-  --head:'Bricolage Grotesque',Inter,system-ui,sans-serif;
-  --shadow:0 1px 2px rgba(27,31,36,.04),0 4px 14px rgba(27,31,36,.06);
-  --r:18px;
+/* ============================================================
+   HomeBase design system tokens (dark default + light)
+   ============================================================ */
+:root, [data-theme="dark"] {
+  --bg:#121419; --card:#1c1f27; --soft:#262a34; --line:#2c303b;
+  --ink:#ecedf0; --on-ink:#121419; --muted:#9a9ea9;
+  --accent:#2f6fdb;
+  --red:#e8766d; --red-soft:#3a2224; --green:#5dbb7e; --green-soft:#1f3328; --blue:#7fa9d6; --blue-soft:#1f2b3a; --warning:#e8a21c;
+  --shadow-float:0 6px 18px rgba(0,0,0,.45);
+  color-scheme: dark;
 }
-*{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
-button,input,textarea{font:inherit;color:inherit}
-button{cursor:pointer;-webkit-user-select:none;user-select:none}
-button:active:not(:disabled){transform:scale(.98)}
-:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
-.app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;position:relative}
+[data-theme="light"] {
+  --bg:#faf7f2; --card:#ffffff; --soft:#f1eee8; --line:#e8e2d7;
+  --ink:#1c1f2a; --on-ink:#ffffff; --muted:#6b6f7a;
+  --red:#c8463d; --red-soft:#fbeae8; --green:#3f8f5b; --green-soft:#e7f3eb; --blue:#3c6e9f; --blue-soft:#e6eef6;
+  --shadow-float:0 6px 18px rgba(28,31,42,.12);
+  color-scheme: light;
+}
+:root {
+  --accent-soft: color-mix(in srgb, var(--accent) 20%, var(--bg));
+  --accent-text: color-mix(in srgb, var(--accent) 72%, var(--ink));
+  --font-display: Fraunces, Georgia, serif;
+  --font-sans: Inter, system-ui, -apple-system, sans-serif;
+  --radius-sm:.5rem; --radius-md:.6rem; --radius-lg:.8rem; --radius-sheet:1.1rem; --radius-pill:99px;
+}
 
-/* headers */
-.hero{background:var(--hero);color:var(--hero-ink);padding:calc(30px + env(safe-area-inset-top)) 20px 64px;position:relative}
-.hero .kicker{font-size:14px;color:var(--hero-ink);opacity:.8;margin:0 0 4px}
-.hero h1{margin:0;font-family:var(--head);font-size:34px;font-weight:800;letter-spacing:-.8px}
-.hero .gear{position:absolute;right:10px;top:calc(18px + env(safe-area-inset-top));color:var(--hero-ink)}
-.principle{margin:-44px 16px 0;background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:14px 16px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;position:relative;z-index:1}
-.principle div{display:flex;flex-direction:column;gap:2px}
-.principle b{font-family:var(--head);font-size:15px;color:var(--teal)}
-.principle span{font-size:12px;color:var(--muted);line-height:1.35}
-.topbar{position:sticky;top:0;z-index:5;background:var(--glass);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:calc(8px + env(safe-area-inset-top)) 8px 8px;display:flex;align-items:center;gap:6px}
-.topbar .t{flex:1;min-width:0}
-.topbar .name{font-family:var(--head);font-size:19px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.stack{display:flex;align-items:center;margin-top:2px}
-.stack .av{width:20px;height:20px;border-radius:10px;font-size:10px;border:2px solid var(--card);margin-left:-6px}
-.stack .av:first-child{margin-left:0}
-.stack small{font-size:12px;color:var(--muted);margin-left:6px}
+/* ============================================================
+   HomeBase components (from the design system bundle)
+   ============================================================ */
+html { font-size: 14px; }
+*, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body { margin: 0; font-family: var(--font-sans); background: var(--bg); color: var(--ink); font-size: 1rem; line-height: 1.4; -webkit-text-size-adjust: 100%; }
+button, input, textarea { font: inherit; color: inherit; }
+img { max-width: 100%; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-/* layout */
-.content{flex:1;padding:18px 16px 112px;display:flex;flex-direction:column;gap:26px}
-.section{display:flex;flex-direction:column;gap:12px}
-.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
-.h2{margin:0;font-family:var(--head);font-size:20px;font-weight:700;letter-spacing:-.2px}
-.h3{margin:0;font-size:12px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--muted)}
-.card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:14px;display:flex;flex-direction:column;gap:12px}
-.row{display:flex;gap:12px;align-items:center}
-.grow{flex:1;min-width:0}
-.title{font-weight:600;font-size:15px;line-height:1.3}
-.clamp2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.sub{font-size:13px;color:var(--muted)}
-.small{font-size:12px;color:var(--muted)}
-.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
-.bar>div{height:100%;background:var(--teal);border-radius:3px;transition:width .3s}
-.empty{font-size:14px;color:var(--muted);line-height:1.5;margin:0}
+.app { max-width: 560px; margin: 0 auto; min-height: 100vh; padding-bottom: 7rem; }
+.hb-header { display: flex; align-items: center; justify-content: space-between; gap: .6rem; padding: calc(.7rem + env(safe-area-inset-top)) 1rem .5rem; position: sticky; top: 0; background: var(--bg); z-index: 5; }
+.hb-logo { font-family: var(--font-display); font-size: 1.5rem; font-weight: 600; letter-spacing: -.4px; margin: 0; user-select: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hb-logo span { color: var(--accent); }
+.hb-main { padding: 0 1rem; }
+.sheet-title { font-family: var(--font-display); font-size: 1.25rem; font-weight: 600; margin: .2rem 0 .6rem; }
+.section-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .7px; color: var(--muted); font-weight: 600; margin: 1.1rem 0 .45rem; display: flex; justify-content: space-between; align-items: baseline; }
+.sub { color: var(--muted); font-size: .85rem; }
 
-/* buttons */
-.btn{height:44px;padding:0 16px;border-radius:12px;border:1px solid var(--line);background:var(--card);font-size:14px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:background .15s}
-.btn.primary{background:var(--teal);border-color:var(--teal);color:var(--on)}
-.btn.soft{background:var(--teal-l);border-color:var(--teal-l);color:var(--teal-d)}
-.btn.outline{background:var(--card);border-color:var(--teal);color:var(--teal)}
-.btn.ghost{background:transparent;border-color:transparent;color:var(--muted)}
-.btn.danger{background:transparent;border-color:transparent;color:var(--red)}
-.btn.block{width:100%;height:52px;border-radius:14px;font-size:15px}
-.btn:disabled{background:var(--line);border-color:var(--line);color:var(--muted);cursor:default}
-.icon-btn{width:44px;height:44px;border:none;background:transparent;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
-.link{background:none;border:none;padding:10px 0;color:var(--teal);font-weight:600;font-size:14px}
-.pill{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:6px 12px;border-radius:18px;border:1px solid var(--line);background:var(--card);font-size:13px;font-weight:500;color:var(--muted)}
-.pill.on{color:var(--teal-d);background:var(--teal-xl);border-color:var(--teal-b)}
-.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: .6rem .8rem; margin-bottom: .5rem; }
+.row { display: flex; align-items: center; gap: .6rem; }
+.grow { flex: 1; min-width: 0; }
+.item-title { font-weight: 600; overflow-wrap: anywhere; }
+.meta { font-size: .82rem; color: var(--muted); margin-top: 1px; display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; }
+.src { font-size: 1.1rem; width: 1.8rem; text-align: center; flex-shrink: 0; }
+.empty { text-align: center; color: var(--muted); padding: 1.4rem .6rem; font-size: .88rem; line-height: 1.5; }
 
-/* groups */
-.group-btn{display:flex;align-items:center;gap:14px;width:100%;text-align:left;padding:14px;background:var(--card);border:none;border-radius:var(--r);box-shadow:var(--shadow)}
-.badge{width:52px;height:52px;border-radius:16px;background:var(--teal-l);color:var(--teal);display:flex;align-items:center;justify-content:center;font-family:var(--head);font-weight:800;font-size:22px;flex-shrink:0}
-.minicovers{display:flex;gap:4px;margin-top:6px}
-.minicovers .cover{width:22px;height:32px;font-size:10px;border-radius:3px}
-.av{width:36px;height:36px;border-radius:18px;background:var(--amber-l);color:var(--amber);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0}
-.av.me{background:var(--teal-l);color:var(--teal)}
-.demo-tag{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;background:var(--amber-l);color:var(--amber);margin-left:6px;vertical-align:2px}
-.create{display:flex;align-items:center;gap:14px;width:100%;text-align:left;padding:14px;border-radius:var(--r);border:1.5px dashed var(--teal-b);background:transparent;color:var(--teal)}
-.create .badge{background:var(--card);border:1px solid var(--teal-b)}
+.pill { font-size: .7rem; font-weight: 600; padding: .08rem .45rem; border-radius: var(--radius-pill); white-space: nowrap; }
+.pill.ok { background: var(--green-soft); color: var(--green); }
+.pill.info { background: var(--blue-soft); color: var(--blue); }
+.pill.soon { background: var(--accent-soft); color: var(--accent-text); }
+.pill.late { background: var(--red-soft); color: var(--red); }
+.pill.later { background: var(--soft); color: var(--muted); }
+
+.btn { border: 1px solid var(--line); background: var(--card); border-radius: var(--radius-md); padding: .4rem .8rem; min-height: 2.3rem; font-size: .88rem; font-weight: 500; cursor: pointer; color: var(--ink); display: inline-flex; align-items: center; justify-content: center; gap: .35rem; }
+.btn.primary { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
+.btn.accent { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn.danger { color: var(--red); }
+.btn.block { width: 100%; min-height: 2.8rem; }
+.btn:disabled { opacity: .45; cursor: default; }
+.actions { display: flex; gap: .4rem; margin-top: .6rem; flex-wrap: wrap; }
+.formbtns { display: flex; gap: .5rem; margin-top: 1.1rem; }
+.formbtns .btn { flex: 1; min-height: 2.7rem; }
+.iconbtn { background: none; border: 1px solid var(--line); border-radius: var(--radius-md); width: 2.4rem; height: 2.4rem; font-size: 1.1rem; cursor: pointer; flex-shrink: 0; color: var(--ink); position: relative; display: inline-flex; align-items: center; justify-content: center; }
+.iconbtn::after { content: ''; position: absolute; inset: -4px; }
+.syncdot { position: absolute; top: 4px; right: 4px; width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+.syncdot.pending { background: var(--warning); } .syncdot.error { background: var(--red); }
+.link { background: none; border: none; color: var(--accent-text); font-weight: 600; font-size: .88rem; padding: .6rem .2rem; cursor: pointer; }
+
+.chips { display: flex; gap: .4rem; overflow-x: auto; padding-bottom: 2px; margin-bottom: .6rem; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { border: 1px solid var(--line); background: var(--card); border-radius: var(--radius-pill); padding: .35rem .85rem; min-height: 2.2rem; font-size: .88rem; cursor: pointer; white-space: nowrap; color: var(--ink); }
+.chip.on { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
+.chip.sm { min-height: 1.9rem; padding: .2rem .65rem; }
+
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; }
+.stat { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: .6rem .75rem; }
+.stat .n { font-family: var(--font-display); font-size: 1.35rem; font-weight: 700; }
+.stat .l { font-size: .76rem; color: var(--muted); line-height: 1.25; }
+.stat.hl { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
+.stat.hl .l { color: var(--on-ink); opacity: .72; }
+
+.hb-label { display: block; font-size: .82rem; font-weight: 600; margin: .7rem 0 .3rem; }
+.hb-input { width: 100%; min-width: 0; min-height: 2.6rem; border: 1px solid var(--line); background: var(--card); border-radius: var(--radius-md); padding: .5rem .7rem; font-size: max(16px, 1rem); color: var(--ink); }
+.hb-input:focus { outline: none; border-color: var(--accent); }
+textarea.hb-input { resize: none; line-height: 1.5; }
+
+.mgroup { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-lg); overflow: hidden; margin-top: .7rem; }
+.mrow { display: flex; align-items: center; gap: .7rem; width: 100%; min-height: 3rem; padding: .55rem .85rem; background: none; border: none; border-bottom: 1px solid var(--line); color: var(--ink); text-align: left; cursor: pointer; }
+.mgroup .mrow:last-child { border-bottom: none; }
+.mrow .mi { font-size: 1.1rem; width: 1.5rem; text-align: center; flex-shrink: 0; }
+.mrow .mt { flex: 1; font-weight: 500; min-width: 0; }
+.mrow .mt small { display: block; font-weight: 400; font-size: .78rem; color: var(--muted); margin-top: 1px; }
+.mrow .ms { color: var(--muted); font-size: .82rem; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mrow .mc { color: var(--muted); font-size: 1.1rem; }
+.mrow.danger .mt { color: var(--red); } .mrow.danger .mc { display: none; }
+.mrow.static { cursor: default; }
+
+.switch { position: relative; display: inline-block; width: 2.6rem; height: 1.5rem; flex-shrink: 0; }
+.switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+.switch span { position: absolute; inset: 0; background: var(--soft); border: 1px solid var(--line); border-radius: var(--radius-pill); transition: .2s; cursor: pointer; }
+.switch span::before { content: ''; position: absolute; width: 1.1rem; height: 1.1rem; left: .15rem; top: 50%; transform: translateY(-50%); background: #fff; border-radius: 50%; transition: .2s; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+.switch input:checked + span { background: var(--green); border-color: var(--green); }
+.switch input:checked + span::before { transform: translate(1.1rem, -50%); }
+
+.swatches { display: flex; gap: .7rem; flex-wrap: wrap; }
+.swatch { width: 2.2rem; height: 2.2rem; border-radius: 50%; border: 3px solid var(--bg); box-shadow: 0 0 0 1px var(--line); cursor: pointer; padding: 0; position: relative; }
+.swatch::after { content: ''; position: absolute; inset: -5px; }
+.swatch.on { box-shadow: 0 0 0 2px var(--ink); }
+
+.banner { display: flex; gap: .6rem; align-items: flex-start; border-radius: var(--radius-lg); padding: .6rem .8rem; border: 1px solid var(--line); margin: .6rem 0; }
+.banner.accent { background: var(--accent-soft); }
+.banner.info { background: var(--blue-soft); }
+.banner .b-icon { font-size: 1.3rem; }
+
+.overlay { position: fixed; inset: 0; background: rgba(10,12,18,.5); display: flex; align-items: flex-end; justify-content: center; z-index: 20; }
+.overlay.anim { animation: fade .2s ease-out; }
+.overlay.anim .sheet { animation: up .24s cubic-bezier(.2,.8,.2,1); }
+.sheet { background: var(--bg); width: 100%; max-width: 560px; border-radius: var(--radius-sheet) var(--radius-sheet) 0 0; padding: 1.1rem 1rem calc(1.6rem + env(safe-area-inset-bottom)); max-height: 92vh; overflow-y: auto; }
+.sheet.tall { min-height: 80vh; }
+@keyframes up { from { transform: translateY(40px); opacity: .4; } }
+@keyframes fade { from { background: rgba(10,12,18,0); } }
+
+.toast { background: var(--ink); color: var(--on-ink); padding: .4rem .4rem .4rem .9rem; border-radius: var(--radius-md); font-size: .88rem; display: inline-flex; align-items: center; gap: .5rem; max-width: calc(100vw - 32px); box-shadow: var(--shadow-float); min-height: 2.6rem; }
+.toast.fixed { position: fixed; bottom: calc(8rem + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); z-index: 30; transition: opacity .2s; }
+.toast.hide { opacity: 0; pointer-events: none; }
+.toast button { background: none; border: none; color: var(--accent); filter: brightness(1.3); font-weight: 700; cursor: pointer; padding: 0 .7rem; min-height: 2.4rem; text-transform: uppercase; letter-spacing: .5px; }
+[data-theme="light"] .toast button { filter: brightness(1.6); }
+
+.hb-nav { background: var(--card); border-top: 1px solid var(--line); display: flex; justify-content: center; padding-bottom: env(safe-area-inset-bottom); }
+.hb-nav.fixed { position: fixed; bottom: 0; left: 0; right: 0; z-index: 10; }
+.hb-nav .inner { display: flex; max-width: 560px; width: 100%; }
+.hb-nav button { flex: 1; min-width: 0; min-height: 3.3rem; background: none; border: none; padding: .4rem 0 .5rem; font-size: .7rem; color: var(--muted); cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.hb-nav button .ic { font-size: 1.2rem; filter: grayscale(1); opacity: .55; }
+.hb-nav button.on { color: var(--ink); font-weight: 600; }
+.hb-nav button.on .ic { filter: none; opacity: 1; }
+.fab { width: 3.2rem; height: 3.2rem; border-radius: 50%; background: var(--accent); color: #fff; font-size: 1.6rem; border: none; box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 40%, transparent); cursor: pointer; }
+.fab.fixed { position: fixed; bottom: calc(4.2rem + env(safe-area-inset-bottom)); right: max(1rem, calc(50% - 264px)); z-index: 11; }
+
+html.comfy .card { padding: .85rem 1rem; margin-bottom: .7rem; }
+html.comfy .btn, html.comfy .chip { min-height: 2.75rem; }
+
+/* ============================================================
+   Shelfmates additions, built from the same tokens
+   ============================================================ */
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.file { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+.clamp2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
 /* covers */
-.cover{border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--head);font-weight:700;overflow:hidden;object-fit:cover;background:#2C3E50;box-shadow:0 1px 2px rgba(0,0,0,.12),inset -3px 0 0 rgba(0,0,0,.12)}
-.fcover{display:block;position:relative;width:100%;aspect-ratio:2/3;border-radius:6px;overflow:hidden;box-shadow:0 2px 8px rgba(27,31,36,.14);background:#2C3E50}
-.fcover img{width:100%;height:100%;object-fit:cover;display:block}
-.fcover .gen{position:absolute;inset:0;padding:10px 9px;display:flex;flex-direction:column;justify-content:space-between;color:#fff}
-.fcover .gen b{font-family:var(--head);font-size:14px;line-height:1.15;font-weight:700;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
-.fcover .gen i{font-style:normal;font-size:10px;opacity:.85;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.fcover::after{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:rgba(0,0,0,.14)}
-.cover-wrap{position:relative;flex-shrink:0;display:block;cursor:pointer}
-.cam{position:absolute;right:-6px;bottom:-6px;width:28px;height:28px;border-radius:14px;background:var(--card);box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;color:var(--teal)}
-.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-.file{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+.cover { border-radius: 4px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-family: var(--font-display); font-weight: 700; overflow: hidden; object-fit: cover; background: #2C3E50; }
+.fcover { display: block; position: relative; width: 100%; aspect-ratio: 2/3; border-radius: 6px; overflow: hidden; background: #2C3E50; border: 1px solid var(--line); }
+.fcover img { width: 100%; height: 100%; object-fit: cover; display: block; position: absolute; inset: 0; }
+.fcover .gen { position: absolute; inset: 0; padding: .6rem .55rem; display: flex; flex-direction: column; justify-content: space-between; color: #fff; }
+.fcover .gen b { font-family: var(--font-display); font-size: .95rem; line-height: 1.15; font-weight: 600; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.fcover .gen i { font-style: normal; font-size: .66rem; opacity: .85; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.cover-wrap { position: relative; flex-shrink: 0; display: block; cursor: pointer; }
+.cam { position: absolute; right: -6px; bottom: -6px; width: 1.9rem; height: 1.9rem; border-radius: 50%; background: var(--card); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; font-size: .85rem; }
 
-/* reading now */
-.now{display:grid;grid-template-columns:84px minmax(0,1fr);gap:14px;align-items:start}
-.now .meta{display:flex;flex-direction:column;gap:4px;min-width:0}
-.prog{display:flex;flex-direction:column;gap:2px;margin-top:6px}
-.prog-row{display:flex;align-items:center;gap:10px}
-.slider{flex:1;min-width:0;-webkit-appearance:none;appearance:none;height:32px;background:transparent;margin:0;--p:0%}
-.slider:focus{outline:none}
-.slider::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:linear-gradient(to right,var(--teal) var(--p),var(--line) var(--p))}
-.slider::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:13px;background:var(--card);border:2px solid var(--teal);margin-top:-10px;box-shadow:0 1px 4px rgba(0,0,0,.2)}
-.slider:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 4px var(--teal-l)}
-.slider::-moz-range-track{height:6px;border-radius:3px;background:var(--line)}
-.slider::-moz-range-progress{height:6px;border-radius:3px;background:var(--teal)}
-.slider::-moz-range-thumb{width:22px;height:22px;border-radius:11px;background:var(--card);border:2px solid var(--teal)}
-.num{width:64px;height:40px;flex-shrink:0;border-radius:10px;border:1px solid var(--field);background:var(--card);text-align:center;font-weight:600;font-size:16px;padding:0 4px;-moz-appearance:textfield}
-.num:focus{border-color:var(--teal);outline:none;box-shadow:0 0 0 3px var(--teal-l)}
-.unit{font-size:13px;color:var(--muted);flex-shrink:0}
-.toggle-row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 14px;background:var(--bg);border:none;border-radius:14px}
-.sw{width:46px;height:28px;border-radius:14px;position:relative;flex-shrink:0;background:var(--field);transition:background .15s}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:11px;background:#fff;transition:left .15s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
-.sw.on{background:var(--teal)}.sw.on::after{left:21px}
+/* today dial */
+.today-card { padding: .9rem .8rem .8rem; }
+.dial { position: relative; width: 15rem; height: 13.6rem; margin: .4rem auto 0; }
+.dial > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.dial .mid { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-top: .3rem; }
+.dial .dnum { font-family: var(--font-display); font-size: 4.4rem; font-weight: 700; line-height: 1; letter-spacing: -2px; }
+.dial .lbl { font-size: .95rem; color: var(--muted); margin-top: .2rem; }
+.dial .goal { font-size: .85rem; color: var(--muted); margin-top: .35rem; }
+.dial .dbtn { position: absolute; bottom: 0; }
+.week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: .5rem; align-items: end; height: 6.4rem; padding: .6rem .3rem 0; border-top: 1px solid var(--line); margin-top: .7rem; }
+.week div { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 3px; height: 100%; }
+.week i { display: block; width: 55%; max-width: 16px; border-radius: 4px 4px 2px 2px; background: var(--soft); min-height: 3px; }
+.week .has i { background: color-mix(in srgb, var(--accent) 55%, var(--soft)); }
+.week .on i { background: var(--accent); }
+.week span { font-size: .72rem; color: var(--muted); }
+.week .on span { color: var(--ink); font-weight: 600; }
+.week em { font-style: normal; font-size: .66rem; color: var(--muted); height: .9rem; }
+
+/* clubs */
+.club-badge { width: 2.6rem; height: 2.6rem; border-radius: var(--radius-md); background: var(--accent-soft); color: var(--accent-text); display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 700; font-size: 1.2rem; flex-shrink: 0; }
+.minicovers { display: flex; gap: 3px; margin-top: .35rem; }
+.minicovers .cover { width: 1.3rem; height: 1.9rem; font-size: .6rem; border-radius: 2px; }
+.av { width: 2.2rem; height: 2.2rem; border-radius: 50%; background: var(--soft); color: var(--ink); display: inline-flex; align-items: center; justify-content: center; font-weight: 600; font-size: .85rem; flex-shrink: 0; border: 1px solid var(--line); }
+.av.me { background: var(--accent-soft); color: var(--accent-text); }
+.av.sm { width: 1.5rem; height: 1.5rem; font-size: .68rem; }
+.code { font-family: var(--font-display); font-size: 2rem; font-weight: 700; letter-spacing: .35rem; text-align: center; padding: .6rem 0; }
 
 /* shelf */
-.seg{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
-.seg::-webkit-scrollbar{display:none}
-.seg button{flex-shrink:0;height:36px;padding:0 14px;border-radius:18px;border:1px solid var(--line);background:var(--card);font-size:13px;font-weight:600;color:var(--muted)}
-.seg button.on{background:var(--ink);border-color:var(--ink);color:var(--card)}
-.shelf-item{display:flex;flex-direction:column;gap:6px;border:none;background:none;padding:0;text-align:left;min-width:0}
-.shelf-item .title{font-size:13px}
-.shelf-item .small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.empty-card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:22px 18px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px}
-.empty-card .ill{width:64px;height:64px;border-radius:20px;background:var(--teal-l);color:var(--teal);display:flex;align-items:center;justify-content:center}
+.now { display: grid; grid-template-columns: 5.2rem minmax(0, 1fr); gap: .8rem; align-items: start; }
+.shelf { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .8rem .6rem; }
+.shelf-item { display: flex; flex-direction: column; gap: .3rem; border: none; background: none; padding: 0; text-align: left; min-width: 0; cursor: pointer; color: var(--ink); }
+.shelf-item .item-title { font-size: .85rem; }
+.shelf-item .meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+
+/* progress */
+.prog { display: flex; flex-direction: column; gap: 1px; margin-top: .4rem; }
+.prog-row { display: flex; align-items: center; gap: .55rem; }
+.slider { flex: 1; min-width: 0; -webkit-appearance: none; appearance: none; height: 2rem; background: transparent; margin: 0; --p: 0%; }
+.slider:focus { outline: none; }
+.slider::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: linear-gradient(to right, var(--accent) var(--p), var(--soft) var(--p)); }
+.slider::-webkit-slider-thumb { -webkit-appearance: none; width: 1.6rem; height: 1.6rem; border-radius: 50%; background: #fff; border: 2px solid var(--accent); margin-top: -.55rem; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
+.slider::-moz-range-track { height: 6px; border-radius: 3px; background: var(--soft); }
+.slider::-moz-range-progress { height: 6px; border-radius: 3px; background: var(--accent); }
+.slider::-moz-range-thumb { width: 1.3rem; height: 1.3rem; border-radius: 50%; background: #fff; border: 2px solid var(--accent); }
+.num { width: 4.2rem; min-height: 2.4rem; flex-shrink: 0; border-radius: var(--radius-md); border: 1px solid var(--line); background: var(--card); text-align: center; font-weight: 600; font-size: max(16px, 1rem); -moz-appearance: textfield; color: var(--ink); }
+.num:focus { outline: none; border-color: var(--accent); }
+.unit { font-size: .82rem; color: var(--muted); flex-shrink: 0; }
+.small { font-size: .78rem; color: var(--muted); }
+.bar { height: 5px; background: var(--soft); border-radius: 3px; overflow: hidden; }
+.bar > div { height: 100%; background: var(--accent); }
 
 /* discover */
-.carousel{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -16px;padding:2px 16px 8px;scrollbar-width:none}
-.carousel::-webkit-scrollbar{display:none}
-.ccard{flex:0 0 128px;scroll-snap-align:start;display:flex;flex-direction:column;gap:8px}
-.ccard .who{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
-.ccard .who .av{width:22px;height:22px;font-size:11px}
-.save-mini{height:36px;border-radius:10px;font-size:12px;padding:0 10px}
-.post-head{display:flex;align-items:center;gap:10px}
-.photo{width:100%;max-height:320px;aspect-ratio:4/3;object-fit:cover;border-radius:14px;display:block}
-.thought{font-size:15px;line-height:1.55;white-space:pre-line;margin:0}
-.reaction{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:4px 10px;border-radius:12px}
-.book-strip{display:flex;gap:12px;align-items:center;padding:10px;border-radius:14px;background:var(--bg)}
-
-/* tabs */
-.tabs{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;z-index:6;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));background:var(--glass);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:6px 10px calc(8px + env(safe-area-inset-bottom))}
-.tab{height:54px;border:none;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:12px;font-weight:600;color:var(--muted);border-radius:14px}
-.tab.on{color:var(--teal)}
-.tab.on svg{background:var(--teal-l);border-radius:12px;padding:3px 14px;box-sizing:content-box}
+.carousel { display: flex; gap: .7rem; overflow-x: auto; scroll-snap-type: x mandatory; margin: 0 -1rem; padding: 2px 1rem .4rem; scrollbar-width: none; }
+.carousel::-webkit-scrollbar { display: none; }
+.ccard { flex: 0 0 8.4rem; scroll-snap-align: start; display: flex; flex-direction: column; gap: .4rem; }
+.ccard .who { display: flex; align-items: center; gap: .35rem; font-size: .8rem; }
+.photo { width: 100%; aspect-ratio: 4/3; max-height: 20rem; object-fit: cover; border-radius: var(--radius-sm); display: block; margin: .5rem 0; }
+.thought { font-size: .95rem; line-height: 1.5; white-space: pre-line; margin: .5rem 0; }
+.book-strip { display: flex; gap: .6rem; align-items: center; padding: .5rem; border-radius: var(--radius-md); background: var(--soft); margin-top: .4rem; }
 
 /* share */
-.pick-row{display:flex;gap:12px;overflow-x:auto;margin:0 -16px;padding:4px 16px 6px;scrollbar-width:none}
-.pick-row::-webkit-scrollbar{display:none}
-.pick{flex:0 0 86px;border:none;background:none;padding:0;display:flex;flex-direction:column;gap:6px;text-align:left}
-.pick .fcover{outline:3px solid transparent;outline-offset:2px;transition:outline-color .15s}
-.pick.on .fcover{outline-color:var(--teal)}
-.pick .small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.react{height:78px;border-radius:16px;border:1.5px solid var(--line);background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:600;color:var(--muted)}
-.react.on{border-color:var(--teal);background:var(--teal-xl);color:var(--teal-d)}
-.field{width:100%;height:50px;padding:0 14px;border-radius:14px;border:1px solid var(--field);background:var(--card);font-size:16px}
-.field:focus{border-color:var(--teal);outline:none;box-shadow:0 0 0 3px var(--teal-l)}
-textarea.field{height:auto;padding:12px 14px;line-height:1.5;resize:none}
-.label{font-size:13px;font-weight:600;color:var(--muted)}
-.drop{min-height:88px;border-radius:16px;border:1.5px dashed var(--teal-b);display:flex;align-items:center;justify-content:center;gap:10px;color:var(--teal);font-size:14px;font-weight:600;cursor:pointer;position:relative;padding:12px 16px;background:var(--teal-xl)}
-.drop small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+.pick-row { display: flex; gap: .7rem; overflow-x: auto; margin: 0 -1rem; padding: 4px 1rem .4rem; scrollbar-width: none; }
+.pick-row::-webkit-scrollbar { display: none; }
+.pick { flex: 0 0 5.4rem; border: none; background: none; padding: 0; display: flex; flex-direction: column; gap: .3rem; text-align: left; cursor: pointer; color: var(--ink); }
+.pick .fcover { outline: 3px solid transparent; outline-offset: 2px; }
+.pick.on .fcover { outline-color: var(--accent); }
+.pick .small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.reacts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; }
+.react { min-height: 4.4rem; border-radius: var(--radius-lg); border: 1px solid var(--line); background: var(--card); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .2rem; font-size: .82rem; font-weight: 500; cursor: pointer; color: var(--ink); }
+.react b { font-size: 1.4rem; font-weight: 400; }
+.react.on { border-color: var(--ink); background: var(--ink); color: var(--on-ink); }
+.drop { min-height: 4.6rem; border-radius: var(--radius-lg); border: 1px dashed var(--muted); display: flex; align-items: center; justify-content: center; gap: .6rem; font-size: .88rem; font-weight: 500; cursor: pointer; position: relative; padding: .6rem 1rem; background: var(--card); text-align: left; }
+.drop small { display: block; font-weight: 400; color: var(--muted); font-size: .78rem; }
 
-/* sheets */
-.overlay{position:fixed;inset:0;z-index:20;background:rgba(27,31,36,.42);display:flex;flex-direction:column;justify-content:flex-end;align-items:center}
-.overlay.anim{animation:fade .2s ease-out}
-.sheet{width:100%;max-width:480px;max-height:90vh;overflow-y:auto;background:var(--card);border-radius:24px 24px 0 0;padding:10px 20px calc(24px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:14px}
-.overlay.anim .sheet{animation:up .26s cubic-bezier(.2,.8,.2,1)}
-.sheet.tall{min-height:78vh}
-.grabber{width:40px;height:5px;border-radius:3px;background:#D9DEE3;align-self:center;margin-bottom:4px}
-.sheet h2{margin:0;flex:1;font-family:var(--head);font-size:22px;font-weight:700;letter-spacing:-.2px}
-@keyframes up{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}
-@keyframes fade{from{background:rgba(27,31,36,0)}}
-.search{position:relative}
-.search svg{position:absolute;left:14px;top:15px;color:var(--muted)}
-.search .field{padding-left:42px}
-.result{display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
-.result:last-child{border-bottom:none}
-.skel{background:linear-gradient(90deg,#EEF0F2 25%,#F6F7F8 50%,#EEF0F2 75%);background-size:200% 100%;animation:sh 1.2s infinite;border-radius:6px}
-@keyframes sh{to{background-position:-200% 0}}
-.toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top));z-index:30;max-width:440px;width:calc(100% - 32px);padding:13px 16px;border-radius:14px;background:var(--ink);color:var(--card);font-size:14px;font-weight:500;text-align:center;opacity:0;pointer-events:none;transform:translate(-50%,-10px);transition:opacity .2s,transform .2s;box-shadow:0 8px 24px rgba(0,0,0,.18)}
-.toast.show{opacity:1;transform:translate(-50%,0)}
-.onboard{flex:1;display:flex;flex-direction:column;justify-content:center;gap:16px;padding:32px 24px}
-.onboard h1{margin:0;font-family:var(--head);font-size:40px;font-weight:800;letter-spacing:-1px;color:var(--teal)}
-.onboard p{margin:0 0 12px;font-size:16px;line-height:1.5;color:var(--muted)}
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
-
-/* home: today dial */
-.homebar{display:flex;align-items:center;gap:8px;padding:calc(14px + env(safe-area-inset-top)) 12px 4px 20px}
-.homebar .hi{flex:1;min-width:0}
-.homebar .hi small{display:block;font-size:13px;color:var(--muted)}
-.homebar .hi b{font-family:var(--head);font-size:24px;font-weight:800;letter-spacing:-.4px}
-.today{background:var(--card);border-radius:24px;box-shadow:var(--shadow);padding:18px 16px 14px;display:flex;flex-direction:column;gap:6px}
-.trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));text-align:center;gap:6px}
-.trio span{display:block;font-size:12px;color:var(--muted)}
-.trio b{display:block;font-family:var(--head);font-size:26px;font-weight:700;color:var(--teal)}
-.dial{position:relative;width:240px;height:220px;margin:4px auto 0}
-.dial>svg{position:absolute;inset:0;width:100%;height:100%}
-.dial .mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-top:6px}
-.dial .dnum{font-family:var(--head);font-size:64px;font-weight:800;line-height:1;letter-spacing:-2px}
-.dial .lbl{font-size:14px;color:var(--muted);margin-top:4px;display:flex;align-items:center;gap:6px}
-.dial .goal{font-size:13px;color:var(--muted);margin-top:8px}
-.dial-btn{position:absolute;bottom:2px;width:44px;height:44px;border-radius:22px;border:none;background:var(--bg);color:var(--ink);display:flex;align-items:center;justify-content:center}
-.week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;align-items:end;height:96px;padding:8px 4px 0;border-top:1px solid var(--line);margin-top:6px}
-.week div{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;height:100%}
-.week i{display:block;width:60%;max-width:18px;border-radius:5px 5px 2px 2px;background:var(--teal-b);min-height:3px}
-.week .on i{background:var(--teal)}
-.week span{font-size:11px;color:var(--muted)}
-.week .on span{color:var(--ink);font-weight:600}
-.week em{font-style:normal;font-size:10px;color:var(--muted);height:12px}
 /* calendar */
-.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;text-align:center}
-.cal .dow{font-size:11px;font-weight:600;color:var(--muted);padding:4px 0}
-.cal button{aspect-ratio:1;border:none;border-radius:12px;background:transparent;font-size:14px;font-weight:500;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;color:var(--ink);min-height:40px}
-.cal button small{font-size:9px;font-weight:600;line-height:1}
-.cal .l1{background:var(--teal-xl)}.cal .l2{background:var(--teal-l)}.cal .l3{background:var(--teal-b)}.cal .l4{background:var(--teal);color:var(--on)}
-.cal .sel{outline:2px solid var(--ink);outline-offset:-2px}
-.cal .today{font-weight:800;text-decoration:underline;text-underline-offset:3px}
-.cal .future{color:var(--muted);opacity:.5}
-/* settings menu */
-.set-group{background:var(--bg);border-radius:16px;overflow:hidden;display:flex;flex-direction:column}
-.set-row{display:flex;align-items:center;gap:12px;width:100%;min-height:54px;padding:8px 12px;border:none;background:transparent;text-align:left;font-size:15px;font-weight:500;color:var(--ink)}
-.set-row+.set-row{border-top:1px solid var(--line)}
-.set-ico{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.set-val{font-size:13px;color:var(--muted);max-width:45%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* themes + account + admin */
-.swatches{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.swatch{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 6px;border-radius:14px;border:1.5px solid var(--line);background:var(--card);font-size:12px;font-weight:600;color:var(--muted)}
-.swatch.on{border-color:var(--teal);color:var(--ink)}
-.swatch i{width:34px;height:34px;border-radius:17px;display:block;box-shadow:inset 0 0 0 3px rgba(255,255,255,.35)}
-.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.stat{background:var(--bg);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:2px}
-.stat b{font-family:var(--head);font-size:24px;font-weight:700}
-.stat span{font-size:12px;color:var(--muted)}
-.tbl{width:100%;border-collapse:collapse;font-size:13px}
-.tbl th{text-align:left;font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);padding:6px 6px 6px 0;border-bottom:1px solid var(--line)}
-.tbl td{padding:9px 6px 9px 0;border-bottom:1px solid var(--line);vertical-align:top}
-.tbl-wrap{overflow-x:auto}
-.loading{flex:1;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;min-height:60vh}
+.cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; text-align: center; }
+.cal .dow { font-size: .7rem; font-weight: 600; color: var(--muted); padding: .2rem 0; }
+.cal button { aspect-ratio: 1; border: none; border-radius: var(--radius-md); background: transparent; font-size: .9rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; color: var(--ink); min-height: 2.6rem; cursor: pointer; }
+.cal button small { font-size: .58rem; font-weight: 600; line-height: 1; }
+.cal .l1 { background: color-mix(in srgb, var(--accent) 18%, var(--card)); }
+.cal .l2 { background: color-mix(in srgb, var(--accent) 38%, var(--card)); }
+.cal .l3 { background: color-mix(in srgb, var(--accent) 62%, var(--card)); color: #fff; }
+.cal .l4 { background: var(--accent); color: #fff; }
+.cal .sel { outline: 2px solid var(--ink); outline-offset: -2px; }
+.cal .today { font-weight: 800; }
+.cal button:disabled { opacity: .35; cursor: default; }
+
+/* search results */
+.result { display: flex; gap: .6rem; align-items: center; padding: .55rem 0; border-bottom: 1px solid var(--line); }
+.result:last-child { border-bottom: none; }
+.skel { background: linear-gradient(90deg, var(--soft) 25%, var(--card) 50%, var(--soft) 75%); background-size: 200% 100%; animation: sh 1.2s infinite; border-radius: 4px; }
+@keyframes sh { to { background-position: -200% 0; } }
+
+/* welcome */
+.welcome { padding: calc(2.2rem + env(safe-area-inset-top)) 1.2rem 2rem; max-width: 560px; margin: 0 auto; }
+.welcome .hb-logo { font-size: 2.2rem; white-space: normal; }
+.welcome .tag { font-size: 1.05rem; color: var(--muted); margin: .4rem 0 1rem; line-height: 1.5; }
+.wcovers { display: flex; gap: .5rem; margin: 1rem 0 .4rem; }
+.wcovers .fcover { flex: 1; }
+
+/* admin */
+.tbl-wrap { overflow-x: auto; }
+.tbl { width: 100%; border-collapse: collapse; font-size: .82rem; }
+.tbl th { text-align: left; font-size: .68rem; font-weight: 600; letter-spacing: .5px; text-transform: uppercase; color: var(--muted); padding: .3rem .4rem .3rem 0; border-bottom: 1px solid var(--line); }
+.tbl td { padding: .5rem .4rem .5rem 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+.loading { display: flex; align-items: center; justify-content: center; min-height: 70vh; color: var(--muted); }
+
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
 </head>
 <body>
 <div class="app" id="app"></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <div id="sheet-root"></div>
-<div class="toast" id="toast" role="status" aria-live="polite"></div>
-
+<div class="toast fixed hide" id="toast" role="status" aria-live="polite"><span id="toast-msg"></span></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 /* ============================================================
-   The Book Club — v1.1 (local, single file)
-   Data is saved on this device (localStorage).
-   The data shape mirrors the planned Supabase tables:
-   profiles, groups, group_members, shelf_books, posts.
+   Shelfmates & Me
+   Read at your own pace. Discover through others. Share what stays with you.
+   Built on the HomeBase design system.
    ============================================================ */
 
-/* ---------- Supabase config: paste your project's values here ---------- */
+/* ---------- Supabase config ---------- */
 const SUPABASE_URL = 'https://cyrctzuzumeunoyysqsl.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_VCJYEhIWT_dDg_THeeZmuw_qm0Gt-Nu';
 const CLOUD = !!(SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase);
 
+const APP = { first: 'Shelfmates', second: '& Me' };
 const STORE_KEY = 'bookclub.v1';
-let ME = 'me';          // becomes the Supabase user id when CLOUD is on
-let sb = null;          // Supabase client
-let authUser = null;    // current Supabase user
-let isAdmin = false;
+let ME = 'me';
+let sb = null, authUser = null, isAdmin = false;
 let pendingJoin = new URLSearchParams(location.search).get('join');
+let syncState = 'ok';   // ok | pending | error
 
-/* ---------- themes ---------- */
-const THEMES = {
-  teal:       { name: 'Teal',       accent: '#0F6E6E', vars: { teal: '#0F6E6E', 'teal-d': '#0A4F4F', 'teal-l': '#E3F1F0', 'teal-xl': '#F1F8F7', 'teal-b': '#A9D3CE' } },
-  indigo:     { name: 'Indigo',     accent: '#3D4FB0', vars: { teal: '#3D4FB0', 'teal-d': '#2C3A86', 'teal-l': '#E6E9F8', 'teal-xl': '#F3F4FC', 'teal-b': '#B9C1EA' } },
-  terracotta: { name: 'Terracotta', accent: '#A94E2B', vars: { teal: '#A94E2B', 'teal-d': '#7F391E', 'teal-l': '#F7E5DC', 'teal-xl': '#FCF3EE', 'teal-b': '#E5B9A6' } },
-  forest:     { name: 'Forest',     accent: '#2F6B3B', vars: { teal: '#2F6B3B', 'teal-d': '#21502B', 'teal-l': '#E2EFE4', 'teal-xl': '#F2F8F3', 'teal-b': '#AFD0B5' } },
-  plum:       { name: 'Plum',       accent: '#7A3B6E', vars: { teal: '#7A3B6E', 'teal-d': '#5C2B53', 'teal-l': '#F2E3EF', 'teal-xl': '#F9F2F7', 'teal-b': '#D7B3CF' } },
-  midnight:   { name: 'Midnight',   accent: '#1B1E22', dark: true, vars: {
-    teal: '#5CC8BD', 'teal-d': '#9BE0D8', 'teal-l': '#1E3836', 'teal-xl': '#172A29', 'teal-b': '#2F5B57', on: '#0B1F1D',
-    bg: '#111315', card: '#1B1E22', ink: '#E9ECEF', muted: '#9AA3AD', line: '#2A2F35', field: '#3A424B',
-    glass: 'rgba(27,30,34,.94)', hero: '#1B2B2A', 'hero-ink': '#E9ECEF', 'amber-l': '#3A2D1A', amber: '#E8B86B', red: '#F08A70' } }
-};
-function applyTheme(key) {
-  const t = THEMES[key] || THEMES.teal;
+/* ---------- display settings (per device) ---------- */
+const ACCENTS = { blue: '#2f6fdb', saffron: '#e8891c', teal: '#1f8a84', indigo: '#5b5bd6', rose: '#d14b72', green: '#3f8f5b' };
+const SIZES = { small: 13, default: 14, large: 15.5, xl: 17 };
+const DISPLAY_DEFAULT = { theme: 'dark', accent: 'blue', size: 'default', comfy: false };
+let display = (() => { try { return Object.assign({}, DISPLAY_DEFAULT, JSON.parse(localStorage.getItem('sm.display') || '{}')); } catch (e) { return { ...DISPLAY_DEFAULT }; } })();
+const mq = window.matchMedia ? matchMedia('(prefers-color-scheme: light)') : null;
+function applyDisplay() {
   const root = document.documentElement;
-  ['teal','teal-d','teal-l','teal-xl','teal-b','on','bg','card','ink','muted','line','field','glass','hero','hero-ink','amber-l','amber','red'].forEach(v => root.style.removeProperty('--' + v));
-  Object.entries(t.vars).forEach(([k, v]) => root.style.setProperty('--' + k, v));
-  root.style.colorScheme = t.dark ? 'dark' : 'light';
-  document.querySelector('meta[name=theme-color]').content = t.dark ? '#1B2B2A' : t.vars.teal;
-  try { localStorage.setItem('bookclub.theme', key); } catch (e) {}
+  const theme = display.theme === 'auto' ? (mq && mq.matches ? 'light' : 'dark') : display.theme;
+  root.dataset.theme = theme;
+  root.style.setProperty('--accent', ACCENTS[display.accent] || ACCENTS.blue);
+  root.style.fontSize = (SIZES[display.size] || 14) + 'px';
+  root.classList.toggle('comfy', !!display.comfy);
+  const meta = document.querySelector('meta[name=theme-color]');
+  if (meta) meta.content = theme === 'light' ? '#faf7f2' : '#121419';
 }
-applyTheme((() => { try { return localStorage.getItem('bookclub.theme'); } catch (e) { return null; } })() || 'teal');
-
-/* ---------- icons ---------- */
-const svg = (s, body, sw = 2) => `<svg aria-hidden="true" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
-const I = {
-  back: s => svg(s || 22, '<path d="M15 18l-6-6 6-6"/>'),
-  chev: s => svg(s || 20, '<path d="M9 18l6-6-6-6"/>'),
-  plus: s => svg(s || 18, '<path d="M12 5v14M5 12h14"/>', 2.2),
-  close: s => svg(s || 18, '<path d="M18 6L6 18M6 6l12 12"/>', 2.2),
-  search: s => svg(s || 20, '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>'),
-  eye: s => svg(s || 16, '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>'),
-  eyeoff: s => svg(s || 16, '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19M1 1l22 22"/>'),
-  gear: s => svg(s || 22, '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>'),
-  cam: s => svg(s || 14, '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>', 2.2),
-  up: s => svg(s || 16, '<path d="M7 10v12"/><path d="M15 5.88L14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88z"/>'),
-  mid: s => svg(s || 16, '<circle cx="12" cy="12" r="10"/><path d="M8 15h8M9 9.5h.01M15 9.5h.01"/>'),
-  down: s => svg(s || 16, '<path d="M17 14V2"/><path d="M9 18.12L10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88z"/>'),
-  book: s => svg(s || 28, '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>'),
-  read: s => svg(s || 22, '<path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/>'),
-  discover: s => svg(s || 22, '<circle cx="12" cy="12" r="10"/><path d="M16.24 7.76l-2.12 6.36-6.36 2.12 2.12-6.36z"/>'),
-  share: s => svg(s || 22, '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>')
-};
-const REACT = {
-  up: { label: 'Liked it', color: '#0A4F4F', bg: '#E3F1F0' },
-  mid: { label: 'It was okay', color: '#4A525C', bg: '#EEF0F2' },
-  down: { label: "Didn't like it", color: '#8E3622', bg: '#F8E6E1' }
-};
-const COLORS = ['#2F5D62', '#7A4E2D', '#3B4A7A', '#6B3F5E', '#4F6B3A', '#8A5A1F', '#2C3E50', '#5A4FA0'];
+function setDisplay(patch) { Object.assign(display, patch); try { localStorage.setItem('sm.display', JSON.stringify(display)); } catch (e) {} applyDisplay(); }
+if (mq && mq.addEventListener) mq.addEventListener('change', () => { if (display.theme === 'auto') applyDisplay(); });
+applyDisplay();
 
 /* ---------- helpers ---------- */
+const COLORS = ['#2F5D62', '#7A4E2D', '#3B4A7A', '#6B3F5E', '#4F6B3A', '#8A5A1F', '#2C3E50', '#5A4FA0'];
 const uid = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
   : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); });
-const joinCode = () => Array.from({ length: 8 }, () => 'abcdefghjkmnpqrstuvwxyz23456789'[Math.floor(Math.random() * 31)]).join('');
+const joinCode = () => Array.from({ length: 6 }, () => 'abcdefghjkmnpqrstuvwxyz23456789'[Math.floor(Math.random() * 31)]).join('');
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const colorFor = t => { let h = 0; for (const ch of String(t)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return COLORS[h % COLORS.length]; };
 const pct = b => b.pages ? Math.min(100, Math.round(b.page / b.pages * 100)) : Math.min(100, b.percent || 0);
-/* progress tracking is optional per book; older books count as tracked if they had progress */
 const tracked = b => b.track ?? (b.page > 0 || !!b.percent);
 const progMax = b => b.pages || 100;
 const progVal = b => b.pages ? b.page : (b.percent || 0);
 const progLabel = b => b.pages ? `Page ${b.page} of ${b.pages} · ${pct(b)}%` : `${pct(b)}% read`;
+const norm = t => String(t || '').trim().toLowerCase();
+const initial = n => esc(String(n || '?').trim().charAt(0).toUpperCase());
+const timeAgo = ts => {
+  const d = Math.floor((Date.now() - ts) / 86400000);
+  if (d <= 0) return 'today'; if (d === 1) return 'yesterday'; if (d < 7) return d + ' days ago';
+  return new Date(ts).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+};
+const REACT = {
+  up: { emoji: '👍', label: 'Liked it', pill: 'ok' },
+  mid: { emoji: '😐', label: 'It was okay', pill: 'later' },
+  down: { emoji: '👎', label: "Didn't like it", pill: 'late' }
+};
+
 /* ---------- private reading log: pages read per book per day ---------- */
 const dayStr = d => { const x = new Date(d || Date.now()); return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); };
 function logPages(b, delta) {
@@ -356,13 +382,7 @@ function progControl(b, pre) {
     <div class="small" data-prog-label="${b.id}">${progLabel(b)}</div>
   </div>`;
 }
-const norm = t => String(t || '').trim().toLowerCase();
-const initial = n => esc(String(n || '?').trim().charAt(0).toUpperCase());
-const timeAgo = ts => {
-  const d = Math.floor((Date.now() - ts) / 86400000);
-  if (d <= 0) return 'today'; if (d === 1) return 'yesterday'; if (d < 7) return d + ' days ago';
-  return new Date(ts).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
-};
+
 
 /* ---------- data ---------- */
 const cacheKey = () => CLOUD ? STORE_KEY + ':' + ME : STORE_KEY;
@@ -375,7 +395,7 @@ function save() {
   let ok = true;
   try { localStorage.setItem(cacheKey(), JSON.stringify(db)); }
   catch (e) { if (!CLOUD) { toast('Phone storage is full. Try a smaller photo or remove some photos.'); ok = false; } }
-  if (CLOUD && db) queueSync();
+  if (CLOUD && db) { setSyncState('pending'); queueSync(); }
   return ok;
 }
 
@@ -410,6 +430,7 @@ async function sync() {
   if (!CLOUD || !db || !authUser) return;
   if (syncing) { syncAgain = true; return; }
   syncing = true;
+  setSyncState('pending');
   try {
     // profile
     const pr = profileRow(), prJ = JSON.stringify(pr);
@@ -471,8 +492,10 @@ async function sync() {
     }
     localStorage.setItem(cacheKey(), JSON.stringify(db));
     syncErrShown = false;
+    setSyncState('ok');
   } catch (e) {
     console.error('Sync failed', e);
+    setSyncState('error');
     if (!syncErrShown) { toast("Couldn't save to the cloud: " + ((e && e.message) || e)); syncErrShown = true; }
     clearTimeout(syncTimer); syncTimer = setTimeout(sync, 15000);
   } finally {
@@ -546,7 +569,6 @@ async function pull() {
     if (!cb) { if (lb.photo && lb.photo.startsWith('data:')) db.books.push(lb); }
     else if ((lb.updatedAt || 0) > (cb.updatedAt || 0)) Object.assign(cb, lb);
   });
-  applyTheme(db.me.theme);
   localStorage.setItem(cacheKey(), JSON.stringify(db));
   queueSync();
 }
@@ -557,9 +579,9 @@ async function joinByCode(code) {
   pendingJoin = null;
   if (error || !data) { toast("That invite link didn't work. Ask for a new one."); return; }
   await pull();
-  ui.screen = 'group'; ui.gid = data; ui.tab = 'discover';
+  ui.tab = 'discover'; ui.club = data; ui.sheet = null;
   render();
-  const g = curGroup(); if (g) toast('You joined ' + g.name);
+  const g = db.groups.find(x => x.id === data); if (g) toast('You joined ' + g.name + ' 🎉');
 }
 
 let refreshing = false;
@@ -570,84 +592,79 @@ async function refresh() {
   refreshing = false;
 }
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refresh(); });
+
+
 function seed(name) {
+  return { version: 3, me: { id: ME, name, showProgress: true, goal: 0 }, users: [], groups: [], books: [], posts: [], log: [] };
+}
+function addSamples() {
   const now = Date.now(), day = 86400000;
-  const demoBook = (userId, title, author, pages, page) => ({
-    id: uid(), userId, title, author, pages, page, status: 'reading',
-    coverUrl: '', photo: '', from: '', track: true, updatedAt: now, demo: true
-  });
-  return {
-    version: 1,
-    me: { id: ME, name, showProgress: true, theme: (() => { try { return localStorage.getItem('bookclub.theme') || 'teal'; } catch (e) { return 'teal'; } })() },
-    users: [
-      { id: 'demo_priya', name: 'Priya', showProgress: true, demo: true },
-      { id: 'demo_arjun', name: 'Arjun', showProgress: false, demo: true },
-      { id: 'demo_meera', name: 'Meera', showProgress: true, demo: true }
-    ],
-    groups: [{ id: 'demo', name: 'Demo Club', code: 'demo', members: [ME, 'demo_priya', 'demo_arjun', 'demo_meera'], createdAt: now, demo: true }],
-    books: [
-      demoBook('demo_priya', 'Atomic Habits', 'James Clear', 320, 198),
-      demoBook('demo_arjun', 'Wings of Fire', 'A.P.J. Abdul Kalam', 180, 60),
-      demoBook('demo_meera', 'The Alchemist', 'Paulo Coelho', 208, 62)
-    ],
-    posts: [
-      { id: uid(), userId: 'demo_meera', title: "Man's Search for Meaning", author: 'Viktor E. Frankl', pages: 165, coverUrl: '', reaction: 'up', text: 'Made me rethink how I handle a bad week at work.', photo: '', createdAt: now - 2 * day, demo: true },
-      { id: uid(), userId: 'demo_arjun', title: 'Sapiens', author: 'Yuval Noah Harari', pages: 443, coverUrl: '', reaction: 'mid', text: 'Big ideas, but the middle dragged for me.', photo: '', createdAt: now - 5 * day, demo: true }
-    ]
-  };
+  const demoBook = (userId, title, author, pages, page) => ({ id: uid(), userId, title, author, pages, page, status: 'reading', coverUrl: '', photo: '', from: '', track: true, updatedAt: now, demo: true });
+  db.users.push(
+    { id: 'demo_priya', name: 'Priya', showProgress: true, demo: true },
+    { id: 'demo_arjun', name: 'Arjun', showProgress: false, demo: true },
+    { id: 'demo_meera', name: 'Meera', showProgress: true, demo: true });
+  db.groups.push({ id: 'demo', name: 'Sample Club', code: 'sample', members: [ME, 'demo_priya', 'demo_arjun', 'demo_meera'], createdAt: now, demo: true });
+  db.books.push(
+    demoBook('demo_priya', 'Atomic Habits', 'James Clear', 320, 198),
+    demoBook('demo_arjun', 'Wings of Fire', 'A.P.J. Abdul Kalam', 180, 60),
+    demoBook('demo_meera', 'The Alchemist', 'Paulo Coelho', 208, 62));
+  db.posts.push(
+    { id: uid(), userId: 'demo_meera', title: "Man's Search for Meaning", author: 'Viktor E. Frankl', pages: 165, coverUrl: '', reaction: 'up', text: 'Made me rethink how I handle a bad week at work.', photo: '', createdAt: now - 2 * day, demo: true },
+    { id: uid(), userId: 'demo_arjun', title: 'Sapiens', author: 'Yuval Noah Harari', pages: 443, coverUrl: '', reaction: 'mid', text: 'Big ideas, but the middle dragged for me.', photo: '', createdAt: now - 5 * day, demo: true });
+}
+function removeSamples() {
+  const ids = db.users.filter(u => u.demo).map(u => u.id);
+  db.users = db.users.filter(u => !u.demo);
+  db.groups = db.groups.filter(g => !g.demo);
+  db.books = db.books.filter(b => !ids.includes(b.userId));
+  db.posts = db.posts.filter(p => !ids.includes(p.userId));
 }
 const userById = id => id === ME ? db.me : db.users.find(u => u.id === id);
 const myBooks = () => db.books.filter(b => b.userId === ME);
 const onMyShelf = title => myBooks().some(b => norm(b.title) === norm(title));
 const hasDemo = () => db.groups.some(g => g.demo) || db.users.some(u => u.demo);
-const curGroup = () => db.groups.find(x => x.id === ui.gid);
+const myClubs = () => db.groups.filter(g => g.members.includes(ME)).sort((a, b) => (a.demo ? 1 : 0) - (b.demo ? 1 : 0) || b.createdAt - a.createdAt);
+const signedInEmail = () => authUser && !authUser.is_anonymous ? authUser.email : '';
 
 /* ---------- ui state ---------- */
 const ui = {
-  screen: 'groups', gid: null, tab: 'read', shelfTab: null,
+  loading: false, tab: 'home', club: 'all', shelfTab: null,
   sheet: null, sheetData: {},
   share: { bookId: null, reaction: null, text: '', photo: '' },
   search: { q: '', loading: false, results: [], error: '' }
 };
 
-/* ---------- toast ---------- */
-let toastTimer;
-function toast(msg) {
+/* ---------- toast with Undo ---------- */
+let toastTimer, toastUndo = null;
+function toast(msg, undo) {
   const el = document.getElementById('toast');
-  el.textContent = msg; el.classList.add('show');
-  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
+  toastUndo = undo || null;
+  el.innerHTML = `<span>${esc(msg)}</span>${undo ? '<button data-act="undo">Undo</button>' : ''}`;
+  el.classList.remove('hide');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.classList.add('hide'); toastUndo = null; }, undo ? 6000 : 2600);
 }
 
 /* ---------- covers ---------- */
 function coverHTML(b, w, h) {
-  const src = b.photo || b.coverUrl;
-  const fs = Math.round(w * 0.42), bg = colorFor(b.title);
-  const fallback = `<span class="cover" style="width:${w}px;height:${h}px;font-size:${fs}px;background:${bg}">${initial(b.title)}</span>`;
-  if (!src) return fallback;
-  return `<img class="cover" src="${esc(src)}" alt="" loading="lazy" style="width:${w}px;height:${h}px;background:${bg}" data-fallback="${initial(b.title)}">`;
+  const src = b.photo || b.coverUrl, bg = colorFor(b.title), fs = (w * 0.42 / 14).toFixed(2);
+  if (!src) return `<span class="cover" style="width:${w / 14}rem;height:${h / 14}rem;font-size:${fs}rem;background:${bg}">${initial(b.title)}</span>`;
+  return `<img class="cover" src="${esc(src)}" alt="" loading="lazy" style="width:${w / 14}rem;height:${h / 14}rem;background:${bg}" data-fallback="${initial(b.title)}" data-fs="${fs}">`;
 }
-/* fluid cover: fills its container at 2:3, shows title + author when there's no image */
 function fcover(b) {
-  const src = b.photo || b.coverUrl, bg = colorFor(b.title);
-  const gen = `<span class="gen"><b>${esc(b.title)}</b><i>${esc(b.author || '')}</i></span>`;
-  return `<span class="fcover" style="background:${bg}">${gen}${src ? `<img src="${esc(src)}" alt="" loading="lazy" data-hide-on-error="1">` : ''}</span>`;
+  const src = b.photo || b.coverUrl;
+  return `<span class="fcover" style="background:${colorFor(b.title)}"><span class="gen"><b>${esc(b.title)}</b><i>${esc(b.author || '')}</i></span>${src ? `<img src="${esc(src)}" alt="" loading="lazy" data-hide-on-error="1">` : ''}</span>`;
 }
 function editableFcover(b) {
   return `<label class="cover-wrap" style="width:100%">
     <span class="sr">Change the cover photo of ${esc(b.title)}</span>
     <input class="file" type="file" accept="image/*" data-photo-for="${b.id}">
-    ${fcover(b)}
-    <span class="cam">${I.cam(14)}</span>
+    ${fcover(b)}<span class="cam" aria-hidden="true">📷</span>
   </label>`;
 }
-function reactionHTML(k, size) {
-  const r = REACT[k]; if (!r) return '';
-  return `<span class="reaction" style="color:${r.color};background:${r.bg}">${I[k](size || 14)}${r.label}</span>`;
-}
-function avatar(u, extra = '') {
-  return `<span class="av ${u && u.id === ME ? 'me' : ''}" ${extra}>${initial(u ? u.name : '?')}</span>`;
-}
-/* broken cover images: show the generated cover underneath */
+const avatar = (u, cls = '') => `<span class="av ${cls} ${u && u.id === ME ? 'me' : ''}">${initial(u ? u.name : '?')}</span>`;
+const reactionPill = k => REACT[k] ? `<span class="pill ${REACT[k].pill}">${REACT[k].emoji} ${REACT[k].label}</span>` : '';
 document.addEventListener('error', e => {
   const t = e.target;
   if (!(t instanceof HTMLImageElement)) return;
@@ -655,624 +672,521 @@ document.addEventListener('error', e => {
   else if (t.dataset.fallback) {
     const s = document.createElement('span');
     s.className = 'cover'; s.textContent = t.dataset.fallback;
-    s.style.cssText = t.style.cssText + `;font-size:${Math.round(parseInt(t.style.width) * .42)}px`;
+    s.style.cssText = t.style.cssText + `;font-size:${t.dataset.fs}rem`;
     t.replaceWith(s);
   }
 }, true);
 
-/* ---------- render ---------- */
+/* ============================================================
+   Render
+   ============================================================ */
 function render() {
   const app = document.getElementById('app');
-  if (ui.loading) { app.innerHTML = '<div class="loading">Opening your book club…</div>'; return; }
-  if (!db) { app.innerHTML = onboardHTML(); renderSheet(); return; }
+  if (ui.loading) { app.innerHTML = `<div class="loading">Opening your shelf…</div>`; return; }
+  if (!db) { app.innerHTML = welcomeHTML(); renderSheet(); return; }
   db.log = db.log || [];
-  if (ui.screen === 'group' && !curGroup()) ui.screen = 'groups';
-  app.innerHTML = ui.screen === 'group' ? groupHTML() : groupsHTML();
+  if (ui.club !== 'all' && !db.groups.find(g => g.id === ui.club)) ui.club = 'all';
+  const titles = { home: '', shelf: 'My shelf', discover: 'Discover', share: 'Share' };
+  const body = ui.tab === 'shelf' ? shelfHTML() : ui.tab === 'discover' ? discoverHTML() : ui.tab === 'share' ? shareHTML() : homeHTML();
+  const tab = (k, ic, label) => `<button class="${ui.tab === k ? 'on' : ''}" data-act="tab" data-id="${k}" ${ui.tab === k ? 'aria-current="page"' : ''}><span class="ic">${ic}</span>${label}</button>`;
+  app.innerHTML = `
+    <header class="hb-header">
+      ${ui.tab === 'home' ? `<h1 class="hb-logo">${APP.first} <span>${esc(APP.second)}</span></h1>` : `<h1 class="hb-logo">${titles[ui.tab]}</h1>`}
+      <button class="iconbtn" aria-label="Settings" data-act="settings">⚙︎${CLOUD ? `<span class="syncdot ${syncState === 'ok' ? '' : syncState}" id="syncdot"></span>` : ''}</button>
+    </header>
+    <main class="hb-main">${body}</main>
+    ${ui.tab !== 'share' ? '<button class="fab fixed" aria-label="Add a book" data-act="add-open">+</button>' : ''}
+    <nav class="hb-nav fixed" aria-label="Sections"><div class="inner">
+      ${tab('home', '🏠', 'Home')}${tab('shelf', '📚', 'Shelf')}${tab('discover', '🧭', 'Discover')}${tab('share', '✍️', 'Share')}
+    </div></nav>`;
   renderSheet();
 }
+function setSyncState(s) {
+  syncState = s;
+  const d = document.getElementById('syncdot');
+  if (d) d.className = 'syncdot ' + (s === 'ok' ? '' : s);
+}
 
-function onboardHTML() {
-  return `<div class="onboard">
-    <h1>The Book Club</h1>
-    <p>Read at your own pace. Discover through others. Share what stays with you.</p>
-    <label class="label" for="ob-name">What should your groups call you?</label>
-    <input class="field" id="ob-name" placeholder="Your first name" autocomplete="given-name" maxlength="40">
-    <button class="btn primary block" data-act="onboard">Get started</button>
+/* ----- Welcome (new visitors) ----- */
+function welcomeHTML() {
+  const sample = [{ title: 'Atomic Habits', author: 'James Clear' }, { title: 'Wings of Fire', author: 'A.P.J. Abdul Kalam' }, { title: 'The Alchemist', author: 'Paulo Coelho' }, { title: 'Ikigai', author: 'García & Miralles' }];
+  return `<div class="welcome">
+    <h1 class="hb-logo">${APP.first} <span>${esc(APP.second)}</span></h1>
+    <p class="tag">Read your own books, together. A small, calm space to see what your friends are reading and share what stays with you.</p>
+    ${pendingJoin ? `<div class="banner accent"><span class="b-icon">💌</span><div><div class="item-title" id="invite-title">You've been invited to a club</div><div class="sub">Add your name to join. No sign-up needed.</div></div></div>` : `<div class="wcovers">${sample.map(fcover).join('')}</div>`}
+    <div class="mgroup">
+      <div class="mrow static"><span class="mi">📖</span><span class="mt">Read<small>at your own pace, your own books</small></span></div>
+      <div class="mrow static"><span class="mi">🧭</span><span class="mt">Discover<small>through friends, coworkers and family</small></span></div>
+      <div class="mrow static"><span class="mi">✍️</span><span class="mt">Share<small>what stays with you, in a line or two</small></span></div>
+    </div>
+    <label class="hb-label" for="ob-name">What should your clubs call you?</label>
+    <input class="hb-input" id="ob-name" placeholder="Your first name" autocomplete="given-name" maxlength="40" enterkeyhint="go">
+    <button class="btn primary block" style="margin-top:.7rem" data-act="onboard">${pendingJoin ? 'Join the club' : 'Get started'}</button>
+    <p class="sub" style="text-align:center;margin:.5rem 0 1rem">No sign-up needed. You can add an account later.</p>
+    <div class="mgroup">
+      ${CLOUD ? `<button class="mrow" data-act="w-create"><span class="mi">☁️</span><span class="mt">Create free account<small>Use your books on any phone or laptop</small></span><span class="mc">›</span></button>` : ''}
+      <button class="mrow" data-act="w-explore"><span class="mi">🧪</span><span class="mt">Explore with sample data<small>See how it works before adding your own</small></span><span class="mc">›</span></button>
+      ${CLOUD && !pendingJoin ? `<button class="mrow" data-act="w-join"><span class="mi">🔑</span><span class="mt">Join with code<small>A friend gave you a club code</small></span><span class="mc">›</span></button>` : ''}
+      ${CLOUD ? `<button class="mrow" data-act="w-signin"><span class="mi">👋</span><span class="mt">Sign in<small>I already have an account</small></span><span class="mc">›</span></button>` : ''}
+    </div>
   </div>`;
 }
 
+/* ----- Home ----- */
 function dialSVG(p) {
   const r = 96, c = 2 * Math.PI * r, L = c * 0.75, f = Math.max(0, Math.min(1, p)) * L;
-  return `<svg viewBox="0 0 240 220" aria-hidden="true">
-    <g transform="rotate(135 120 116)">
-      <circle cx="120" cy="116" r="${r}" fill="none" stroke="var(--line)" stroke-width="14" stroke-linecap="round" stroke-dasharray="${L} ${c}"/>
-      ${f > 0 ? `<circle cx="120" cy="116" r="${r}" fill="none" stroke="var(--teal)" stroke-width="14" stroke-linecap="round" stroke-dasharray="${f} ${c}" style="transition:stroke-dasharray .6s"/>` : ''}
-    </g></svg>`;
+  return `<svg viewBox="0 0 240 220" aria-hidden="true"><g transform="rotate(135 120 116)">
+    <circle cx="120" cy="116" r="${r}" fill="none" stroke="var(--soft)" stroke-width="13" stroke-linecap="round" stroke-dasharray="${L} ${c}"/>
+    ${f > 0 ? `<circle cx="120" cy="116" r="${r}" fill="none" stroke="var(--accent)" stroke-width="13" stroke-linecap="round" stroke-dasharray="${f} ${c}" style="transition:stroke-dasharray .6s"/>` : ''}
+  </g></svg>`;
 }
-function todayCardHTML() {
+function homeHTML() {
   const today = dayStr(), n = pagesOn(today), goal = db.me.goal || 0;
   const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setDate(d.getDate() - 6 + i); return d; });
   const vals = days.map(d => pagesOn(dayStr(d)));
-  const best = Math.max(1, ...vals, ...(db.log || []).filter(l => l.day >= dayStr(Date.now() - 30 * 86400000)).map(l => pagesOn(l.day)));
+  const recent = (db.log || []).filter(l => l.day >= dayStr(Date.now() - 30 * 86400000)).map(l => pagesOn(l.day));
+  const best = Math.max(1, ...vals, ...recent);
   const p = goal ? n / goal : n / best;
   const wk = vals.reduce((a, b) => a + b, 0);
-  const ym = today.slice(0, 7);
-  const daysRead = new Set((db.log || []).filter(l => l.day.startsWith(ym) && l.pages > 0).map(l => l.day)).size;
+  const daysRead = new Set((db.log || []).filter(l => l.day.startsWith(today.slice(0, 7)) && l.pages > 0).map(l => l.day)).size;
   const onTheGo = myBooks().filter(b => b.status === 'reading').length;
   const max = Math.max(1, ...vals);
-  const bars = days.map((d, i) => `<div class="${i === 6 ? 'on' : ''}"><em>${vals[i] || ''}</em><i style="height:${Math.round(vals[i] / max * 56) + 3}px"></i><span>${d.toLocaleDateString(undefined, { weekday: 'narrow' })}</span></div>`).join('');
-  const anyTracked = myBooks().some(b => b.status === 'reading' && tracked(b) && b.pages);
-  return `<section class="today" aria-label="Your reading today. Only you can see this.">
-    <div class="trio">
-      <div><b>${wk}</b><span>Pages this week</span></div>
-      <div><b>${daysRead}</b><span>Days read this month</span></div>
-      <div><b>${onTheGo}</b><span>Books on the go</span></div>
-    </div>
-    <div class="dial">
-      ${dialSVG(p)}
-      <div class="mid">
-        <span class="lbl">Today</span>
-        <span class="dnum" id="today-num">${n}</span>
-        <span class="lbl">pages read</span>
-        <span class="goal">${goal ? `Goal ${goal} · ${Math.min(100, Math.round(n / goal * 100))}%` : ''}</span>
-      </div>
-      <button class="dial-btn" style="left:0" aria-label="Open reading calendar" data-act="calendar">${svg(20, '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>')}</button>
-      <button class="dial-btn" style="right:0" aria-label="${goal ? 'Change daily goal' : 'Set a daily goal'}" data-act="goal-open">${svg(20, '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>')}</button>
-    </div>
-    <button class="btn primary block" data-act="today-open" style="margin-top:4px">${anyTracked ? 'Update today’s reading' : 'Log what you read'}</button>
-    <div class="week" aria-label="Pages read in the last 7 days">${bars}</div>
-    <p class="small" style="margin:4px 0 0;text-align:center">Only you can see this.</p>
-  </section>`;
-}
-
-function groupsHTML() {
-  const groups = db.groups.slice().sort((a, b) => (a.demo ? 1 : 0) - (b.demo ? 1 : 0) || b.createdAt - a.createdAt);
-  const list = groups.map(g => {
-    const now = db.books.filter(b => b.status === 'reading' && g.members.includes(b.userId));
-    const minis = now.slice(0, 5).map(b => coverHTML(b, 22, 32)).join('');
-    return `<button class="group-btn" data-act="open-group" data-id="${g.id}">
-      <span class="badge">${initial(g.name)}</span>
-      <span class="grow" style="display:flex;flex-direction:column;gap:2px">
-        <span class="title" style="font-size:16px">${esc(g.name)}${g.demo ? '<span class="demo-tag">Sample</span>' : ''}</span>
-        <span class="sub">${g.members.length} ${g.members.length === 1 ? 'member' : 'members'}${now.length ? ` · ${now.length} reading now` : ''}</span>
-        ${minis ? `<span class="minicovers">${minis}</span>` : ''}
-      </span>
-      <span style="color:var(--muted)">${I.chev()}</span>
+  const bars = days.map((d, i) => `<div class="${i === 6 ? 'on' : vals[i] ? 'has' : ''}"><em>${vals[i] || ''}</em><i style="height:${(vals[i] / max * 3.6 + .2).toFixed(2)}rem"></i><span>${d.toLocaleDateString('en-IN', { weekday: 'narrow' })}</span></div>`).join('');
+  const clubs = myClubs();
+  const clubCards = clubs.map(g => {
+    const nowB = db.books.filter(b => b.status === 'reading' && g.members.includes(b.userId));
+    return `<button class="card row" style="width:100%;text-align:left;cursor:pointer;color:var(--ink)" data-act="club" data-id="${g.id}">
+      <span class="club-badge">${initial(g.name)}</span>
+      <span class="grow">
+        <span class="item-title">${esc(g.name)}</span>
+        <span class="meta">👥 ${g.members.length} ${g.members.length === 1 ? 'member' : 'members'}${nowB.length ? ` · 📖 ${nowB.length} reading now` : ''}${g.demo ? ' <span class="pill info">Sample</span>' : ''}</span>
+        ${nowB.length ? `<span class="minicovers">${nowB.slice(0, 6).map(b => coverHTML(b, 18, 26)).join('')}</span>` : ''}
+      </span><span style="color:var(--muted);font-size:1.1rem">›</span>
     </button>`;
   }).join('');
-  const hour = new Date().getHours();
-  const hello = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-  return `<div class="homebar">
-      <div class="hi"><small>${hello}</small><b>${esc(db.me.name)}</b></div>
-      <button class="icon-btn" aria-label="Settings" data-act="settings">${I.gear()}</button>
+  return `
+    ${hasDemo() ? `<div class="banner info"><span class="b-icon">🧪</span><div class="grow"><div class="item-title">You're exploring with sample data</div><div class="sub">Priya, Arjun and Meera are pretend. Your own books stay when you remove them.</div></div><button class="btn" data-act="demo-remove">Remove</button></div>` : ''}
+    <div class="stats" style="margin-top:.3rem">
+      <div class="stat"><div class="n">${wk}</div><div class="l">Pages this week</div></div>
+      <div class="stat"><div class="n">${daysRead}</div><div class="l">Days read this month</div></div>
+      <div class="stat"><div class="n">${onTheGo}</div><div class="l">Books on the go</div></div>
     </div>
-    <div class="content" style="padding-top:10px;padding-bottom:40px">
-      ${todayCardHTML()}
-      <div class="section">
-        <h2 class="h2">Your clubs</h2>
-        ${list}
-        <button class="create" data-act="create-open">
-          <span class="badge">${I.plus(22)}</span>
-          <span class="grow" style="display:flex;flex-direction:column;gap:2px">
-            <span class="title">Create a club</span>
-            <span class="sub">For friends, coworkers or family</span>
-          </span>
-        </button>
+    <section class="card today-card" style="margin-top:.5rem" aria-label="Your reading today. Only you can see this.">
+      <div class="dial">
+        ${dialSVG(p)}
+        <div class="mid">
+          <span class="lbl">Today</span>
+          <span class="dnum" id="today-num">${n}</span>
+          <span class="lbl">pages read</span>
+          <span class="goal">${goal ? `Goal ${goal} · ${Math.min(100, Math.round(n / goal * 100))}%` : ''}</span>
+        </div>
+        <button class="iconbtn dbtn" style="left:0" aria-label="Reading calendar" data-act="calendar">🗓️</button>
+        <button class="iconbtn dbtn" style="right:0" aria-label="${goal ? 'Change daily goal' : 'Set a daily goal'}" data-act="settings" data-id="prefs">🎯</button>
       </div>
-      <p class="small" style="text-align:center;margin:0">Read at your own pace · Discover through others · Share what stays with you</p>
+      <button class="btn accent block" style="margin-top:.5rem" data-act="today-open">${onTheGo ? 'Update today’s reading' : 'Log what you read'}</button>
+      <div class="week" aria-label="Pages read in the last 7 days">${bars}</div>
+      <p class="small" style="text-align:center;margin:.5rem 0 0">🔒 Only you can see this</p>
+    </section>
+    <div class="section-label">Your clubs</div>
+    ${clubCards || `<div class="card empty">No clubs yet. Start one and send the link to a few friends.</div>`}
+    <div class="actions" style="margin-top:0">
+      <button class="btn" style="flex:1" data-act="create-open">＋ Create a club</button>
+      ${CLOUD ? '<button class="btn" style="flex:1" data-act="w-join">🔑 Join with code</button>' : ''}
     </div>`;
 }
 
-function groupHTML() {
-  const g = curGroup();
-  const body = ui.tab === 'read' ? readHTML() : ui.tab === 'discover' ? discoverHTML(g) : shareHTML(g);
-  const tab = (k, label) => `<button class="tab ${ui.tab === k ? 'on' : ''}" data-act="tab" data-id="${k}" ${ui.tab === k ? 'aria-current="page"' : ''}>${I[k]()}${label}</button>`;
-  const faces = g.members.slice(0, 4).map(id => avatar(userById(id))).join('');
-  return `<div class="topbar">
-      <button class="icon-btn" aria-label="Back to groups" data-act="back">${I.back()}</button>
-      <div class="t">
-        <div class="name">${esc(g.name)}${g.demo ? '<span class="demo-tag">Sample</span>' : ''}</div>
-        <div class="stack">${faces}<small>${g.members.length} ${g.members.length === 1 ? 'member' : 'members'}</small></div>
-      </div>
-      <button class="btn soft" style="border-radius:22px" data-act="invite">${I.plus(16)} Invite</button>
-    </div>
-    <div class="content">${body}</div>
-    <nav class="tabs" aria-label="Sections">${tab('read', 'Read')}${tab('discover', 'Discover')}${tab('share', 'Share')}</nav>`;
-}
-
-/* ----- Read ----- */
-function readHTML() {
+/* ----- Shelf ----- */
+function shelfHTML() {
   const mine = myBooks();
   const by = s => mine.filter(b => b.status === s).sort((a, b) => b.updatedAt - a.updatedAt);
   const reading = by('reading');
   const shelves = { want: by('want'), paused: by('paused'), finished: by('finished') };
-  const on = db.me.showProgress;
   if (!ui.shelfTab || !shelves[ui.shelfTab]) ui.shelfTab = shelves.want.length ? 'want' : shelves.paused.length ? 'paused' : 'finished';
-
   const nowCards = reading.map(b => `<div class="card">
       <div class="now">
         ${editableFcover(b)}
-        <div class="meta">
-          <div class="title clamp2" style="font-size:16px">${esc(b.title)}</div>
-          <div class="sub">${esc(b.author || '')}</div>
-          ${tracked(b) ? progControl(b, 'c') : `<div class="small" style="margin-top:8px">Reading · progress not tracked</div>
-          <button class="link" style="align-self:flex-start;padding:6px 0" data-act="track-toggle" data-id="${b.id}">${I.plus(14)} Track progress</button>`}
+        <div style="min-width:0">
+          <div class="item-title clamp2">${esc(b.title)}</div>
+          <div class="meta">${esc(b.author || '')}</div>
+          ${tracked(b) ? progControl(b, 'c') : `<div class="meta" style="margin-top:.5rem">Progress not tracked</div><button class="link" style="padding-left:0" data-act="track-toggle" data-id="${b.id}">＋ Track progress</button>`}
         </div>
       </div>
-      <div class="grid2">
-        <button class="btn" data-act="book" data-id="${b.id}">More</button>
-        <button class="btn primary" data-act="finish" data-id="${b.id}">I finished it</button>
+      <div class="actions">
+        <button class="btn" style="flex:1" data-act="book" data-id="${b.id}">More</button>
+        <button class="btn primary" style="flex:1" data-act="finish" data-id="${b.id}">✓ I finished it</button>
       </div>
     </div>`).join('');
-
-  const empty = `<div class="empty-card">
-      <span class="ill">${I.book()}</span>
-      <div class="title">What are you reading?</div>
-      <p class="empty">Add the book you're on, or find one your group recommends.</p>
-      <div class="grid2" style="width:100%">
-        <button class="btn primary" data-act="add-open">${I.search(16)} Find a book</button>
-        <button class="btn" data-act="tab" data-id="discover">See group picks</button>
-      </div>
-    </div>`;
-
   const labels = { want: 'Want to read', paused: 'Paused', finished: 'Finished' };
-  const segs = Object.keys(labels).filter(k => shelves[k].length || k === ui.shelfTab)
-    .map(k => `<button class="${ui.shelfTab === k ? 'on' : ''}" data-act="shelf" data-id="${k}">${labels[k]}</button>`).join('');
-  const shelf = shelves[ui.shelfTab];
-  const hint = { want: 'Save books from Discover or search to fill this.', paused: 'Books you set aside will wait here.', finished: 'Books you finish land here.' };
-  const items = shelf.map(b => `<button class="shelf-item" data-act="book" data-id="${b.id}">
-      ${fcover(b)}
-      <span class="title clamp2">${esc(b.title)}</span>
-      <span class="small">${esc(b.status === 'want' ? (b.from || b.author || '') : b.status === 'paused' ? (tracked(b) ? pct(b) + '% read' : 'Paused') : (b.author || ''))}</span>
+  const any = shelves.want.length + shelves.paused.length + shelves.finished.length;
+  const items = shelves[ui.shelfTab].map(b => `<button class="shelf-item" data-act="book" data-id="${b.id}">
+      ${fcover(b)}<span class="item-title clamp2">${esc(b.title)}</span>
+      <span class="meta">${esc(b.status === 'want' ? (b.from || b.author || '') : b.status === 'paused' ? (tracked(b) ? pct(b) + '% read' : 'Paused') : (b.author || ''))}</span>
     </button>`).join('');
-  const anyShelf = shelves.want.length + shelves.paused.length + shelves.finished.length;
-
+  const hint = { want: 'Save books from Discover, or tap + to add one.', paused: 'Books you set aside wait here.', finished: 'Books you finish land here.' };
   return `
-    <div class="section">
-      <div class="sec-head">
-        <h2 class="h2">Reading now</h2>
-        <button class="pill ${on ? 'on' : ''}" data-act="toggle-progress" aria-pressed="${on}" aria-label="${on ? 'Your progress is visible to your groups. Tap to hide.' : 'Your progress is hidden. Tap to show.'}">${on ? I.eye(15) + 'Progress visible' : I.eyeoff(15) + 'Progress hidden'}</button>
-      </div>
-      ${reading.length ? nowCards + `<button class="btn ghost" style="color:var(--teal);align-self:flex-start;padding:0 4px" data-act="add-open">${I.plus(16)} Add another book</button>` : empty}
-    </div>
-    ${anyShelf ? `<div class="section">
-      <h2 class="h2">My shelf</h2>
-      <div class="seg" role="tablist">${segs}</div>
-      ${shelf.length ? `<div class="grid3">${items}</div>` : `<p class="empty">${hint[ui.shelfTab]}</p>`}
-    </div>` : ''}`;
+    <div class="section-label" style="margin-top:.3rem">Reading now</div>
+    ${nowCards || `<div class="card empty">Nothing on the go.<br>Tap <b>+</b> to add the book you're reading.</div>`}
+    ${any ? `<div class="section-label">On my shelf</div>
+      <div class="chips">${Object.keys(labels).map(k => `<button class="chip ${ui.shelfTab === k ? 'on' : ''}" data-act="shelf" data-id="${k}">${labels[k]} · ${shelves[k].length}</button>`).join('')}</div>
+      ${items ? `<div class="shelf">${items}</div>` : `<div class="empty">${hint[ui.shelfTab]}</div>`}` : ''}`;
 }
 
 /* ----- Discover ----- */
-function discoverHTML(g) {
-  const others = g.members.filter(id => id !== ME);
+function discoverHTML() {
+  const clubs = myClubs();
+  if (!clubs.length) return `<div class="card empty" style="margin-top:.5rem">Discover is where you see what your clubs are reading.<br><br>
+    <button class="btn accent" data-act="create-open">＋ Create a club</button> ${CLOUD ? '<button class="btn" data-act="w-join">🔑 Join with code</button>' : ''}</div>`;
+  const inScope = ui.club === 'all' ? clubs : clubs.filter(g => g.id === ui.club);
+  const people = new Set(inScope.flatMap(g => g.members));
+  const others = [...people].filter(id => id !== ME);
+  const chips = `<div class="chips"><button class="chip ${ui.club === 'all' ? 'on' : ''}" data-act="club-filter" data-id="all">All clubs</button>${clubs.map(g => `<button class="chip ${ui.club === g.id ? 'on' : ''}" data-act="club-filter" data-id="${g.id}">${esc(g.name)}</button>`).join('')}</div>`;
   const readingNow = db.books.filter(b => others.includes(b.userId) && b.status === 'reading').sort((a, b) => b.updatedAt - a.updatedAt);
   const carousel = readingNow.map(b => {
-    const u = userById(b.userId) || { name: 'Member' };
-    const saved = onMyShelf(b.title);
+    const u = userById(b.userId) || { name: 'Member' }, saved = onMyShelf(b.title);
     return `<div class="ccard">
-      <div class="who">${avatar(u)}<span><b style="color:var(--ink)">${esc(u.name)}</b></span></div>
+      <div class="who">${avatar(u, 'sm')}<b>${esc(u.name)}</b></div>
       ${fcover(b)}
-      ${u.showProgress !== false && tracked(b) ? `<div class="bar" style="height:4px"><div style="width:${pct(b)}%"></div></div>` : `<div class="small">Reading</div>`}
-      <button class="btn ${saved ? '' : 'outline'} save-mini" ${saved ? 'disabled' : ''} data-act="save-book" data-id="${b.id}">${saved ? 'On your shelf' : I.plus(14) + ' Want to read'}</button>
+      ${u.showProgress !== false && tracked(b) ? `<div class="bar"><div style="width:${pct(b)}%"></div></div>` : '<div class="small">Reading</div>'}
+      <button class="btn" style="font-size:.78rem" ${saved ? 'disabled' : ''} data-act="save-book" data-id="${b.id}">${saved ? '✓ On my shelf' : '＋ Want to read'}</button>
     </div>`;
   }).join('');
-
-  const posts = db.posts.filter(p => g.members.includes(p.userId)).sort((a, b) => b.createdAt - a.createdAt).map(p => {
-    const u = userById(p.userId) || { name: 'Member' };
-    const isMe = p.userId === ME, saved = onMyShelf(p.title);
+  const posts = db.posts.filter(p => people.has(p.userId)).sort((a, b) => b.createdAt - a.createdAt).map(p => {
+    const u = userById(p.userId) || { name: 'Member' }, isMe = p.userId === ME, saved = onMyShelf(p.title);
     return `<article class="card">
-      <div class="post-head">
-        ${avatar(u)}
-        <div class="grow"><div class="title" style="font-size:14px">${isMe ? 'You' : esc(u.name)} <span style="font-weight:400;color:var(--muted)">finished a book</span></div><div class="small">${timeAgo(p.createdAt)}</div></div>
-        ${isMe ? `<button class="icon-btn" aria-label="Delete this post" data-act="delete-post" data-id="${p.id}" style="color:var(--muted)">${I.close(16)}</button>` : ''}
-      </div>
+      <div class="row">${avatar(u)}<div class="grow"><div class="item-title">${isMe ? 'You' : esc(u.name)} <span style="font-weight:400;color:var(--muted)">finished a book</span></div><div class="meta">${timeAgo(p.createdAt)}</div></div>
+      ${isMe ? `<button class="iconbtn" style="border:none" aria-label="Delete this post" data-act="delete-post" data-id="${p.id}">🗑️</button>` : ''}</div>
       ${p.photo ? `<img class="photo" src="${esc(p.photo)}" alt="Photo shared with ${esc(p.title)}">` : ''}
       ${p.text ? `<p class="thought">${esc(p.text)}</p>` : ''}
-      <div class="book-strip">
-        ${coverHTML(p, 40, 60)}
-        <div class="grow" style="display:flex;flex-direction:column;gap:4px;align-items:flex-start">
-          <div class="title" style="font-size:14px">${esc(p.title)}</div>
-          ${reactionHTML(p.reaction)}
-        </div>
-        ${isMe ? '' : `<button class="btn ${saved ? '' : 'outline'} save-mini" ${saved ? 'disabled' : ''} data-act="save-post" data-id="${p.id}" aria-label="${saved ? 'On your shelf' : 'Add ' + esc(p.title) + ' to Want to read'}">${saved ? 'Saved' : I.plus(14) + ' Save'}</button>`}
+      <div class="book-strip">${coverHTML(p, 36, 54)}
+        <div class="grow"><div class="item-title" style="font-size:.9rem">${esc(p.title)}</div><div class="meta">${reactionPill(p.reaction)}</div></div>
+        ${isMe ? '' : `<button class="btn" style="font-size:.78rem" ${saved ? 'disabled' : ''} data-act="save-post" data-id="${p.id}">${saved ? '✓ Saved' : '＋ Save'}</button>`}
       </div>
     </article>`;
   }).join('');
-
-  return `<div class="section">
-      <h2 class="h2">Reading right now</h2>
-      ${carousel ? `<div class="carousel">${carousel}</div>` : `<div class="empty-card"><span class="ill">${I.book()}</span><p class="empty">${others.length ? 'Nobody here is mid-book right now.' : "It's just you so far. Invite a few people to see what they're reading."}</p>${others.length ? '' : '<button class="btn primary" data-act="invite">Invite people</button>'}</div>`}
-    </div>
-    <div class="section">
-      <h2 class="h2">What stayed with us</h2>
-      ${posts || '<p class="empty">When someone finishes a book and shares a thought, it shows up here.</p>'}
-    </div>`;
+  return `${chips}
+    <div class="section-label" style="margin-top:.2rem">Reading right now</div>
+    ${carousel ? `<div class="carousel">${carousel}</div>` : `<div class="card empty">${others.length ? 'Nobody here is mid-book right now.' : "It's just you so far. Open the club on Home to invite people."}</div>`}
+    <div class="section-label">What stayed with us</div>
+    ${posts || '<div class="card empty">When someone finishes a book and shares a thought, it shows up here.</div>'}`;
 }
 
 /* ----- Share ----- */
-function shareHTML(g) {
+function shareHTML() {
   const s = ui.share;
   const options = myBooks().filter(b => b.status === 'reading' || b.status === 'finished').sort((a, b) => b.updatedAt - a.updatedAt);
   if (s.bookId && !options.find(b => b.id === s.bookId)) s.bookId = null;
   const canPost = s.bookId && s.reaction;
-  const picks = options.map(b => `<button class="pick ${s.bookId === b.id ? 'on' : ''}" aria-pressed="${s.bookId === b.id}" data-act="share-book" data-id="${b.id}">${fcover(b)}<span class="small">${esc(b.title)}</span></button>`).join('');
-  return `<div style="display:flex;flex-direction:column;gap:4px">
-      <h2 class="h2" style="font-size:24px">Share what stays with you</h2>
-      <p class="empty">A line, a quote, a learning. It helps someone find their next book.</p>
-    </div>
-    <div class="section" style="gap:8px">
-      <div class="h3">1 · The book</div>
-      ${options.length ? `<div class="pick-row">${picks}</div>` : `<div class="empty-card"><p class="empty">Add a book on the Read tab first.</p><button class="btn primary" data-act="add-open">${I.search(16)} Find a book</button></div>`}
-    </div>
-    <div class="section" style="gap:8px">
-      <div class="h3">2 · How was it?</div>
-      <div class="grid3">${['up', 'mid', 'down'].map(k => `<button class="react ${s.reaction === k ? 'on' : ''}" aria-pressed="${s.reaction === k}" data-act="react" data-id="${k}">${I[k](24)}${REACT[k].label}</button>`).join('')}</div>
-    </div>
-    <div class="section" style="gap:8px">
-      <label class="h3" for="thought">3 · What stayed with you? <span style="text-transform:none;letter-spacing:0;font-weight:400">(optional)</span></label>
-      <textarea class="field" id="thought" rows="4" maxlength="1000" placeholder="One line is enough">${esc(s.text)}</textarea>
-      ${s.photo ? `<img class="photo" src="${esc(s.photo)}" alt="Your photo to share"><button class="btn" data-act="share-photo-remove">Remove photo</button>`
-        : `<label class="drop"><input class="file" type="file" accept="image/*" data-share-photo="1">${I.cam(22)}<span>Add a photo<small>The cover, a page you loved, your reading spot</small></span></label>`}
-    </div>
-    <button class="btn primary block" data-act="post" ${canPost ? '' : 'disabled'}>${canPost ? 'Share with ' + esc(g.name) : 'Pick a book and a reaction'}</button>
-    <p class="small" style="margin:-14px 0 0;text-align:center">Your post shows in every group you're in.</p>`;
+  return `<p class="sub" style="margin:.2rem 0 .4rem">A line, a quote, a learning. It helps someone find their next book.</p>
+    <div class="section-label">1 · The book</div>
+    ${options.length ? `<div class="pick-row">${options.map(b => `<button class="pick ${s.bookId === b.id ? 'on' : ''}" aria-pressed="${s.bookId === b.id}" data-act="share-book" data-id="${b.id}">${fcover(b)}<span class="small">${esc(b.title)}</span></button>`).join('')}</div>`
+      : `<div class="card empty">Add a book to your shelf first.<br><br><button class="btn accent" data-act="add-open">＋ Add a book</button></div>`}
+    <div class="section-label">2 · How was it?</div>
+    <div class="reacts">${['up', 'mid', 'down'].map(k => `<button class="react ${s.reaction === k ? 'on' : ''}" aria-pressed="${s.reaction === k}" data-act="react" data-id="${k}"><b>${REACT[k].emoji}</b>${REACT[k].label}</button>`).join('')}</div>
+    <div class="section-label"><label for="thought">3 · What stayed with you? <span style="text-transform:none;letter-spacing:0;font-weight:400">(optional)</span></label></div>
+    <textarea class="hb-input" id="thought" rows="4" maxlength="1000" placeholder="One line is enough">${esc(s.text)}</textarea>
+    <div style="margin-top:.5rem">${s.photo ? `<img class="photo" src="${esc(s.photo)}" alt="Your photo to share"><button class="btn" data-act="share-photo-remove">Remove photo</button>`
+      : `<label class="drop"><input class="file" type="file" accept="image/*" data-share-photo="1"><span style="font-size:1.4rem">📷</span><span>Add a photo<small>The cover, a page you loved, your reading spot</small></span></label>`}</div>
+    <button class="btn primary block" style="margin-top:1rem" data-act="post" ${canPost ? '' : 'disabled'}>${canPost ? 'Share with my clubs' : 'Pick a book and how it was'}</button>
+    <p class="sub" style="text-align:center">Shows in every club you're in.</p>`;
 }
 
-/* ---------- sheets ---------- */
+/* ============================================================
+   Sheets (every form, menu and dialog)
+   ============================================================ */
 function renderSheet(animate) {
   const root = document.getElementById('sheet-root');
   if (!ui.sheet) { root.innerHTML = ''; document.body.style.overflow = ''; return; }
   document.body.style.overflow = 'hidden';
-  const head = t => `<div class="grabber"></div><div class="row"><h2>${t}</h2><button class="icon-btn" aria-label="Close" data-act="close" style="background:var(--bg);border-radius:22px">${I.close()}</button></div>`;
   const d = ui.sheetData;
+  const title = t => `<h2 class="sheet-title">${t}</h2>`;
+  const close = (label = 'Done') => `<div class="formbtns"><button class="btn primary" data-act="close">${label}</button></div>`;
   let inner = '', tall = false;
 
+  /* ---- settings menu + sub-pages ---- */
+  if (ui.sheet === 'settings') {
+    const page = d.page || '';
+    const email = signedInEmail();
+    const subEnd = `<div class="formbtns"><button class="btn" data-act="set-page" data-id="">‹ Settings</button><button class="btn primary" data-act="close">Done</button></div>`;
+    const mrow = (act, id, mi, mt, ms, cls = '') => `<button class="mrow ${cls}" data-act="${act}" data-id="${id}"><span class="mi">${mi}</span><span class="mt">${mt}</span>${ms !== null ? `<span class="ms">${esc(ms || '')}</span><span class="mc">›</span>` : ''}</button>`;
+    const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+    if (!page) {
+      inner = `${title('Settings')}
+        <div class="mgroup">
+          ${CLOUD ? mrow('set-page', 'account', '☁️', email ? 'Account &amp; sync' : 'Create account / Sign in', email || 'Use on other devices') : ''}
+          ${mrow('set-page', 'name', '👤', 'Your name', db.me.name)}
+        </div>
+        <div class="mgroup">
+          ${mrow('set-page', 'prefs', '🔔', 'Preferences', [db.me.showProgress ? 'Progress shared' : 'Progress hidden', db.me.goal ? 'Goal ' + db.me.goal : ''].filter(Boolean).join(' · '))}
+          ${mrow('set-page', 'display', '🎨', 'Display &amp; theme', { dark: 'Dark', light: 'Light', auto: 'Auto' }[display.theme] + ' · ' + display.accent[0].toUpperCase() + display.accent.slice(1))}
+          ${mrow('set-page', 'data', '💾', 'Data &amp; backup', CLOUD ? (syncState === 'error' ? 'Not synced' : 'Synced') : 'This phone only')}
+          ${standalone ? '' : mrow('set-page', 'install', '📱', 'Install as an app', '')}
+          ${mrow('set-page', 'help', '📖', 'How to use', '')}
+        </div>
+        ${isAdmin ? `<div class="mgroup">${mrow('admin', '', '📊', 'Owner dashboard', 'Only you')}</div>` : ''}
+        ${email ? `<div class="mgroup">${mrow('sign-out', '', '🚪', 'Log out', null, 'danger')}</div>` : ''}
+        <p class="sub" style="text-align:center;margin:1rem 0 0">${APP.first} ${esc(APP.second)} · beta</p>
+        ${close()}`;
+    } else if (page === 'account') {
+      if (email) {
+        inner = `${title('Account &amp; sync')}
+          <div class="card"><div class="row"><span style="font-size:1.3rem">${syncState === 'error' ? '⚠️' : '✅'}</span><div class="grow"><div class="item-title">${syncState === 'error' ? 'Not synced yet' : 'Synced'}</div><div class="meta">${esc(email)} · you are ${esc(db.me.name)}</div></div></div></div>
+          <div class="actions"><button class="btn" data-act="sync-now">🔄 Sync now</button></div>
+          <p class="sub">Sign in with the same email and password on any other phone or laptop.</p>${subEnd}`;
+      } else if (d.signin) {
+        inner = `${title('Sign in')}
+          <p class="sub">Use the email and password you created on your other device.</p>
+          <label class="hb-label" for="acc-email">Email</label><input class="hb-input" id="acc-email" type="email" inputmode="email" autocomplete="email">
+          <label class="hb-label" for="acc-pw">Password</label><input class="hb-input" id="acc-pw" type="password" autocomplete="current-password">
+          <div class="formbtns"><button class="btn" data-act="acc-mode">New here?</button><button class="btn primary" data-act="acc-signin">Sign in</button></div>
+          ${subEnd}`;
+      } else {
+        inner = `${title('Create account')}
+          <div class="banner info"><span class="b-icon">☁️</span><div class="sub" style="color:var(--ink)">Your books are already saved. An account just lets you open them on another phone or laptop.</div></div>
+          <label class="hb-label" for="acc-email">Email</label><input class="hb-input" id="acc-email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com">
+          <label class="hb-label" for="acc-pw">Password <span class="sub">(at least 6 characters)</span></label><input class="hb-input" id="acc-pw" type="password" autocomplete="new-password">
+          <button class="btn accent block" style="margin-top:.9rem" data-act="acc-create">Create account</button>
+          <button class="link" style="display:block;margin:.3rem auto 0" data-act="acc-mode">Already have an account? Sign in</button>
+          ${subEnd}`;
+      }
+    } else if (page === 'name') {
+      inner = `${title('Your name')}<p class="sub">This is how people in your clubs see you.</p>
+        <label class="sr" for="s-name">Your name</label><input class="hb-input" id="s-name" maxlength="40" value="${esc(db.me.name)}">
+        <div class="formbtns"><button class="btn" data-act="set-page" data-id="">‹ Settings</button><button class="btn primary" data-act="name-save">Save</button></div>`;
+    } else if (page === 'prefs') {
+      const g = db.me.goal || 0;
+      const goals = [0, 10, 20, 30, 50];
+      inner = `${title('Preferences')}
+        <div class="section-label">Privacy</div>
+        <div class="mgroup" style="margin-top:0">
+          <label class="mrow static"><span class="mt">Show my progress to my clubs<small>${db.me.showProgress ? 'Others see a progress bar on books you track' : 'Others only see which book you are reading'}</small></span><span class="switch"><input type="checkbox" data-pref="progress" ${db.me.showProgress ? 'checked' : ''}><span></span></span></label>
+          <div class="mrow static"><span class="mi">🔒</span><span class="mt">Always private<small>Your Today dial, daily pages, calendar and goal are only ever visible to you.</small></span></div>
+        </div>
+        <div class="section-label">Daily goal</div>
+        <div class="mgroup" style="margin-top:0">
+          <div class="mrow static" style="flex-wrap:wrap"><span class="mt">Pages a day<small>Optional. Only changes how full your dial looks. No streaks, no reminders.</small></span>
+            <div class="chips" style="margin:0;width:100%">${goals.map(x => `<button class="chip sm ${g === x ? 'on' : ''}" data-act="goal-set" data-id="${x}">${x ? x : 'Off'}</button>`).join('')}
+              <button class="chip sm ${g && !goals.includes(g) ? 'on' : ''}" data-act="goal-custom">${g && !goals.includes(g) ? g : 'Other…'}</button></div></div>
+        </div>
+        <p class="sub" style="margin-top:.6rem">These follow you on every device.</p>${subEnd}`;
+    } else if (page === 'display') {
+      const chipRow = (key, opts) => `<div class="chips" style="margin:0">${opts.map(([v, l]) => `<button class="chip sm ${display[key] === v ? 'on' : ''}" data-act="disp" data-k="${key}" data-id="${v}">${l}</button>`).join('')}</div>`;
+      inner = `${title('Display &amp; theme')}
+        <div class="mgroup">
+          <div class="mrow static" style="flex-wrap:wrap"><span class="mt" style="width:100%">Theme</span>${chipRow('theme', [['dark', 'Dark'], ['light', 'Light'], ['auto', 'Auto']])}</div>
+          <div class="mrow static" style="flex-wrap:wrap"><span class="mt" style="width:100%">Accent colour</span>
+            <div class="swatches">${Object.entries(ACCENTS).map(([k, v]) => `<button class="swatch ${display.accent === k ? 'on' : ''}" style="background:${v}" aria-label="${k}" aria-pressed="${display.accent === k}" data-act="disp" data-k="accent" data-id="${k}"></button>`).join('')}</div></div>
+          <div class="mrow static" style="flex-wrap:wrap"><span class="mt" style="width:100%">Text size</span>${chipRow('size', [['small', 'Small'], ['default', 'Default'], ['large', 'Large'], ['xl', 'Extra large']])}</div>
+          <div class="mrow static" style="flex-wrap:wrap"><span class="mt" style="width:100%">Density</span><div class="chips" style="margin:0"><button class="chip sm ${!display.comfy ? 'on' : ''}" data-act="disp" data-k="comfy" data-id="0">Compact</button><button class="chip sm ${display.comfy ? 'on' : ''}" data-act="disp" data-k="comfy" data-id="1">Comfortable</button></div></div>
+        </div>
+        <div class="actions"><button class="btn" data-act="disp-reset">Reset display</button></div>
+        <p class="sub">These apply to this device only.</p>${subEnd}`;
+    } else if (page === 'data') {
+      inner = `${title('Data &amp; backup')}
+        <div class="card"><div class="row"><span style="font-size:1.2rem">${CLOUD ? '☁️' : '📱'}</span><div class="grow"><div class="item-title">${CLOUD ? (email ? 'Synced to your account' : 'Saved to the cloud') : 'Stored on this phone only'}</div>
+          <div class="meta">${CLOUD ? (email ? esc(email) : 'Create an account to open it on another device') : 'Clearing browser data will erase it'}</div></div></div></div>
+        <div class="mgroup">
+          <button class="mrow" data-act="export"><span class="mi">⬇️</span><span class="mt">Export backup<small>Your books, posts and reading log as a file</small></span><span class="mc">›</span></button>
+          ${hasDemo() ? `<button class="mrow" data-act="demo-remove"><span class="mi">🧪</span><span class="mt">Remove sample data<small>Sample Club, Priya, Arjun and Meera</small></span><span class="mc">›</span></button>` : ''}
+        </div>
+        ${CLOUD ? '' : `<div class="mgroup"><button class="mrow danger" data-act="reset"><span class="mi">🗑️</span><span class="mt">Erase everything on this phone</span></button></div>`}
+        ${subEnd}`;
+    } else if (page === 'install') {
+      inner = `${title('Install as an app')}<p class="sub">Add it to your home screen so it opens like a normal app, full screen.</p>
+        <div class="card"><div class="item-title">iPhone (Safari)</div><div class="meta">Tap Share ⬆️ at the bottom → <b>Add to Home Screen</b></div></div>
+        <div class="card"><div class="item-title">Android (Chrome)</div><div class="meta">Tap ⋮ at the top right → <b>Install app</b> or <b>Add to Home screen</b></div></div>${subEnd}`;
+    } else if (page === 'help') {
+      inner = `${title('How to use')}
+        <div class="mgroup">
+          ${[['🏠', 'Home', 'Your Today dial shows pages you read today. Only you see it.'],
+             ['📚', 'Shelf', 'Books you are reading, want to read, paused and finished. Tracking progress is optional.'],
+             ['🧭', 'Discover', 'What people in your clubs are reading. Save anything to Want to read.'],
+             ['✍️', 'Share', 'Finished a book? React and share a line about what stayed with you.'],
+             ['👥', 'Clubs', 'Create one on Home and send the link. Friends join without signing up.']]
+            .map(([i, t, x]) => `<div class="mrow static"><span class="mi">${i}</span><span class="mt">${t}<small>${x}</small></span></div>`).join('')}
+        </div>${subEnd}`;
+    }
+  }
+
+  /* ---- welcome flows ---- */
+  if (ui.sheet === 'w-create') {
+    inner = `${title('Create free account')}
+      <label class="hb-label" for="wc-name">Your name</label><input class="hb-input" id="wc-name" maxlength="40" autocomplete="given-name">
+      <label class="hb-label" for="acc-email">Email</label><input class="hb-input" id="acc-email" type="email" inputmode="email" autocomplete="email">
+      <label class="hb-label" for="acc-pw">Password <span class="sub">(at least 6 characters)</span></label><input class="hb-input" id="acc-pw" type="password" autocomplete="new-password">
+      <div class="formbtns"><button class="btn" data-act="close">Cancel</button><button class="btn accent" data-act="w-create-save">Create account</button></div>`;
+  }
+  if (ui.sheet === 'w-signin') {
+    inner = `${title('Sign in')}
+      <label class="hb-label" for="acc-email">Email</label><input class="hb-input" id="acc-email" type="email" inputmode="email" autocomplete="email">
+      <label class="hb-label" for="acc-pw">Password</label><input class="hb-input" id="acc-pw" type="password" autocomplete="current-password">
+      <div class="formbtns"><button class="btn" data-act="close">Cancel</button><button class="btn primary" data-act="acc-signin">Sign in</button></div>`;
+  }
+  if (ui.sheet === 'w-join') {
+    inner = `${title('Join with code')}<p class="sub">Type the club code a friend sent you.</p>
+      ${db ? '' : `<label class="hb-label" for="wj-name">Your name</label><input class="hb-input" id="wj-name" maxlength="40" autocomplete="given-name">`}
+      <label class="hb-label" for="wj-code">Club code</label><input class="hb-input" id="wj-code" autocapitalize="off" autocomplete="off" style="letter-spacing:.2rem;text-transform:lowercase" placeholder="e.g. k7m2qa">
+      <div class="formbtns"><button class="btn" data-act="close">Cancel</button><button class="btn primary" data-act="w-join-save">Join</button></div>`;
+  }
+
+  /* ---- clubs ---- */
   if (ui.sheet === 'create') {
-    inner = `${head('Create a group')}
-      <label class="label" for="g-name">Group name</label>
-      <input class="field" id="g-name" maxlength="40" placeholder="e.g. Weekend Readers" enterkeyhint="done">
-      <p class="small" style="margin:0">You'll get a link to invite people next.</p>
-      <button class="btn primary block" data-act="create-save">Create group</button>`;
+    inner = `${title('Create a club')}
+      <label class="hb-label" for="g-name">Club name</label><input class="hb-input" id="g-name" maxlength="40" placeholder="e.g. Weekend Readers" enterkeyhint="done">
+      <p class="sub">You'll get a link and a code to invite people next.</p>
+      <div class="formbtns"><button class="btn" data-act="close">Cancel</button><button class="btn primary" data-act="create-save">Create</button></div>`;
+  }
+  if (ui.sheet === 'club') {
+    const g = db.groups.find(x => x.id === d.id);
+    if (!g) { ui.sheet = null; return renderSheet(); }
+    const members = g.members.map(id => userById(id)).filter(Boolean);
+    inner = `${title(esc(g.name))}
+      <div class="mgroup">${members.map(u => `<div class="mrow static">${avatar(u, 'sm')}<span class="mt">${u.id === ME ? esc(u.name) + ' (you)' : esc(u.name)}</span><span class="ms">${db.books.filter(b => b.userId === u.id && b.status === 'reading').length} reading</span></div>`).join('')}</div>
+      ${g.demo ? '<p class="sub">This is a sample club, so it has no real invite code.</p>' : `
+      <div class="section-label">Invite people</div>
+      <div class="card"><div class="code" aria-label="Club code ${esc(g.code)}">${esc(g.code.toUpperCase())}</div><p class="sub" style="text-align:center;margin:0">They can tap the link, or use this code in “Join with code”.</p></div>
+      <div class="actions"><button class="btn accent" style="flex:1" data-act="whatsapp" data-id="${g.id}">Send on WhatsApp</button><button class="btn" style="flex:1" data-act="copy-link" data-id="${g.id}">${d.copied ? '✓ Copied' : 'Copy link'}</button></div>`}
+      <div class="formbtns"><button class="btn" data-act="club-discover" data-id="${g.id}">🧭 See their books</button><button class="btn primary" data-act="close">Done</button></div>
+      ${!g.demo && CLOUD ? `<div class="mgroup"><button class="mrow danger" data-act="leave-club" data-id="${g.id}"><span class="mi">🚪</span><span class="mt">Leave club</span></button></div>` : ''}`;
   }
 
-  if (ui.sheet === 'invite') {
-    const g = curGroup();
-    inner = `${head('Invite to ' + esc(g.name))}
-      <p class="empty">Anyone with this link can join in one tap.</p>
-      <div class="row" style="gap:8px;padding:6px 6px 6px 14px;border:1px solid var(--field);border-radius:14px">
-        <span class="grow" style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(inviteLink(g))}</span>
-        <button class="btn primary" data-act="copy-link">${d.copied ? 'Copied' : 'Copy'}</button>
-      </div>
-      ${navigator.share ? '<button class="btn outline block" data-act="share-link">Send on WhatsApp, SMS…</button>' : ''}
-      ${CLOUD ? '<p class="small" style="margin:0">They can start reading straight away. No sign-up needed.</p>' : '<p class="small" style="margin:0">Joining by link starts working once the app is connected to Supabase.</p>'}`;
-  }
-
+  /* ---- books ---- */
   if (ui.sheet === 'add') {
     tall = true;
-    inner = `${head('Add a book')}
-      <form class="search" data-form="search" role="search">
-        ${I.search(18)}
-        <label class="sr" for="q">Search by title or author</label>
-        <input class="field" id="q" type="search" placeholder="Search title or author" value="${esc(ui.search.q)}" autocomplete="off" enterkeyhint="search">
-      </form>
-      <div id="results">${resultsHTML()}</div>
-      <button class="link" data-act="manual-open" style="align-self:flex-start">Can't find it? Add it yourself</button>`;
+    inner = `${title('Add a book')}
+      <form data-form="search" role="search"><label class="sr" for="q">Search by title or author</label>
+        <input class="hb-input" id="q" type="search" placeholder="🔍 Title or author" value="${esc(ui.search.q)}" autocomplete="off" enterkeyhint="search"></form>
+      <div id="results" style="margin-top:.4rem">${resultsHTML()}</div>
+      <button class="link" data-act="manual-open">Can't find it? Add it yourself</button>
+      <div class="formbtns"><button class="btn primary" data-act="close">Done</button></div>`;
   }
-
   if (ui.sheet === 'manual') {
-    inner = `${head('Add your own')}
-      <div style="display:grid;grid-template-columns:96px minmax(0,1fr);gap:14px;align-items:start">
-        <label class="cover-wrap" style="width:96px">
-          <span class="sr">Add a cover photo</span>
-          <input class="file" type="file" accept="image/*" data-manual-photo="1">
-          ${d.photo ? `<span class="fcover"><img src="${esc(d.photo)}" alt=""></span>` : `<span class="fcover" style="background:var(--teal-xl);box-shadow:none;border:1.5px dashed #9CC9C4;display:flex;align-items:center;justify-content:center;color:var(--teal)">${I.cam(24)}</span>`}
-        </label>
-        <div class="section" style="gap:8px">
-          <label class="label" for="m-title">Title</label>
-          <input class="field" id="m-title" maxlength="120" value="${esc(d.title || '')}">
-          <label class="label" for="m-author">Author <span style="font-weight:400">(optional)</span></label>
-          <input class="field" id="m-author" maxlength="80" value="${esc(d.author || '')}">
-        </div>
+    inner = `${title('Add your own')}
+      <div style="display:grid;grid-template-columns:5.6rem minmax(0,1fr);gap:.8rem;align-items:start">
+        <label class="cover-wrap"><span class="sr">Add a cover photo</span><input class="file" type="file" accept="image/*" data-manual-photo="1">
+          ${d.photo ? `<span class="fcover"><img src="${esc(d.photo)}" alt=""></span>` : `<span class="fcover" style="background:var(--card);border-style:dashed;display:flex;align-items:center;justify-content:center;font-size:1.6rem">📷</span>`}</label>
+        <div><label class="hb-label" style="margin-top:0" for="m-title">Title</label><input class="hb-input" id="m-title" maxlength="120" value="${esc(d.title || '')}">
+          <label class="hb-label" for="m-author">Author <span class="sub">(optional)</span></label><input class="hb-input" id="m-author" maxlength="80" value="${esc(d.author || '')}"></div>
       </div>
-      <label class="label" for="m-pages">Number of pages <span style="font-weight:400">(optional)</span></label>
-      <input class="field" id="m-pages" type="number" inputmode="numeric" min="1" value="${esc(d.pages || '')}">
-      <div class="grid2">
-        <button class="btn outline" data-act="manual-save" data-status="want" style="height:52px">Want to read</button>
-        <button class="btn primary" data-act="manual-save" data-status="reading" style="height:52px">Start reading</button>
-      </div>`;
+      <label class="hb-label" for="m-pages">Pages <span class="sub">(optional)</span></label><input class="hb-input" id="m-pages" type="number" inputmode="numeric" min="1" value="${esc(d.pages || '')}">
+      <div class="formbtns"><button class="btn" data-act="manual-save" data-status="want">Want to read</button><button class="btn primary" data-act="manual-save" data-status="reading">Start reading</button></div>`;
   }
-
   if (ui.sheet === 'book') {
     const b = db.books.find(x => x.id === d.id);
     if (!b) { ui.sheet = null; return renderSheet(); }
-    const statusLabel = { reading: 'Reading now', paused: 'Paused', want: 'Want to read', finished: 'Finished' }[b.status];
+    const status = { reading: ['soon', 'Reading now'], paused: ['later', 'Paused'], want: ['info', 'Want to read'], finished: ['ok', 'Finished'] }[b.status];
     const tr = tracked(b);
-    const progressFields = b.status === 'want' ? '' : `
-      <button class="toggle-row" data-act="track-toggle" data-id="${b.id}" aria-pressed="${tr}">
-        <span class="grow" style="display:flex;flex-direction:column;gap:2px">
-          <span class="title" style="font-size:14px">Track my progress</span>
-          <span class="small">${tr ? 'Optional. Turn off any time.' : 'Optional. Off means you just show as reading.'}</span>
-        </span>
-        <span class="sw ${tr ? 'on' : ''}"></span>
-      </button>
-      ${tr ? `${progControl(b, 's')}
-      <div class="section" style="gap:6px">
-        <label class="label" for="p-total">Total pages <span style="font-weight:400">(leave blank to track in %)</span></label>
-        <input class="field" id="p-total" type="number" inputmode="numeric" min="1" value="${b.pages || ''}" data-pages-for="${b.id}">
-      </div>` : ''}`;
-    const actionsRow = {
-      reading: `<button class="btn" data-act="pause" data-id="${b.id}">Pause</button><button class="btn" data-act="finish" data-id="${b.id}">I finished it</button>`,
-      paused: `<button class="btn primary" data-act="resume" data-id="${b.id}" style="grid-column:span 2">Resume reading</button>`,
-      want: `<button class="btn primary" data-act="start" data-id="${b.id}" style="grid-column:span 2;height:52px">Start reading</button>`,
-      finished: `<button class="btn" data-act="share-this" data-id="${b.id}" style="grid-column:span 2">Share what stayed with you</button>`
-    }[b.status];
-    inner = `<div class="grabber"></div>
-      <div style="display:grid;grid-template-columns:96px minmax(0,1fr) 44px;gap:14px;align-items:start">
+    inner = `<div style="display:grid;grid-template-columns:5.6rem minmax(0,1fr);gap:.8rem;align-items:start">
         ${editableFcover(b)}
-        <div style="display:flex;flex-direction:column;gap:4px;padding-top:4px">
-          <span class="h3">${statusLabel}</span>
-          <h2 style="font-size:20px">${esc(b.title)}</h2>
-          <span class="sub">${esc(b.author || '')}</span>
-          ${b.from ? `<span class="small">${esc(b.from)}</span>` : ''}
-        </div>
-        <button class="icon-btn" aria-label="Close" data-act="close" style="background:var(--bg);border-radius:22px">${I.close()}</button>
+        <div><span class="pill ${status[0]}">${status[1]}</span><h2 class="sheet-title" style="margin-top:.4rem">${esc(b.title)}</h2><div class="sub">${esc(b.author || '')}</div>${b.from ? `<div class="small" style="margin-top:.3rem">${esc(b.from)}</div>` : ''}</div>
       </div>
-      ${progressFields}
-      <div class="grid2">${actionsRow}</div>
-      <button class="btn danger" data-act="remove" data-id="${b.id}" style="align-self:center">Not for me — remove from shelf</button>`;
+      ${b.status === 'want' ? '' : `<div class="mgroup">
+        <label class="mrow static"><span class="mt">Track my progress<small>Optional. Off means you just show as reading.</small></span><span class="switch"><input type="checkbox" data-track="${b.id}" ${tr ? 'checked' : ''}><span></span></span></label>
+        ${tr ? `<div class="mrow static" style="display:block">${progControl(b, 's')}</div>
+          <div class="mrow static"><label class="mt" for="p-total">Total pages<small>Leave blank to track in %</small></label><input class="num" id="p-total" type="number" inputmode="numeric" min="1" value="${b.pages || ''}" data-pages-for="${b.id}"></div>` : ''}
+      </div>`}
+      <div class="actions">
+        ${{ reading: `<button class="btn" style="flex:1" data-act="pause" data-id="${b.id}">⏸ Pause</button><button class="btn primary" style="flex:1" data-act="finish" data-id="${b.id}">✓ I finished it</button>`,
+            paused: `<button class="btn primary" style="flex:1" data-act="resume" data-id="${b.id}">▶ Resume reading</button>`,
+            want: `<button class="btn primary" style="flex:1" data-act="start" data-id="${b.id}">▶ Start reading</button>`,
+            finished: `<button class="btn accent" style="flex:1" data-act="share-this" data-id="${b.id}">✍️ Share what stayed with you</button>` }[b.status]}
+      </div>
+      <div class="formbtns"><button class="btn danger" data-act="remove" data-id="${b.id}">Not for me</button><button class="btn primary" data-act="close">Done</button></div>`;
   }
 
-  if (ui.sheet === 'settings') {
-    const page = d.page || '';
-    const cur = db.me.theme || 'teal';
-    const sw = Object.entries(THEMES).map(([k, t]) => `<button class="swatch ${cur === k ? 'on' : ''}" aria-pressed="${cur === k}" data-act="theme" data-id="${k}"><i style="background:${t.dark ? 'linear-gradient(135deg,#1B1E22 50%,#5CC8BD 50%)' : t.accent}"></i>${t.name}</button>`).join('');
-    const email = authUser && !authUser.is_anonymous ? authUser.email : '';
-    const account = !CLOUD ? '' : email ? `<div class="card" style="background:var(--bg);box-shadow:none">
-        <div class="title" style="font-size:14px">Account</div>
-        <p class="empty" style="font-size:13px">Signed in as <b style="color:var(--ink)">${esc(email)}</b>. Use the same email and password on any other phone or laptop.</p>
-        <button class="btn" data-act="sign-out">Sign out</button></div>`
-      : d.signin ? `<div class="card" style="background:var(--bg);box-shadow:none">
-        <div class="title" style="font-size:14px">Sign in</div>
-        <p class="empty" style="font-size:13px">Use the email and password you created on your other device.</p>
-        <label class="label" for="acc-email">Email</label>
-        <input class="field" id="acc-email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com">
-        <label class="label" for="acc-pw">Password</label>
-        <input class="field" id="acc-pw" type="password" autocomplete="current-password">
-        <button class="btn primary block" data-act="acc-signin">Sign in</button>
-        <button class="link" data-act="acc-mode" style="align-self:center">New here? Create an account instead</button></div>`
-      : `<div class="card" style="background:var(--bg);box-shadow:none">
-        <div class="title" style="font-size:14px">Create an account <span style="font-weight:400;color:var(--muted)">(optional)</span></div>
-        <p class="empty" style="font-size:13px">Your books are already saved. An account just lets you open them on another phone or laptop.</p>
-        <label class="label" for="acc-email">Email</label>
-        <input class="field" id="acc-email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com">
-        <label class="label" for="acc-pw">Password <span style="font-weight:400">(at least 6 characters)</span></label>
-        <input class="field" id="acc-pw" type="password" autocomplete="new-password" minlength="6">
-        <button class="btn primary block" data-act="acc-create">Create account</button>
-        <button class="link" data-act="acc-mode" style="align-self:center">Already have an account? Sign in</button></div>`;
-    const back = t => `<div class="grabber"></div><div class="row"><button class="icon-btn" aria-label="Back to settings" data-act="set-page" data-id="" style="background:var(--bg);border-radius:22px">${I.back(20)}</button><h2>${t}</h2></div>`;
-    const ico = (path, bg, fg) => `<span class="set-ico" style="background:${bg};color:${fg}">${svg(18, path)}</span>`;
-    const row = (pageId, icon, label, value, act) => `<button class="set-row" data-act="${act || 'set-page'}" data-id="${pageId}">${icon}<span class="grow">${label}</span><span class="set-val">${esc(value || '')}</span><span style="color:var(--muted)">${I.chev(18)}</span></button>`;
-    const P = {
-      user: '<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/>',
-      cloud: '<path d="M17.5 19a4.5 4.5 0 1 0-1.4-8.78A6 6 0 0 0 4 12a4 4 0 0 0 1 7.87"/><path d="M12 13v8M9 16l3-3 3 3"/>',
-      palette: '<circle cx="13.5" cy="6.5" r="1.5"/><circle cx="17.5" cy="10.5" r="1.5"/><circle cx="8.5" cy="7.5" r="1.5"/><circle cx="6.5" cy="12.5" r="1.5"/><path d="M12 2a10 10 0 0 0 0 20c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.3A5.7 5.7 0 0 0 22 9.7C22 5.4 17.5 2 12 2z"/>',
-      target: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
-      eye: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',
-      phone: '<rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/>',
-      help: '<circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/>',
-      data: '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.7-4 3-9 3s-9-1.3-9-3"/><path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5"/>',
-      shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
-      sparkle: '<path d="M12 3l1.9 5.8L20 10l-6.1 1.2L12 17l-1.9-5.8L4 10l6.1-1.2z"/>'
-    };
-    if (!page) {
-      inner = `${head('Settings')}
-        <div class="set-group">
-          ${CLOUD ? row('account', ico(P.cloud, '#E3EEFB', '#2A5DA8'), email ? 'Account' : 'Create account / Sign in', email ? email : 'Use on other devices') : ''}
-          ${row('name', ico(P.user, '#F3E8FB', '#6B3FA0'), 'Your name', db.me.name)}
-        </div>
-        <div class="set-group">
-          ${row('theme', ico(P.palette, '#FCEBDD', '#A94E2B'), 'Display & theme', (THEMES[cur] || THEMES.teal).name)}
-          ${row('goal', ico(P.target, '#E3F1F0', '#0A4F4F'), 'Daily goal', db.me.goal ? db.me.goal + ' pages' : 'Off')}
-          ${row('privacy', ico(P.eye, '#E8F3E4', '#2F6B3B'), 'Privacy', db.me.showProgress ? 'Progress visible' : 'Progress hidden')}
-          ${row('data', ico(P.data, '#EEF0F2', '#4A525C'), 'Data', CLOUD ? 'Saved to cloud' : 'This phone only')}
-          ${row('install', ico(P.phone, '#E6E9F8', '#3D4FB0'), 'Install as an app', '')}
-          ${row('help', ico(P.help, '#FCEFD9', '#8A5A1F'), 'How it works', '')}
-        </div>
-        ${isAdmin ? `<div class="set-group">${row('', ico(P.shield, '#1B1F24', '#FFFFFF'), 'Admin panel', 'Only you', 'admin')}</div>` : ''}
-        <p class="small" style="text-align:center;margin:0">The Book Club · beta</p>
-        <button class="btn block" data-act="close">Done</button>`;
-    } else if (page === 'account') {
-      inner = `${back(email ? 'Account' : 'Create account / Sign in')}${account}`;
-    } else if (page === 'name') {
-      inner = `${back('Your name')}
-        <p class="empty" style="font-size:13px">This is how people in your clubs see you.</p>
-        <label class="sr" for="s-name">Your name</label>
-        <input class="field" id="s-name" maxlength="40" value="${esc(db.me.name)}">
-        <button class="btn primary block" data-act="settings-save">Save</button>`;
-    } else if (page === 'theme') {
-      inner = `${back('Display & theme')}<div class="swatches">${sw}</div>
-        <p class="small" style="margin:0">Midnight is a dark theme, easier on the eyes at night.</p>`;
-    } else if (page === 'goal') {
-      inner = `${back('Daily goal')}
-        <p class="empty" style="font-size:13px">Optional. It only changes how full your Today dial looks. Nobody else sees it, and there are no reminders or streaks.</p>
-        <label class="label" for="goal-n">Pages a day</label>
-        <input class="field" id="goal-n" type="number" inputmode="numeric" min="1" max="1000" placeholder="e.g. 20" value="${db.me.goal || ''}">
-        <div class="grid2"><button class="btn" data-act="goal-clear">No goal</button><button class="btn primary" data-act="goal-save">Save</button></div>`;
-    } else if (page === 'privacy') {
-      const on = db.me.showProgress;
-      inner = `${back('Privacy')}
-        <button class="toggle-row" data-act="toggle-progress" aria-pressed="${on}">
-          <span class="grow" style="display:flex;flex-direction:column;gap:2px"><span class="title" style="font-size:14px">Show my progress to my clubs</span>
-          <span class="small">${on ? 'Others see a progress bar on books you track' : 'Others only see which book you are reading'}</span></span>
-          <span class="sw ${on ? 'on' : ''}"></span>
-        </button>
-        <div class="card" style="background:var(--bg);box-shadow:none">
-          <div class="title" style="font-size:14px">Always private</div>
-          <p class="empty" style="font-size:13px">Your Today dial, daily pages, calendar and goal are only ever visible to you.</p>
-        </div>`;
-    } else if (page === 'data') {
-      inner = `${back('Data')}
-        <div class="card" style="background:var(--bg);box-shadow:none">
-          <p class="empty" style="font-size:13px">${CLOUD ? (email ? 'Your books, clubs and posts are saved to the cloud and linked to ' + esc(email) + '.' : 'Your books, clubs and posts are saved to the cloud. Create an account to open them on another device.') : 'Everything is saved on this device. Clearing your browser data will erase it.'}</p>
-        </div>
-        ${hasDemo() ? `<div class="card" style="background:var(--bg);box-shadow:none">
-          <div class="title" style="font-size:14px">Sample club</div>
-          <p class="empty" style="font-size:13px">Demo Club, Priya, Arjun and Meera are sample data so you can try Discover.</p>
-          <button class="btn" data-act="demo-remove">Remove sample data</button></div>` : ''}
-        ${CLOUD ? '' : '<button class="btn danger" data-act="reset">Erase everything on this device</button>'}`;
-    } else if (page === 'install') {
-      inner = `${back('Install as an app')}
-        <p class="empty" style="font-size:13px">Add it to your home screen so it opens like a normal app.</p>
-        <div class="card" style="background:var(--bg);box-shadow:none"><div class="title" style="font-size:14px">iPhone (Safari)</div>
-          <p class="empty" style="font-size:13px">Tap the Share button at the bottom, then <b style="color:var(--ink)">Add to Home Screen</b>.</p></div>
-        <div class="card" style="background:var(--bg);box-shadow:none"><div class="title" style="font-size:14px">Android (Chrome)</div>
-          <p class="empty" style="font-size:13px">Tap the ⋮ menu at the top right, then <b style="color:var(--ink)">Add to Home screen</b> or <b style="color:var(--ink)">Install app</b>.</p></div>`;
-    } else if (page === 'help') {
-      inner = `${back('How it works')}
-        ${[['Read', 'Add the books you are reading, at your own pace. Track progress only if you want to.'],
-           ['Discover', 'Inside a club, see what others are reading and save books to your Want to read list.'],
-           ['Share', 'When you finish a book, react and share a line about what stayed with you.'],
-           ['Today', 'Your home dial shows pages you read today. It is private to you.'],
-           ['Clubs', 'Create a club and send the invite link. Friends can join without signing up.']]
-          .map(([t, x]) => `<div class="card" style="background:var(--bg);box-shadow:none"><div class="title" style="font-size:14px">${t}</div><p class="empty" style="font-size:13px">${x}</p></div>`).join('')}`;
-    }
-  }
-
+  /* ---- today, calendar ---- */
   if (ui.sheet === 'today') {
     const reading = myBooks().filter(b => b.status === 'reading').sort((a, b) => b.updatedAt - a.updatedAt);
-    inner = `${head('Today’s reading')}
-      <p class="empty" style="font-size:13px">Move the slider to where you are now. Pages you move forward today count toward today. <b id="today-num" style="color:var(--ink)">${pagesOn(dayStr())}</b> pages so far.</p>
-      ${reading.map(b => `<div class="card" style="box-shadow:none;background:var(--bg)">
-        <div class="row">${coverHTML(b, 36, 54)}<div class="grow"><div class="title" style="font-size:14px">${esc(b.title)}</div><div class="small">${esc(b.author || '')}</div></div></div>
+    inner = `${title('Today’s reading')}
+      <p class="sub">Move each slider to where you are now. Pages moved forward today count toward today: <b style="color:var(--ink)" id="today-num-s">${pagesOn(dayStr())}</b> so far.</p>
+      ${reading.map(b => `<div class="card"><div class="row">${coverHTML(b, 32, 48)}<div class="grow"><div class="item-title">${esc(b.title)}</div><div class="meta">${esc(b.author || '')}</div></div></div>
         ${tracked(b) && b.pages ? progControl(b, 't')
-          : tracked(b) ? `<p class="small" style="margin:0">This book tracks in %, so pages can't be counted. Add the total pages to count them:</p>
-              <input class="field" type="number" inputmode="numeric" min="1" placeholder="Total pages" data-pages-for="${b.id}">`
-          : `<button class="btn soft" data-act="track-toggle" data-id="${b.id}">${I.plus(14)} Track progress for this book</button>`}
-      </div>`).join('') || `<div class="empty-card" style="box-shadow:none;background:var(--bg)"><p class="empty">Nothing on the go. Add the book you're reading.</p><button class="btn primary" data-act="add-open">${I.search(16)} Find a book</button></div>`}
-      <button class="btn block" data-act="close">Done</button>`;
+          : tracked(b) ? `<p class="small">This book tracks in %, so pages can't be counted. Add its page count:</p><input class="hb-input" type="number" inputmode="numeric" min="1" placeholder="Total pages" data-pages-for="${b.id}">`
+          : `<button class="btn" style="margin-top:.5rem" data-act="track-toggle" data-id="${b.id}">＋ Track progress for this book</button>`}</div>`).join('')
+        || `<div class="card empty">Nothing on the go.<br><br><button class="btn accent" data-act="add-open">＋ Add a book</button></div>`}
+      ${close()}`;
   }
-
-  if (ui.sheet === 'goal') {
-    inner = `${head('Daily goal')}
-      <p class="empty" style="font-size:13px">Optional. It only changes how full your dial looks. Nobody else sees it, and there are no reminders or streaks.</p>
-      <label class="label" for="goal-n">Pages a day</label>
-      <input class="field" id="goal-n" type="number" inputmode="numeric" min="1" max="1000" placeholder="e.g. 20" value="${db.me.goal || ''}">
-      <div class="grid2">
-        <button class="btn" data-act="goal-clear">No goal</button>
-        <button class="btn primary" data-act="goal-save">Save</button>
-      </div>`;
-  }
-
   if (ui.sheet === 'calendar') {
-    const m = d.month || dayStr().slice(0, 7);
-    const [y, mo] = m.split('-').map(Number);
-    const first = new Date(y, mo - 1, 1), daysIn = new Date(y, mo, 0).getDate();
-    const lead = (first.getDay() + 6) % 7; // Monday first
-    const today = dayStr(), sel = d.sel || today;
-    const goal = db.me.goal || 0;
+    const m = d.month || dayStr().slice(0, 7), [y, mo] = m.split('-').map(Number);
+    const first = new Date(y, mo - 1, 1), daysIn = new Date(y, mo, 0).getDate(), lead = (first.getDay() + 6) % 7;
+    const today = dayStr(), sel = d.sel || today, goal = db.me.goal || 0;
     const lvl = n => !n ? '' : goal ? (n >= goal ? 'l4' : n >= goal * .5 ? 'l3' : 'l2') : (n >= 40 ? 'l4' : n >= 20 ? 'l3' : n >= 8 ? 'l2' : 'l1');
-    let cells = ['M', 'T', 'W', 'T', 'F', 'S', 'S'].map(x => `<span class="dow">${x}</span>`).join('') + '<span></span>'.repeat(lead);
-    let monthPages = 0, monthDays = 0;
+    let cells = ['M', 'T', 'W', 'T', 'F', 'S', 'S'].map(x => `<span class="dow">${x}</span>`).join('') + '<span></span>'.repeat(lead), mp = 0, md = 0;
     for (let i = 1; i <= daysIn; i++) {
-      const ds = `${m}-${String(i).padStart(2, '0')}`, n = pagesOn(ds);
-      if (n) { monthPages += n; monthDays++; }
-      const fut = ds > today;
-      cells += `<button class="${lvl(n)} ${ds === sel ? 'sel' : ''} ${ds === today ? 'today' : ''} ${fut ? 'future' : ''}" ${fut ? 'disabled' : ''} data-act="cal-day" data-id="${ds}" aria-label="${ds}: ${n} pages">${i}${n ? `<small>${n}</small>` : ''}</button>`;
+      const ds = `${m}-${String(i).padStart(2, '0')}`, n = pagesOn(ds); if (n) { mp += n; md++; }
+      cells += `<button class="${lvl(n)} ${ds === sel ? 'sel' : ''} ${ds === today ? 'today' : ''}" ${ds > today ? 'disabled' : ''} data-act="cal-day" data-id="${ds}" aria-label="${ds}: ${n} pages">${i}${n ? `<small>${n}</small>` : ''}</button>`;
     }
     const entries = (db.log || []).filter(l => l.day === sel && l.pages > 0);
-    const nextM = (() => { const x = new Date(y, mo, 1); return dayStr(x).slice(0, 7); })();
-    const prevM = (() => { const x = new Date(y, mo - 2, 1); return dayStr(x).slice(0, 7); })();
-    inner = `${head(first.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }))}
-      <div class="row" style="justify-content:space-between">
-        <button class="btn" data-act="cal-month" data-id="${prevM}" aria-label="Previous month">${I.back(18)}</button>
-        <span class="sub">${monthPages} pages · ${monthDays} ${monthDays === 1 ? 'day' : 'days'}</span>
-        <button class="btn" data-act="cal-month" data-id="${nextM}" aria-label="Next month" ${nextM > today.slice(0, 7) ? 'disabled' : ''}>${I.chev(18)}</button>
+    const nextM = dayStr(new Date(y, mo, 1)).slice(0, 7), prevM = dayStr(new Date(y, mo - 2, 1)).slice(0, 7);
+    inner = `<div class="row" style="justify-content:space-between;margin-bottom:.4rem">
+        <button class="iconbtn" aria-label="Previous month" data-act="cal-month" data-id="${prevM}">‹</button>
+        <div style="text-align:center"><div class="sheet-title" style="margin:0;font-size:1.1rem">${first.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}</div><div class="meta" style="justify-content:center">${mp} pages · ${md} ${md === 1 ? 'day' : 'days'}</div></div>
+        <button class="iconbtn" aria-label="Next month" data-act="cal-month" data-id="${nextM}" ${nextM > today.slice(0, 7) ? 'disabled' : ''}>›</button>
       </div>
       <div class="cal">${cells}</div>
-      <div class="card" style="box-shadow:none;background:var(--bg)">
-        <div class="title" style="font-size:14px">${new Date(sel + 'T12:00').toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short' })}</div>
-        ${entries.length ? entries.map(l => `<div class="row" style="justify-content:space-between"><span class="sub" style="color:var(--ink)">${esc(l.title)}</span><b>${l.pages} pages</b></div>`).join('') : '<p class="empty" style="font-size:13px">No reading logged.</p>'}
-      </div>`;
+      <div class="card" style="margin-top:.7rem"><div class="item-title">${new Date(sel + 'T12:00').toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })}</div>
+        ${entries.length ? entries.map(l => `<div class="row" style="justify-content:space-between;margin-top:.3rem"><span class="sub" style="color:var(--ink)">${esc(l.title)}</span><b>${l.pages} pages</b></div>`).join('') : '<div class="meta">No reading logged.</div>'}</div>
+      <p class="small" style="text-align:center">🔒 Only you can see this</p>${close()}`;
   }
 
+  /* ---- owner dashboard ---- */
   if (ui.sheet === 'admin') {
     tall = true;
-    const a = d.data;
-    const fmt = t => t ? new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: '2-digit' }) : '';
-    inner = `${head('Admin')}
-      ${d.error ? `<p class="empty">${esc(d.error)}</p>` : !a ? '<div class="spinner">Loading…</div>' : `
+    const a = d.data, fmt = t => t ? new Date(t).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '';
+    inner = `${title('Owner dashboard')}${d.error ? `<p class="sub">${esc(d.error)}</p>` : !a ? '<p class="sub">Loading…</p>' : `
       <div class="stats">
-        <div class="stat"><b>${a.users}</b><span>People</span></div>
-        <div class="stat"><b>${a.email_users}</b><span>Added email</span></div>
-        <div class="stat"><b>${a.active_7d}</b><span>Active 7 days</span></div>
-        <div class="stat"><b>${a.groups}</b><span>Groups</span></div>
-        <div class="stat"><b>${a.books}</b><span>Books added</span></div>
-        <div class="stat"><b>${a.posts}</b><span>Thoughts shared</span></div>
+        <div class="stat hl"><div class="n">${a.users}</div><div class="l">People</div></div>
+        <div class="stat"><div class="n">${a.email_users}</div><div class="l">With an account</div></div>
+        <div class="stat"><div class="n">${a.active_7d}</div><div class="l">Active, 7 days</div></div>
+        <div class="stat"><div class="n">${a.groups}</div><div class="l">Clubs</div></div>
+        <div class="stat"><div class="n">${a.books}</div><div class="l">Books added</div></div>
+        <div class="stat"><div class="n">${a.posts}</div><div class="l">Thoughts shared</div></div>
       </div>
-      <div class="h3">Most added books</div>
-      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Book</th><th>People</th></tr></thead><tbody>
-        ${(a.top_books || []).map(r => `<tr><td>${esc(r.title)}</td><td>${r.n}</td></tr>`).join('') || '<tr><td colspan="2">None yet</td></tr>'}
-      </tbody></table></div>
-      <div class="h3">Newest people</div>
-      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Joined</th><th>Books</th></tr></thead><tbody>
-        ${(a.recent_users || []).map(r => `<tr><td>${esc(r.name)}</td><td>${r.email ? esc(r.email) : '<span class="small">—</span>'}</td><td>${fmt(r.created_at)}</td><td>${r.books}</td></tr>`).join('')}
-      </tbody></table></div>
-      <div class="h3">Groups</div>
-      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Group</th><th>Members</th><th>Created</th></tr></thead><tbody>
-        ${(a.groups_list || []).map(r => `<tr><td>${esc(r.name)}</td><td>${r.members}</td><td>${fmt(r.created_at)}</td></tr>`).join('') || '<tr><td colspan="3">None yet</td></tr>'}
-      </tbody></table></div>`}`;
+      <div class="section-label">Most added books</div>
+      <div class="card tbl-wrap"><table class="tbl"><thead><tr><th>Book</th><th>People</th></tr></thead><tbody>${(a.top_books || []).map(r => `<tr><td>${esc(r.title)}</td><td>${r.n}</td></tr>`).join('') || '<tr><td colspan="2">None yet</td></tr>'}</tbody></table></div>
+      <div class="section-label">Newest people</div>
+      <div class="card tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Joined</th><th>Books</th></tr></thead><tbody>${(a.recent_users || []).map(r => `<tr><td>${esc(r.name)}</td><td>${r.email ? esc(r.email) : '—'}</td><td>${fmt(r.created_at)}</td><td>${r.books}</td></tr>`).join('')}</tbody></table></div>
+      <div class="section-label">Clubs</div>
+      <div class="card tbl-wrap"><table class="tbl"><thead><tr><th>Club</th><th>Members</th><th>Created</th></tr></thead><tbody>${(a.groups_list || []).map(r => `<tr><td>${esc(r.name)}</td><td>${r.members}</td><td>${fmt(r.created_at)}</td></tr>`).join('') || '<tr><td colspan="3">None yet</td></tr>'}</tbody></table></div>`}
+      <div class="formbtns"><button class="btn" data-act="settings">‹ Settings</button><button class="btn primary" data-act="close">Done</button></div>`;
   }
 
   root.innerHTML = `<div class="overlay ${animate ? 'anim' : ''}" data-act="overlay"><div class="sheet ${tall ? 'tall' : ''}" role="dialog" aria-modal="true">${inner}</div></div>`;
-  if (animate) {
-    const first = root.querySelector('#g-name, #q, #m-title');
-    if (first) setTimeout(() => first.focus(), 260);
-  }
+  if (animate) { const f = root.querySelector('#g-name, #q, #m-title, #wc-name, #wj-code'); if (f) setTimeout(() => f.focus(), 250); }
 }
 function openSheet(name, data = {}) { ui.sheet = name; ui.sheetData = data; renderSheet(true); }
-function closeSheet() { const was = ui.sheet; ui.sheet = null; ui.sheetData = {}; renderSheet(); if (['today', 'goal', 'calendar'].includes(was)) render(); }
+function closeSheet() { ui.sheet = null; ui.sheetData = {}; render(); }
 const inviteLink = g => location.origin + location.pathname + '?join=' + g.code;
 
 /* ---------- add-book results ---------- */
 function suggestions() {
-  // books people in your groups are reading or have shared, not already on your shelf
-  const myGroups = db.groups.filter(g => g.members.includes(ME));
-  const people = new Set(myGroups.flatMap(g => g.members).filter(id => id !== ME));
+  const people = new Set(myClubs().flatMap(g => g.members).filter(id => id !== ME));
   const seen = new Set(), out = [];
-  const push = (x, who) => {
-    if (seen.has(norm(x.title)) || onMyShelf(x.title)) return;
-    seen.add(norm(x.title));
-    out.push({ title: x.title, author: x.author, pages: x.pages, coverUrl: x.coverUrl, from: 'Saved from ' + who });
-  };
+  const push = (x, who) => { if (seen.has(norm(x.title)) || onMyShelf(x.title)) return; seen.add(norm(x.title)); out.push({ title: x.title, author: x.author, pages: x.pages, coverUrl: x.coverUrl, from: 'Saved from ' + who }); };
   db.books.filter(b => people.has(b.userId) && b.status === 'reading').forEach(b => push(b, userById(b.userId)?.name || 'a friend'));
   db.posts.filter(p => people.has(p.userId) && p.reaction !== 'down').forEach(p => push(p, userById(p.userId)?.name || 'a friend'));
   return out.slice(0, 6);
 }
 function resultRow(r, i, src) {
   const inS = onMyShelf(r.title);
-  return `<div class="result">
-    ${coverHTML(r, 40, 60)}
-    <div class="grow"><div class="title clamp2" style="font-size:14px">${esc(r.title)}</div><div class="small">${esc(r.author || 'Unknown author')}${r.pages ? ' · ' + r.pages + ' pages' : ''}</div></div>
-    ${inS ? '<span class="small">On your shelf</span>' : `<div class="row" style="gap:6px">
-      <button class="btn" style="padding:0 12px;font-size:13px" data-act="add-result" data-src="${src}" data-id="${i}" data-status="want" aria-label="Want to read ${esc(r.title)}">Want</button>
-      <button class="btn primary" style="padding:0 12px;font-size:13px" data-act="add-result" data-src="${src}" data-id="${i}" data-status="reading" aria-label="Start reading ${esc(r.title)}">Start</button></div>`}
+  return `<div class="result">${coverHTML(r, 36, 54)}
+    <div class="grow"><div class="item-title clamp2">${esc(r.title)}</div><div class="meta">${esc(r.author || 'Unknown author')}${r.pages ? ' · ' + r.pages + ' pages' : ''}</div></div>
+    ${inS ? '<span class="pill ok">On shelf</span>' : `<div class="row" style="gap:.3rem">
+      <button class="btn" data-act="add-result" data-src="${src}" data-id="${i}" data-status="want" aria-label="Want to read ${esc(r.title)}">Want</button>
+      <button class="btn primary" data-act="add-result" data-src="${src}" data-id="${i}" data-status="reading" aria-label="Start reading ${esc(r.title)}">Start</button></div>`}
   </div>`;
 }
 function resultsHTML() {
   const s = ui.search;
   if (!s.q) {
-    const sug = suggestions();
-    ui.sheetData.suggest = sug;
-    return sug.length ? `<div class="h3" style="margin:4px 0 2px">Picks from your groups</div>${sug.map((r, i) => resultRow(r, i, 'suggest')).join('')}`
-      : '<p class="empty" style="padding:8px 0">Search millions of books by title or author.</p>';
+    const sug = suggestions(); ui.sheetData.suggest = sug;
+    return sug.length ? `<div class="section-label">Picks from your clubs</div>${sug.map((r, i) => resultRow(r, i, 'suggest')).join('')}` : '<div class="empty">Search millions of books by title or author.</div>';
   }
-  if (s.loading) return Array.from({ length: 4 }, () => `<div class="result"><span class="skel" style="width:40px;height:60px"></span><div class="grow" style="display:flex;flex-direction:column;gap:8px"><span class="skel" style="height:12px;width:70%"></span><span class="skel" style="height:10px;width:45%"></span></div></div>`).join('');
-  if (s.error) return `<p class="empty" style="padding:8px 0">${esc(s.error)}</p>`;
+  if (s.loading) return Array.from({ length: 4 }, () => `<div class="result"><span class="skel" style="width:2.6rem;height:3.9rem"></span><div class="grow"><div class="skel" style="height:.8rem;width:70%"></div><div class="skel" style="height:.7rem;width:45%;margin-top:.4rem"></div></div></div>`).join('');
+  if (s.error) return `<div class="empty">${esc(s.error)}</div>`;
   return s.results.map((r, i) => resultRow(r, i, 'search')).join('');
 }
 function renderResults() { const el = document.getElementById('results'); if (el) el.innerHTML = resultsHTML(); }
 
-/* ---------- photos ---------- */
 function readPhoto(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -1343,184 +1257,260 @@ function saveFromOther(x, userId) {
   }
 }
 
+
+
+/* ============================================================
+   Actions
+   ============================================================ */
+function startApp(name) {
+  db = seed(name); save();
+  ui.tab = 'home'; render();
+}
+async function finishOnboard() {
+  if (CLOUD) { clearTimeout(syncTimer); await sync(); if (pendingJoin) await joinByCode(pendingJoin); }
+}
+function backToMenu() { ui.sheetData = { page: '' }; renderSheet(); }
+
 const actions = {
+  undo() { const f = toastUndo; toastUndo = null; document.getElementById('toast').classList.add('hide'); if (f) f(); },
   async onboard() {
     const name = document.getElementById('ob-name').value.trim();
-    if (!name) { toast('Add your name to continue'); return; }
-    db = seed(name); save(); render();
-    if (CLOUD) { clearTimeout(syncTimer); await sync(); if (pendingJoin) await joinByCode(pendingJoin); }
+    if (!name) { toast('Add your name to continue'); document.getElementById('ob-name').focus(); return; }
+    startApp(name); await finishOnboard();
   },
-  theme(id) {
-    applyTheme(id); db.me.theme = id; save(); renderSheet(); render();
+  'w-explore'() {
+    const name = (document.getElementById('ob-name')?.value || '').trim() || 'You';
+    if (!db) { db = seed(name); }
+    addSamples(); save(); ui.tab = 'home'; render(); finishOnboard();
+    toast('Sample data added. Remove it any time.');
   },
-  async admin() {
-    openSheet('admin', {});
-    const { data, error } = await sb.rpc('admin_overview');
-    if (ui.sheet !== 'admin') return;
-    ui.sheetData = error ? { error: "Couldn't load admin data: " + error.message } : { data };
-    renderSheet();
-  },
-  'acc-mode'() { ui.sheetData.signin = !ui.sheetData.signin; renderSheet(); setTimeout(() => document.getElementById('acc-email')?.focus(), 50); },
-  async 'acc-create'() {
-    const email = document.getElementById('acc-email').value.trim();
-    const password = document.getElementById('acc-pw').value;
+  'w-create'() { openSheet('w-create'); },
+  'w-signin'() { openSheet('w-signin'); },
+  'w-join'() { openSheet('w-join'); },
+  async 'w-create-save'() {
+    const name = document.getElementById('wc-name').value.trim();
+    const email = document.getElementById('acc-email').value.trim(), password = document.getElementById('acc-pw').value;
+    if (!name) { toast('Add your name'); return; }
     if (!/^\S+@\S+\.\S+$/.test(email)) { toast('Enter a valid email'); return; }
     if (password.length < 6) { toast('Password needs at least 6 characters'); return; }
-    // turns this phone's anonymous account into a normal one, keeping all books
-    let r = await sb.auth.updateUser({ email });
-    if (r.error) { toast(/already|registered|exists/i.test(r.error.message) ? 'That email already has an account. Tap "Sign in instead".' : r.error.message); return; }
-    r = await sb.auth.updateUser({ password });
-    if (r.error) { toast(r.error.message); return; }
-    authUser = r.data.user || authUser;
-    renderSheet(); toast('Account created. Your books are safe.');
+    ui.sheet = null; startApp(name); await finishOnboard();
+    await createAccount(email, password);
+  },
+  async 'w-join-save'() {
+    const code = document.getElementById('wj-code').value.trim().toLowerCase();
+    if (!code) { toast('Type the club code'); return; }
+    if (!db) {
+      const name = document.getElementById('wj-name').value.trim();
+      if (!name) { toast('Add your name'); return; }
+      pendingJoin = code; ui.sheet = null; startApp(name); await finishOnboard();
+    } else { ui.sheet = null; render(); await joinByCode(code); }
+  },
+  tab(id) { ui.tab = id; render(); scrollTo(0, 0); },
+  shelf(id) { ui.shelfTab = id; render(); },
+  'club-filter'(id) { ui.club = id; render(); },
+  settings(id) { openSheet('settings', { page: id || '' }); },
+  'set-page'(id) { ui.sheetData = { page: id || '' }; renderSheet(); },
+  'acc-mode'() { ui.sheetData.signin = !ui.sheetData.signin; renderSheet(); },
+  async 'acc-create'() {
+    const email = document.getElementById('acc-email').value.trim(), password = document.getElementById('acc-pw').value;
+    if (!/^\S+@\S+\.\S+$/.test(email)) { toast('Enter a valid email'); return; }
+    if (password.length < 6) { toast('Password needs at least 6 characters'); return; }
+    if (await createAccount(email, password)) renderSheet();
   },
   async 'acc-signin'() {
-    const email = document.getElementById('acc-email').value.trim();
-    const password = document.getElementById('acc-pw').value;
+    const email = document.getElementById('acc-email').value.trim(), password = document.getElementById('acc-pw').value;
     if (!email || !password) { toast('Enter your email and password'); return; }
-    if (!confirm('This switches this device to that account. Anything added here without an account will not move over. Continue?')) return;
+    if (db && myBooks().some(b => !b.demo) && !confirm('Signing in switches this device to that account. Books added here without an account will not move over. Continue?')) return;
     const { error } = await sb.auth.signInWithPassword({ email, password });
-    if (error) { toast(/invalid/i.test(error.message) ? 'Wrong email or password' : error.message); return; }
+    if (error) { toast(/invalid/i.test(error.message) ? "That email and password don't match" : error.message); return; }
     try { localStorage.removeItem(STORE_KEY + ':' + ME); } catch (e) {}
     location.reload();
   },
   async 'sign-out'() {
-    if (!confirm('Sign out on this phone?')) return;
+    if (!confirm('Log out on this device?')) return;
     await sb.auth.signOut();
     try { localStorage.removeItem(cacheKey()); } catch (e) {}
     location.reload();
   },
-  'open-group'(id) { ui.screen = 'group'; ui.gid = id; ui.tab = 'read'; render(); scrollTo(0, 0); },
-  back() { ui.screen = 'groups'; render(); scrollTo(0, 0); },
-  tab(id) { closeSheet(); ui.tab = id; render(); scrollTo(0, 0); },
-  shelf(id) { ui.shelfTab = id; render(); },
-  settings() { openSheet('settings'); },
-  'set-page'(id) { ui.sheetData = { page: id || '' }; renderSheet(); },
-  'today-open'() { openSheet('today'); },
-  calendar() { openSheet('calendar', { month: dayStr().slice(0, 7), sel: dayStr() }); },
-  'cal-month'(m) { ui.sheetData.month = m; renderSheet(); },
-  'cal-day'(ds) { ui.sheetData.sel = ds; renderSheet(); },
-  'goal-open'() { openSheet('goal'); },
-  'goal-save'() {
-    const n = parseInt(document.getElementById('goal-n').value, 10);
-    if (!n || n < 1) { toast('Enter pages, or tap No goal'); return; }
-    db.me.goal = Math.min(1000, n); save();
-    if (ui.sheet === 'settings') { ui.sheetData = { page: '' }; renderSheet(); render(); } else closeSheet();
-    toast('Daily goal set');
-  },
-  'goal-clear'() { db.me.goal = 0; save(); if (ui.sheet === 'settings') { ui.sheetData = { page: '' }; renderSheet(); render(); } else closeSheet(); toast('No daily goal'); },
-  'settings-save'() {
+  async 'sync-now'() { setSyncState('pending'); await refresh(); toast(syncState === 'error' ? 'Still not synced' : 'Synced'); renderSheet(); },
+  'name-save'() {
     const n = document.getElementById('s-name').value.trim();
     if (!n) { toast("Name can't be empty"); return; }
-    db.me.name = n; save(); ui.sheetData = { page: '' }; renderSheet(); render(); toast('Saved');
+    db.me.name = n; save(); render(); backToMenu(); toast('Saved');
+  },
+  'goal-set'(id) { db.me.goal = +id; save(); render(); toast(+id ? `Daily goal: ${id} pages` : 'No daily goal'); },
+  'goal-custom'() {
+    const v = prompt('Pages a day', db.me.goal || '');
+    if (v === null) return;
+    const n = parseInt(v, 10);
+    db.me.goal = n > 0 ? Math.min(1000, n) : 0; save(); render();
+  },
+  disp(id, el) {
+    const k = el.dataset.k;
+    setDisplay({ [k]: k === 'comfy' ? id === '1' : id }); render();
+  },
+  'disp-reset'() { setDisplay({ ...DISPLAY_DEFAULT }); render(); toast('Display reset'); },
+  async admin() {
+    openSheet('admin', {});
+    const { data, error } = await sb.rpc('admin_overview');
+    if (ui.sheet !== 'admin') return;
+    ui.sheetData = error ? { error: "Couldn't load: " + error.message } : { data }; renderSheet();
   },
   'demo-remove'() {
-    const demoUsers = db.users.filter(u => u.demo).map(u => u.id);
-    db.users = db.users.filter(u => !u.demo);
-    db.groups = db.groups.filter(g => !g.demo);
-    db.books = db.books.filter(b => !demoUsers.includes(b.userId));
-    db.posts = db.posts.filter(p => !demoUsers.includes(p.userId));
-    save(); closeSheet(); ui.screen = 'groups'; render(); toast('Sample data removed');
+    const backup = JSON.parse(JSON.stringify(db));
+    removeSamples(); save(); if (ui.sheet === 'settings') renderSheet(); render();
+    toast('Sample data removed', () => { db = backup; save(); render(); });
+  },
+  export() {
+    const mine = { me: db.me, books: myBooks(), posts: db.posts.filter(p => p.userId === ME), log: db.log, exportedAt: new Date().toISOString() };
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(mine, null, 2)], { type: 'application/json' }));
+    a.download = 'shelfmates-backup-' + dayStr() + '.json'; a.click();
   },
   reset() {
-    if (!confirm('Erase all your books, groups and posts on this device?')) return;
-    localStorage.removeItem(STORE_KEY); db = null; closeSheet(); render();
+    if (!confirm('Erase all your books, clubs and posts on this phone? This cannot be undone.')) return;
+    localStorage.removeItem(cacheKey()); db = null; ui.sheet = null; render();
   },
+
+  /* clubs */
   'create-open'() { openSheet('create'); },
   'create-save'() {
     const name = document.getElementById('g-name').value.trim();
-    if (!name) { toast('Give your group a name'); return; }
+    if (!name) { toast('Give your club a name'); return; }
     const g = { id: uid(), name, code: joinCode(), members: [ME], createdBy: ME, createdAt: Date.now() };
-    db.groups.push(g); save();
-    ui.screen = 'group'; ui.gid = g.id; ui.tab = 'read'; render();
-    openSheet('invite');
+    db.groups.push(g); save(); render();
+    openSheet('club', { id: g.id });
+    toast('Club created. Invite a few people.');
   },
-  invite() { openSheet('invite'); },
-  async 'copy-link'() {
-    try { await navigator.clipboard.writeText(inviteLink(curGroup())); ui.sheetData.copied = true; renderSheet(); }
-    catch (e) { toast('Could not copy. Press and hold the link to copy it.'); }
+  club(id) { openSheet('club', { id }); },
+  'club-discover'(id) { ui.club = id; ui.tab = 'discover'; closeSheet(); scrollTo(0, 0); },
+  whatsapp(id) {
+    const g = db.groups.find(x => x.id === id);
+    const msg = `Join my reading club "${g.name}" on ${APP.first} ${APP.second} 📚\n${inviteLink(g)}\nOr use code: ${g.code.toUpperCase()}`;
+    window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
   },
-  async 'share-link'() {
-    const g = curGroup();
-    try { await navigator.share({ title: 'The Book Club', text: `Join "${g.name}" on The Book Club`, url: inviteLink(g) }); } catch (e) {}
+  async 'copy-link'(id) {
+    const g = db.groups.find(x => x.id === id);
+    try { await navigator.clipboard.writeText(inviteLink(g)); ui.sheetData.copied = true; renderSheet(); }
+    catch (e) { toast('Could not copy. The code works too: ' + g.code.toUpperCase()); }
   },
-  'toggle-progress'() {
-    db.me.showProgress = !db.me.showProgress; save(); render();
-    toast(db.me.showProgress ? 'Your groups can see your progress' : 'Progress hidden. Groups only see the book.');
+  async 'leave-club'(id) {
+    const g = db.groups.find(x => x.id === id);
+    if (!confirm(`Leave ${g.name}? You can rejoin with the code.`)) return;
+    const { error } = await sb.from('group_members').delete().eq('group_id', id).eq('user_id', ME);
+    if (error) { toast(error.message); return; }
+    db.groups = db.groups.filter(x => x.id !== id); save(); closeSheet(); toast('You left ' + g.name);
   },
+
+  /* books */
   'add-open'() { ui.search = { q: '', loading: false, results: [], error: '' }; openSheet('add'); },
   'add-result'(i, el) {
     const list = el.dataset.src === 'suggest' ? ui.sheetData.suggest : ui.search.results;
     const r = list && list[+i]; if (!r) return;
     const status = el.dataset.status;
     if (!addBook({ ...r, status })) return;
-    if (status === 'reading') { closeSheet(); ui.tab = 'read'; render(); scrollTo(0, 0); toast('Happy reading'); }
+    if (status === 'reading') { ui.sheet = null; ui.tab = 'shelf'; render(); scrollTo(0, 0); toast('Happy reading 📖'); }
     else { ui.shelfTab = 'want'; render(); renderResults(); toast('Added to Want to read'); }
   },
-  'manual-open'() {
-    openSheet('manual', { photo: '', title: ui.search.q || '' });
-  },
+  'manual-open'() { openSheet('manual', { photo: '', title: ui.search.q || '' }); },
   'manual-save'(_, el) {
     const title = document.getElementById('m-title').value.trim();
-    if (!title) { toast('Add a title'); document.getElementById('m-title').focus(); return; }
-    const b = addBook({
-      title, author: document.getElementById('m-author').value.trim(),
-      pages: +document.getElementById('m-pages').value || 0,
-      photo: ui.sheetData.photo || '', status: el.dataset.status
-    });
+    if (!title) { toast('Add a title'); return; }
+    const b = addBook({ title, author: document.getElementById('m-author').value.trim(), pages: +document.getElementById('m-pages').value || 0, photo: ui.sheetData.photo || '', status: el.dataset.status });
     if (!b) return;
     if (b.status === 'want') ui.shelfTab = 'want';
-    closeSheet(); ui.tab = 'read'; render(); toast(b.status === 'reading' ? 'Happy reading' : 'Added to Want to read');
+    ui.sheet = null; ui.tab = 'shelf'; render(); toast(b.status === 'reading' ? 'Happy reading 📖' : 'Added to Want to read');
   },
   book(id) { openSheet('book', { id }); },
   'track-toggle'(id) {
     const b = db.books.find(x => x.id === id); if (!b) return;
-    const on = !tracked(b);
-    updBook(id, { track: on });
-    render(); renderSheet();
-    toast(on ? 'Tracking progress for this book' : 'Progress tracking off for this book');
+    updBook(id, { track: !tracked(b) }); render();
   },
   finish(id) {
     const b = db.books.find(x => x.id === id);
     if (b.pages && tracked(b)) logPages(b, b.pages - b.page);
     updBook(id, { status: 'finished', page: b.pages || b.page, percent: 100 });
     ui.share = { bookId: id, reaction: null, text: '', photo: '' };
-    closeSheet(); ui.tab = 'share'; render(); scrollTo(0, 0); toast('Well read! Share a thought, if you like.');
+    ui.sheet = null; ui.tab = 'share'; render(); scrollTo(0, 0); toast('Well read! 🎉 Share a thought, if you like.');
   },
-  'share-this'(id) { ui.share = { bookId: id, reaction: null, text: '', photo: '' }; closeSheet(); ui.tab = 'share'; render(); scrollTo(0, 0); },
-  pause(id) { updBook(id, { status: 'paused' }); ui.shelfTab = 'paused'; closeSheet(); render(); toast('Paused. Pick it up whenever.'); },
-  resume(id) { updBook(id, { status: 'reading' }); closeSheet(); render(); scrollTo(0, 0); },
-  start(id) { updBook(id, { status: 'reading' }); closeSheet(); render(); scrollTo(0, 0); toast('Happy reading'); },
-  remove(id) { db.books = db.books.filter(b => b.id !== id); save(); closeSheet(); render(); toast('Removed. No pressure.'); },
+  'share-this'(id) { ui.share = { bookId: id, reaction: null, text: '', photo: '' }; ui.sheet = null; ui.tab = 'share'; render(); scrollTo(0, 0); },
+  pause(id) {
+    updBook(id, { status: 'paused' }); ui.shelfTab = 'paused'; closeSheet();
+    toast('Paused. Pick it up whenever.', () => { updBook(id, { status: 'reading' }); render(); });
+  },
+  resume(id) { updBook(id, { status: 'reading' }); closeSheet(); },
+  start(id) { updBook(id, { status: 'reading' }); closeSheet(); toast('Happy reading 📖'); },
+  remove(id) {
+    const b = db.books.find(x => x.id === id); if (!b) return;
+    db.books = db.books.filter(x => x.id !== id); save(); closeSheet();
+    toast('Removed from your shelf', () => { db.books.push(b); save(); render(); });
+  },
   'save-book'(id) { const b = db.books.find(x => x.id === id); if (b) saveFromOther(b, b.userId); },
   'save-post'(id) { const p = db.posts.find(x => x.id === id); if (p) saveFromOther(p, p.userId); },
   'delete-post'(id) {
-    if (!confirm('Delete this post?')) return;
-    db.posts = db.posts.filter(p => p.id !== id); save(); render();
+    const p = db.posts.find(x => x.id === id); if (!p) return;
+    db.posts = db.posts.filter(x => x.id !== id); save(); render();
+    toast('Post deleted', () => { db.posts.push(p); save(); render(); });
   },
   'share-book'(id) { ui.share.bookId = id; render(); },
-  react(k) { ui.share.reaction = k; render(); },
+  react(k) { ui.share.text = document.getElementById('thought')?.value ?? ui.share.text; ui.share.reaction = k; render(); },
   'share-photo-remove'() { ui.share.photo = ''; render(); },
   post() {
     const s = ui.share, b = db.books.find(x => x.id === s.bookId);
     if (!b || !s.reaction) return;
     const text = (document.getElementById('thought')?.value || '').trim();
-    db.posts.push({
-      id: uid(), userId: ME, title: b.title, author: b.author, pages: b.pages,
-      coverUrl: b.photo || b.coverUrl, reaction: s.reaction, text, photo: s.photo, createdAt: Date.now()
-    });
-    const prev = { status: b.status, page: b.page, percent: b.percent };
     if (b.status !== 'finished' && b.pages && tracked(b)) logPages(b, b.pages - b.page);
-    b.status = 'finished'; b.page = b.pages || b.page; b.percent = 100; b.updatedAt = Date.now();
-    if (!save()) { db.posts.pop(); Object.assign(b, prev); return; }
+    const post = { id: uid(), userId: ME, title: b.title, author: b.author, pages: b.pages, coverUrl: b.photo || b.coverUrl, reaction: s.reaction, text, photo: s.photo, createdAt: Date.now() };
+    db.posts.push(post);
+    Object.assign(b, { status: 'finished', page: b.pages || b.page, percent: 100, updatedAt: Date.now() });
+    if (!save()) { db.posts.pop(); return; }
     ui.share = { bookId: null, reaction: null, text: '', photo: '' };
-    ui.tab = 'discover'; render(); scrollTo(0, 0); toast('Shared with ' + curGroup().name);
+    ui.tab = 'discover'; ui.club = 'all'; render(); scrollTo(0, 0); toast('Shared with your clubs');
   },
+
+  /* today + calendar */
+  'today-open'() { openSheet('today'); },
+  calendar() { openSheet('calendar', { month: dayStr().slice(0, 7), sel: dayStr() }); },
+  'cal-month'(m) { ui.sheetData.month = m; renderSheet(); },
+  'cal-day'(ds) { ui.sheetData.sel = ds; renderSheet(); },
   close() { closeSheet(); },
   overlay(_, el, e) { if (e.target === el) closeSheet(); }
 };
 
-/* ---------- events ---------- */
+async function createAccount(email, password) {
+  let r = await sb.auth.updateUser({ email });
+  if (r.error) { toast(/already|registered|exists/i.test(r.error.message) ? 'That email already has an account. Use Sign in instead.' : r.error.message); return false; }
+  r = await sb.auth.updateUser({ password });
+  if (r.error) { toast(r.error.message); return false; }
+  authUser = r.data.user || authUser;
+  toast('Account created ☁️ Your books are safe.');
+  return true;
+}
+
+/* ---------- progress: slider + number box ---------- */
+function syncProgress(id, raw, commit) {
+  const b = db.books.find(x => x.id === id); if (!b) return;
+  const max = progMax(b);
+  let v = Math.round(+raw);
+  if (!isFinite(v)) return;
+  v = Math.max(0, Math.min(max, v));
+  const tmp = Object.assign({}, b, b.pages ? { page: v } : { percent: v });
+  document.querySelectorAll(`[data-prog-range="${id}"]`).forEach(el => { el.value = v; el.style.setProperty('--p', pct(tmp) + '%'); });
+  document.querySelectorAll(`[data-prog-num="${id}"]`).forEach(el => { if (commit || el !== document.activeElement) el.value = v; });
+  document.querySelectorAll(`[data-prog-label="${id}"]`).forEach(el => { el.textContent = progLabel(tmp); });
+  if (!commit) return;
+  const patch = b.pages ? { page: v } : { percent: v };
+  if (b.pages) logPages(b, v - b.page);
+  if (b.status === 'finished' && v < max) patch.status = 'reading';
+  updBook(id, patch);
+  const n = document.getElementById('today-num-s'); if (n) n.textContent = pagesOn(dayStr());
+  if (patch.status) { render(); toast('Moved back to Reading now'); }
+  else if (v === max && b.status === 'reading') toast('Last page! Tap “I finished it” when you’re done.');
+}
+
+/* ============================================================
+   Events
+   ============================================================ */
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]');
   if (!el) return;
@@ -1539,63 +1529,43 @@ document.addEventListener('submit', e => {
     document.getElementById('q').blur();
   }
 });
-/* progress: slider and number box stay in sync; saved when you let go / leave the box */
-function syncProgress(id, raw, commit) {
-  const b = db.books.find(x => x.id === id); if (!b) return;
-  const max = progMax(b);
-  let v = Math.round(+raw);
-  if (!isFinite(v)) return;
-  v = Math.max(0, Math.min(max, v));
-  const tmp = Object.assign({}, b, b.pages ? { page: v } : { percent: v });
-  document.querySelectorAll(`[data-prog-range="${id}"]`).forEach(el => { el.value = v; el.style.setProperty('--p', pct(tmp) + '%'); });
-  document.querySelectorAll(`[data-prog-num="${id}"]`).forEach(el => { if (commit || el !== document.activeElement) el.value = v; });
-  document.querySelectorAll(`[data-prog-label="${id}"]`).forEach(el => { el.textContent = progLabel(tmp); });
-  if (!commit) return;
-  const patch = b.pages ? { page: v } : { percent: v };
-  if (b.pages) logPages(b, v - b.page);
-  const wasFinished = b.status === 'finished';
-  if (wasFinished && v < max) patch.status = 'reading';
-  updBook(id, patch);
-  if (patch.status) { render(); renderSheet(); toast('Moved back to Reading now'); }
-  else if (ui.screen === 'groups' && ui.sheet === 'today') { const n = document.getElementById('today-num'); if (n) n.textContent = pagesOn(dayStr()); }
-  else if (v === max && b.status === 'reading') toast('Last page! Tap "I finished it" when you\'re done.');
-}
 document.addEventListener('input', e => {
   const t = e.target;
   if (t.dataset && t.dataset.progRange) syncProgress(t.dataset.progRange, t.value, false);
   if (t.dataset && t.dataset.progNum && t.value !== '') syncProgress(t.dataset.progNum, t.value, false);
-  if (e.target.id === 'thought') ui.share.text = e.target.value;
-  if (e.target.id === 'q') queueSearch(e.target.value.trim());
+  if (t.id === 'thought') ui.share.text = t.value;
+  if (t.id === 'q') queueSearch(t.value.trim());
 });
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.id === 'ob-name') actions.onboard();
   if (e.key === 'Enter' && e.target.id === 'g-name') actions['create-save']();
   if (e.key === 'Escape' && ui.sheet) closeSheet();
 });
-document.addEventListener('change', e => {
+document.addEventListener('change', async e => {
   const t = e.target;
   if (t.dataset && t.dataset.progRange) syncProgress(t.dataset.progRange, t.value, true);
   if (t.dataset && t.dataset.progNum) syncProgress(t.dataset.progNum, t.value === '' ? 0 : t.value, true);
+  if (t.dataset && t.dataset.pref === 'progress') {
+    db.me.showProgress = t.checked; save(); render();
+    toast(t.checked ? 'Your clubs can see your progress' : 'Progress hidden. Clubs only see the book.');
+  }
+  if (t.dataset && t.dataset.track) { updBook(t.dataset.track, { track: t.checked }); render(); }
   if (t.dataset && t.dataset.pagesFor) {
     const b = db.books.find(x => x.id === t.dataset.pagesFor); if (!b) return;
     const total = Math.max(0, parseInt(t.value, 10) || 0);
     if (total === b.pages) return;
     const p = pct(b);
-    // switching between % and pages keeps roughly the same place in the book
-    const patch = total ? { pages: total, page: b.pages ? Math.min(b.page, total) : Math.round(p / 100 * total) } : { pages: 0, percent: p };
-    updBook(b.id, patch); render(); renderSheet();
+    updBook(b.id, total ? { pages: total, page: b.pages ? Math.min(b.page, total) : Math.round(p / 100 * total) } : { pages: 0, percent: p });
+    render();
   }
-});
-document.addEventListener('change', async e => {
-  const t = e.target;
   if (!(t instanceof HTMLInputElement) || t.type !== 'file' || !t.files?.[0]) return;
   let url;
   try { url = await readPhoto(t.files[0]); } catch (err) { toast("Couldn't read that photo"); return; }
   if (t.dataset.photoFor) {
     const b = db.books.find(x => x.id === t.dataset.photoFor);
-    const old = b.photo; b.photo = url;
+    const old = b.photo; b.photo = url; b.updatedAt = Date.now();
     if (!save()) { b.photo = old; return; }
-    render(); toast('Cover photo updated');
+    render(); toast('Cover photo updated', () => { b.photo = old; save(); render(); });
   } else if (t.dataset.sharePhoto) {
     ui.share.text = document.getElementById('thought')?.value || ui.share.text;
     ui.share.photo = url; render();
@@ -1605,14 +1575,12 @@ document.addEventListener('change', async e => {
   }
 });
 
-/* ---------- start ---------- */
+/* ============================================================
+   Start
+   ============================================================ */
 (async function init() {
-  if (!CLOUD) {
-    if (db && db.me.theme) applyTheme(db.me.theme);
-    render();
-    if (pendingJoin && db) toast('Invite links start working once Supabase is connected.');
-    return;
-  }
+  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+  if (!CLOUD) { db = load(); render(); return; }
   sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   ui.loading = true; render();
   try {
@@ -1624,22 +1592,26 @@ document.addEventListener('change', async e => {
     }
     authUser = session.user; ME = authUser.id;
     sb.auth.onAuthStateChange((event, s) => {
-      if (s && s.user && s.user.id !== ME) { location.reload(); return; }   // signed in as someone else via email link
-      if (s && s.user) { authUser = s.user; if (ui.sheet === 'settings') renderSheet(); }
+      if (s && s.user && s.user.id !== ME) { location.reload(); return; }
+      if (s && s.user) authUser = s.user;
     });
-    db = load();                 // show cached copy straight away
+    db = load();
     ui.loading = !db; render();
     await pull();
     ui.loading = false;
-    if (db && pendingJoin) await joinByCode(pendingJoin); else render();
+    if (db && pendingJoin) await joinByCode(pendingJoin);
+    else render();
+    if (!db && pendingJoin) {
+      const { data } = await sb.rpc('club_preview', { p_code: pendingJoin });
+      const row = Array.isArray(data) ? data[0] : data;
+      const el = document.getElementById('invite-title');
+      if (row && el) el.textContent = `You're invited to ${row.name} · ${row.members} ${row.members === 1 ? 'member' : 'members'}`;
+    }
   } catch (e) {
     console.error(e);
-    ui.loading = false;
-    db = db || load();
-    render();
-    const msg = (e && (e.message || e.error_description || e.msg)) || String(e);
-    toast("Couldn't reach the server: " + msg);
-    setTimeout(() => toast("Couldn't reach the server: " + msg), 2600);
+    ui.loading = false; setSyncState('error');
+    db = db || load(); render();
+    toast("Couldn't reach the server: " + ((e && (e.message || e.error_description)) || e));
   }
 })();
 </script>
