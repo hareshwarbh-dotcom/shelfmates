@@ -1,0 +1,1370 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0F6E6E">
+<title>The Book Club</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --teal:#0F6E6E; --teal-d:#0A4F4F; --teal-l:#E3F1F0; --teal-xl:#F1F8F7;
+  --ink:#1B1F24; --muted:#5B6470; --line:#E6E9ED; --field:#CDD3DA;
+  --bg:#F5F6F4; --card:#FFFFFF; --amber-l:#FCEFD9; --amber:#8A5A1F; --red:#A3412A;
+  --teal-b:#A9D3CE; --on:#FFFFFF; --hero:var(--teal); --hero-ink:#FFFFFF; --glass:rgba(255,255,255,.94);
+  --head:'Bricolage Grotesque',Inter,system-ui,sans-serif;
+  --shadow:0 1px 2px rgba(27,31,36,.04),0 4px 14px rgba(27,31,36,.06);
+  --r:18px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer;-webkit-user-select:none;user-select:none}
+button:active:not(:disabled){transform:scale(.98)}
+:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+.app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;position:relative}
+
+/* headers */
+.hero{background:var(--hero);color:var(--hero-ink);padding:calc(30px + env(safe-area-inset-top)) 20px 64px;position:relative}
+.hero .kicker{font-size:14px;color:var(--hero-ink);opacity:.8;margin:0 0 4px}
+.hero h1{margin:0;font-family:var(--head);font-size:34px;font-weight:800;letter-spacing:-.8px}
+.hero .gear{position:absolute;right:10px;top:calc(18px + env(safe-area-inset-top));color:var(--hero-ink)}
+.principle{margin:-44px 16px 0;background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:14px 16px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;position:relative;z-index:1}
+.principle div{display:flex;flex-direction:column;gap:2px}
+.principle b{font-family:var(--head);font-size:15px;color:var(--teal)}
+.principle span{font-size:12px;color:var(--muted);line-height:1.35}
+.topbar{position:sticky;top:0;z-index:5;background:var(--glass);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:calc(8px + env(safe-area-inset-top)) 8px 8px;display:flex;align-items:center;gap:6px}
+.topbar .t{flex:1;min-width:0}
+.topbar .name{font-family:var(--head);font-size:19px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stack{display:flex;align-items:center;margin-top:2px}
+.stack .av{width:20px;height:20px;border-radius:10px;font-size:10px;border:2px solid var(--card);margin-left:-6px}
+.stack .av:first-child{margin-left:0}
+.stack small{font-size:12px;color:var(--muted);margin-left:6px}
+
+/* layout */
+.content{flex:1;padding:18px 16px 112px;display:flex;flex-direction:column;gap:26px}
+.section{display:flex;flex-direction:column;gap:12px}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.h2{margin:0;font-family:var(--head);font-size:20px;font-weight:700;letter-spacing:-.2px}
+.h3{margin:0;font-size:12px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--muted)}
+.card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:14px;display:flex;flex-direction:column;gap:12px}
+.row{display:flex;gap:12px;align-items:center}
+.grow{flex:1;min-width:0}
+.title{font-weight:600;font-size:15px;line-height:1.3}
+.clamp2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sub{font-size:13px;color:var(--muted)}
+.small{font-size:12px;color:var(--muted)}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.bar>div{height:100%;background:var(--teal);border-radius:3px;transition:width .3s}
+.empty{font-size:14px;color:var(--muted);line-height:1.5;margin:0}
+
+/* buttons */
+.btn{height:44px;padding:0 16px;border-radius:12px;border:1px solid var(--line);background:var(--card);font-size:14px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:background .15s}
+.btn.primary{background:var(--teal);border-color:var(--teal);color:var(--on)}
+.btn.soft{background:var(--teal-l);border-color:var(--teal-l);color:var(--teal-d)}
+.btn.outline{background:var(--card);border-color:var(--teal);color:var(--teal)}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--muted)}
+.btn.danger{background:transparent;border-color:transparent;color:var(--red)}
+.btn.block{width:100%;height:52px;border-radius:14px;font-size:15px}
+.btn:disabled{background:var(--line);border-color:var(--line);color:var(--muted);cursor:default}
+.icon-btn{width:44px;height:44px;border:none;background:transparent;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.link{background:none;border:none;padding:10px 0;color:var(--teal);font-weight:600;font-size:14px}
+.pill{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:6px 12px;border-radius:18px;border:1px solid var(--line);background:var(--card);font-size:13px;font-weight:500;color:var(--muted)}
+.pill.on{color:var(--teal-d);background:var(--teal-xl);border-color:var(--teal-b)}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+
+/* groups */
+.group-btn{display:flex;align-items:center;gap:14px;width:100%;text-align:left;padding:14px;background:var(--card);border:none;border-radius:var(--r);box-shadow:var(--shadow)}
+.badge{width:52px;height:52px;border-radius:16px;background:var(--teal-l);color:var(--teal);display:flex;align-items:center;justify-content:center;font-family:var(--head);font-weight:800;font-size:22px;flex-shrink:0}
+.minicovers{display:flex;gap:4px;margin-top:6px}
+.minicovers .cover{width:22px;height:32px;font-size:10px;border-radius:3px}
+.av{width:36px;height:36px;border-radius:18px;background:var(--amber-l);color:var(--amber);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0}
+.av.me{background:var(--teal-l);color:var(--teal)}
+.demo-tag{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;background:var(--amber-l);color:var(--amber);margin-left:6px;vertical-align:2px}
+.create{display:flex;align-items:center;gap:14px;width:100%;text-align:left;padding:14px;border-radius:var(--r);border:1.5px dashed var(--teal-b);background:transparent;color:var(--teal)}
+.create .badge{background:var(--card);border:1px solid var(--teal-b)}
+
+/* covers */
+.cover{border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--head);font-weight:700;overflow:hidden;object-fit:cover;background:#2C3E50;box-shadow:0 1px 2px rgba(0,0,0,.12),inset -3px 0 0 rgba(0,0,0,.12)}
+.fcover{display:block;position:relative;width:100%;aspect-ratio:2/3;border-radius:6px;overflow:hidden;box-shadow:0 2px 8px rgba(27,31,36,.14);background:#2C3E50}
+.fcover img{width:100%;height:100%;object-fit:cover;display:block}
+.fcover .gen{position:absolute;inset:0;padding:10px 9px;display:flex;flex-direction:column;justify-content:space-between;color:#fff}
+.fcover .gen b{font-family:var(--head);font-size:14px;line-height:1.15;font-weight:700;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.fcover .gen i{font-style:normal;font-size:10px;opacity:.85;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.fcover::after{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:rgba(0,0,0,.14)}
+.cover-wrap{position:relative;flex-shrink:0;display:block;cursor:pointer}
+.cam{position:absolute;right:-6px;bottom:-6px;width:28px;height:28px;border-radius:14px;background:var(--card);box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;color:var(--teal)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.file{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+
+/* reading now */
+.now{display:grid;grid-template-columns:84px minmax(0,1fr);gap:14px;align-items:start}
+.now .meta{display:flex;flex-direction:column;gap:4px;min-width:0}
+.prog{display:flex;flex-direction:column;gap:2px;margin-top:6px}
+.prog-row{display:flex;align-items:center;gap:10px}
+.slider{flex:1;min-width:0;-webkit-appearance:none;appearance:none;height:32px;background:transparent;margin:0;--p:0%}
+.slider:focus{outline:none}
+.slider::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:linear-gradient(to right,var(--teal) var(--p),var(--line) var(--p))}
+.slider::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:13px;background:var(--card);border:2px solid var(--teal);margin-top:-10px;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.slider:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 4px var(--teal-l)}
+.slider::-moz-range-track{height:6px;border-radius:3px;background:var(--line)}
+.slider::-moz-range-progress{height:6px;border-radius:3px;background:var(--teal)}
+.slider::-moz-range-thumb{width:22px;height:22px;border-radius:11px;background:var(--card);border:2px solid var(--teal)}
+.num{width:64px;height:40px;flex-shrink:0;border-radius:10px;border:1px solid var(--field);background:var(--card);text-align:center;font-weight:600;font-size:16px;padding:0 4px;-moz-appearance:textfield}
+.num:focus{border-color:var(--teal);outline:none;box-shadow:0 0 0 3px var(--teal-l)}
+.unit{font-size:13px;color:var(--muted);flex-shrink:0}
+.toggle-row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 14px;background:var(--bg);border:none;border-radius:14px}
+.sw{width:46px;height:28px;border-radius:14px;position:relative;flex-shrink:0;background:var(--field);transition:background .15s}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:11px;background:#fff;transition:left .15s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.sw.on{background:var(--teal)}.sw.on::after{left:21px}
+
+/* shelf */
+.seg{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.seg::-webkit-scrollbar{display:none}
+.seg button{flex-shrink:0;height:36px;padding:0 14px;border-radius:18px;border:1px solid var(--line);background:var(--card);font-size:13px;font-weight:600;color:var(--muted)}
+.seg button.on{background:var(--ink);border-color:var(--ink);color:var(--card)}
+.shelf-item{display:flex;flex-direction:column;gap:6px;border:none;background:none;padding:0;text-align:left;min-width:0}
+.shelf-item .title{font-size:13px}
+.shelf-item .small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.empty-card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:22px 18px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px}
+.empty-card .ill{width:64px;height:64px;border-radius:20px;background:var(--teal-l);color:var(--teal);display:flex;align-items:center;justify-content:center}
+
+/* discover */
+.carousel{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -16px;padding:2px 16px 8px;scrollbar-width:none}
+.carousel::-webkit-scrollbar{display:none}
+.ccard{flex:0 0 128px;scroll-snap-align:start;display:flex;flex-direction:column;gap:8px}
+.ccard .who{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.ccard .who .av{width:22px;height:22px;font-size:11px}
+.save-mini{height:36px;border-radius:10px;font-size:12px;padding:0 10px}
+.post-head{display:flex;align-items:center;gap:10px}
+.photo{width:100%;max-height:320px;aspect-ratio:4/3;object-fit:cover;border-radius:14px;display:block}
+.thought{font-size:15px;line-height:1.55;white-space:pre-line;margin:0}
+.reaction{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:4px 10px;border-radius:12px}
+.book-strip{display:flex;gap:12px;align-items:center;padding:10px;border-radius:14px;background:var(--bg)}
+
+/* tabs */
+.tabs{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;z-index:6;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));background:var(--glass);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:6px 10px calc(8px + env(safe-area-inset-bottom))}
+.tab{height:54px;border:none;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:12px;font-weight:600;color:var(--muted);border-radius:14px}
+.tab.on{color:var(--teal)}
+.tab.on svg{background:var(--teal-l);border-radius:12px;padding:3px 14px;box-sizing:content-box}
+
+/* share */
+.pick-row{display:flex;gap:12px;overflow-x:auto;margin:0 -16px;padding:4px 16px 6px;scrollbar-width:none}
+.pick-row::-webkit-scrollbar{display:none}
+.pick{flex:0 0 86px;border:none;background:none;padding:0;display:flex;flex-direction:column;gap:6px;text-align:left}
+.pick .fcover{outline:3px solid transparent;outline-offset:2px;transition:outline-color .15s}
+.pick.on .fcover{outline-color:var(--teal)}
+.pick .small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.react{height:78px;border-radius:16px;border:1.5px solid var(--line);background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:600;color:var(--muted)}
+.react.on{border-color:var(--teal);background:var(--teal-xl);color:var(--teal-d)}
+.field{width:100%;height:50px;padding:0 14px;border-radius:14px;border:1px solid var(--field);background:var(--card);font-size:16px}
+.field:focus{border-color:var(--teal);outline:none;box-shadow:0 0 0 3px var(--teal-l)}
+textarea.field{height:auto;padding:12px 14px;line-height:1.5;resize:none}
+.label{font-size:13px;font-weight:600;color:var(--muted)}
+.drop{min-height:88px;border-radius:16px;border:1.5px dashed var(--teal-b);display:flex;align-items:center;justify-content:center;gap:10px;color:var(--teal);font-size:14px;font-weight:600;cursor:pointer;position:relative;padding:12px 16px;background:var(--teal-xl)}
+.drop small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+
+/* sheets */
+.overlay{position:fixed;inset:0;z-index:20;background:rgba(27,31,36,.42);display:flex;flex-direction:column;justify-content:flex-end;align-items:center}
+.overlay.anim{animation:fade .2s ease-out}
+.sheet{width:100%;max-width:480px;max-height:90vh;overflow-y:auto;background:var(--card);border-radius:24px 24px 0 0;padding:10px 20px calc(24px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:14px}
+.overlay.anim .sheet{animation:up .26s cubic-bezier(.2,.8,.2,1)}
+.sheet.tall{min-height:78vh}
+.grabber{width:40px;height:5px;border-radius:3px;background:#D9DEE3;align-self:center;margin-bottom:4px}
+.sheet h2{margin:0;flex:1;font-family:var(--head);font-size:22px;font-weight:700;letter-spacing:-.2px}
+@keyframes up{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}
+@keyframes fade{from{background:rgba(27,31,36,0)}}
+.search{position:relative}
+.search svg{position:absolute;left:14px;top:15px;color:var(--muted)}
+.search .field{padding-left:42px}
+.result{display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.result:last-child{border-bottom:none}
+.skel{background:linear-gradient(90deg,#EEF0F2 25%,#F6F7F8 50%,#EEF0F2 75%);background-size:200% 100%;animation:sh 1.2s infinite;border-radius:6px}
+@keyframes sh{to{background-position:-200% 0}}
+.toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top));z-index:30;max-width:440px;width:calc(100% - 32px);padding:13px 16px;border-radius:14px;background:var(--ink);color:var(--card);font-size:14px;font-weight:500;text-align:center;opacity:0;pointer-events:none;transform:translate(-50%,-10px);transition:opacity .2s,transform .2s;box-shadow:0 8px 24px rgba(0,0,0,.18)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.onboard{flex:1;display:flex;flex-direction:column;justify-content:center;gap:16px;padding:32px 24px}
+.onboard h1{margin:0;font-family:var(--head);font-size:40px;font-weight:800;letter-spacing:-1px;color:var(--teal)}
+.onboard p{margin:0 0 12px;font-size:16px;line-height:1.5;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* themes + account + admin */
+.swatches{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.swatch{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 6px;border-radius:14px;border:1.5px solid var(--line);background:var(--card);font-size:12px;font-weight:600;color:var(--muted)}
+.swatch.on{border-color:var(--teal);color:var(--ink)}
+.swatch i{width:34px;height:34px;border-radius:17px;display:block;box-shadow:inset 0 0 0 3px rgba(255,255,255,.35)}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.stat{background:var(--bg);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:2px}
+.stat b{font-family:var(--head);font-size:24px;font-weight:700}
+.stat span{font-size:12px;color:var(--muted)}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);padding:6px 6px 6px 0;border-bottom:1px solid var(--line)}
+.tbl td{padding:9px 6px 9px 0;border-bottom:1px solid var(--line);vertical-align:top}
+.tbl-wrap{overflow-x:auto}
+.loading{flex:1;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;min-height:60vh}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<div id="sheet-root"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ============================================================
+   The Book Club — v1.1 (local, single file)
+   Data is saved on this device (localStorage).
+   The data shape mirrors the planned Supabase tables:
+   profiles, groups, group_members, shelf_books, posts.
+   ============================================================ */
+
+/* ---------- Supabase config: paste your project's values here ---------- */
+const SUPABASE_URL = '';        // e.g. 'https://abcdxyz.supabase.co'
+const SUPABASE_ANON_KEY = '';   // Project Settings → API → anon public key
+const CLOUD = !!(SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase);
+
+const STORE_KEY = 'bookclub.v1';
+let ME = 'me';          // becomes the Supabase user id when CLOUD is on
+let sb = null;          // Supabase client
+let authUser = null;    // current Supabase user
+let isAdmin = false;
+let pendingJoin = new URLSearchParams(location.search).get('join');
+
+/* ---------- themes ---------- */
+const THEMES = {
+  teal:       { name: 'Teal',       accent: '#0F6E6E', vars: { teal: '#0F6E6E', 'teal-d': '#0A4F4F', 'teal-l': '#E3F1F0', 'teal-xl': '#F1F8F7', 'teal-b': '#A9D3CE' } },
+  indigo:     { name: 'Indigo',     accent: '#3D4FB0', vars: { teal: '#3D4FB0', 'teal-d': '#2C3A86', 'teal-l': '#E6E9F8', 'teal-xl': '#F3F4FC', 'teal-b': '#B9C1EA' } },
+  terracotta: { name: 'Terracotta', accent: '#A94E2B', vars: { teal: '#A94E2B', 'teal-d': '#7F391E', 'teal-l': '#F7E5DC', 'teal-xl': '#FCF3EE', 'teal-b': '#E5B9A6' } },
+  forest:     { name: 'Forest',     accent: '#2F6B3B', vars: { teal: '#2F6B3B', 'teal-d': '#21502B', 'teal-l': '#E2EFE4', 'teal-xl': '#F2F8F3', 'teal-b': '#AFD0B5' } },
+  plum:       { name: 'Plum',       accent: '#7A3B6E', vars: { teal: '#7A3B6E', 'teal-d': '#5C2B53', 'teal-l': '#F2E3EF', 'teal-xl': '#F9F2F7', 'teal-b': '#D7B3CF' } },
+  midnight:   { name: 'Midnight',   accent: '#1B1E22', dark: true, vars: {
+    teal: '#5CC8BD', 'teal-d': '#9BE0D8', 'teal-l': '#1E3836', 'teal-xl': '#172A29', 'teal-b': '#2F5B57', on: '#0B1F1D',
+    bg: '#111315', card: '#1B1E22', ink: '#E9ECEF', muted: '#9AA3AD', line: '#2A2F35', field: '#3A424B',
+    glass: 'rgba(27,30,34,.94)', hero: '#1B2B2A', 'hero-ink': '#E9ECEF', 'amber-l': '#3A2D1A', amber: '#E8B86B', red: '#F08A70' } }
+};
+function applyTheme(key) {
+  const t = THEMES[key] || THEMES.teal;
+  const root = document.documentElement;
+  ['teal','teal-d','teal-l','teal-xl','teal-b','on','bg','card','ink','muted','line','field','glass','hero','hero-ink','amber-l','amber','red'].forEach(v => root.style.removeProperty('--' + v));
+  Object.entries(t.vars).forEach(([k, v]) => root.style.setProperty('--' + k, v));
+  root.style.colorScheme = t.dark ? 'dark' : 'light';
+  document.querySelector('meta[name=theme-color]').content = t.dark ? '#1B2B2A' : t.vars.teal;
+  try { localStorage.setItem('bookclub.theme', key); } catch (e) {}
+}
+applyTheme((() => { try { return localStorage.getItem('bookclub.theme'); } catch (e) { return null; } })() || 'teal');
+
+/* ---------- icons ---------- */
+const svg = (s, body, sw = 2) => `<svg aria-hidden="true" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
+const I = {
+  back: s => svg(s || 22, '<path d="M15 18l-6-6 6-6"/>'),
+  chev: s => svg(s || 20, '<path d="M9 18l6-6-6-6"/>'),
+  plus: s => svg(s || 18, '<path d="M12 5v14M5 12h14"/>', 2.2),
+  close: s => svg(s || 18, '<path d="M18 6L6 18M6 6l12 12"/>', 2.2),
+  search: s => svg(s || 20, '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>'),
+  eye: s => svg(s || 16, '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>'),
+  eyeoff: s => svg(s || 16, '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19M1 1l22 22"/>'),
+  gear: s => svg(s || 22, '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>'),
+  cam: s => svg(s || 14, '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>', 2.2),
+  up: s => svg(s || 16, '<path d="M7 10v12"/><path d="M15 5.88L14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88z"/>'),
+  mid: s => svg(s || 16, '<circle cx="12" cy="12" r="10"/><path d="M8 15h8M9 9.5h.01M15 9.5h.01"/>'),
+  down: s => svg(s || 16, '<path d="M17 14V2"/><path d="M9 18.12L10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88z"/>'),
+  book: s => svg(s || 28, '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>'),
+  read: s => svg(s || 22, '<path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/>'),
+  discover: s => svg(s || 22, '<circle cx="12" cy="12" r="10"/><path d="M16.24 7.76l-2.12 6.36-6.36 2.12 2.12-6.36z"/>'),
+  share: s => svg(s || 22, '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>')
+};
+const REACT = {
+  up: { label: 'Liked it', color: '#0A4F4F', bg: '#E3F1F0' },
+  mid: { label: 'It was okay', color: '#4A525C', bg: '#EEF0F2' },
+  down: { label: "Didn't like it", color: '#8E3622', bg: '#F8E6E1' }
+};
+const COLORS = ['#2F5D62', '#7A4E2D', '#3B4A7A', '#6B3F5E', '#4F6B3A', '#8A5A1F', '#2C3E50', '#5A4FA0'];
+
+/* ---------- helpers ---------- */
+const uid = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+  : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); });
+const joinCode = () => Array.from({ length: 8 }, () => 'abcdefghjkmnpqrstuvwxyz23456789'[Math.floor(Math.random() * 31)]).join('');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const colorFor = t => { let h = 0; for (const ch of String(t)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return COLORS[h % COLORS.length]; };
+const pct = b => b.pages ? Math.min(100, Math.round(b.page / b.pages * 100)) : Math.min(100, b.percent || 0);
+/* progress tracking is optional per book; older books count as tracked if they had progress */
+const tracked = b => b.track ?? (b.page > 0 || !!b.percent);
+const progMax = b => b.pages || 100;
+const progVal = b => b.pages ? b.page : (b.percent || 0);
+const progLabel = b => b.pages ? `Page ${b.page} of ${b.pages} · ${pct(b)}%` : `${pct(b)}% read`;
+function progControl(b, pre) {
+  const v = progVal(b), max = progMax(b);
+  return `<div class="prog">
+    <div class="prog-row">
+      <label class="sr" for="${pre}r-${b.id}">Reading progress</label>
+      <input class="slider" id="${pre}r-${b.id}" type="range" min="0" max="${max}" step="1" value="${v}" data-prog-range="${b.id}" style="--p:${pct(b)}%">
+      <label class="sr" for="${pre}n-${b.id}">${b.pages ? 'Page number' : 'Percent read'}</label>
+      <input class="num" id="${pre}n-${b.id}" type="number" inputmode="numeric" min="0" max="${max}" value="${v}" data-prog-num="${b.id}">
+      <span class="unit">${b.pages ? '/ ' + b.pages : '%'}</span>
+    </div>
+    <div class="small" data-prog-label="${b.id}">${progLabel(b)}</div>
+  </div>`;
+}
+const norm = t => String(t || '').trim().toLowerCase();
+const initial = n => esc(String(n || '?').trim().charAt(0).toUpperCase());
+const timeAgo = ts => {
+  const d = Math.floor((Date.now() - ts) / 86400000);
+  if (d <= 0) return 'today'; if (d === 1) return 'yesterday'; if (d < 7) return d + ' days ago';
+  return new Date(ts).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+};
+
+/* ---------- data ---------- */
+const cacheKey = () => CLOUD ? STORE_KEY + ':' + ME : STORE_KEY;
+let db = CLOUD ? null : load();
+function load() {
+  try { const raw = localStorage.getItem(cacheKey()); if (raw) return JSON.parse(raw); } catch (e) {}
+  return null;
+}
+function save() {
+  let ok = true;
+  try { localStorage.setItem(cacheKey(), JSON.stringify(db)); }
+  catch (e) { if (!CLOUD) { toast('Phone storage is full. Try a smaller photo or remove some photos.'); ok = false; } }
+  if (CLOUD && db) queueSync();
+  return ok;
+}
+
+/* ============================================================
+   Cloud sync (Supabase)
+   - Every visitor gets an anonymous account automatically.
+   - Adding an email (Settings) is optional.
+   - Only your own rows are written; sample (demo) data stays on the device.
+   ============================================================ */
+let synced = {};            // 'b:<id>' -> JSON of what Supabase has
+let syncTimer, syncing = false, syncAgain = false, syncErrShown = false;
+const iso = ts => new Date(ts || Date.now()).toISOString();
+const bookRow = b => ({ id: b.id, user_id: ME, title: b.title, author: b.author || '', pages: b.pages || 0, page: b.page || 0, percent: b.percent || 0, track: !!tracked(b), status: b.status, cover_url: b.coverUrl || '', photo_url: b.photo || '', from_note: b.from || '', updated_at: iso(b.updatedAt) });
+const postRow = p => ({ id: p.id, user_id: ME, title: p.title, author: p.author || '', pages: p.pages || 0, cover_url: p.coverUrl || '', reaction: p.reaction, text: p.text || '', photo_url: p.photo || '', created_at: iso(p.createdAt) });
+const groupRow = g => ({ id: g.id, name: g.name, code: g.code, created_by: ME, created_at: iso(g.createdAt) });
+const profileRow = () => ({ id: ME, name: db.me.name, show_progress: db.me.showProgress !== false, theme: db.me.theme || 'teal' });
+const rowToBook = r => ({ id: r.id, userId: r.user_id, title: r.title, author: r.author || '', pages: r.pages || 0, page: r.page || 0, percent: r.percent || 0, track: r.track, status: r.status, coverUrl: r.cover_url || '', photo: r.photo_url || '', from: r.from_note || '', updatedAt: Date.parse(r.updated_at) || Date.now() });
+const rowToPost = r => ({ id: r.id, userId: r.user_id, title: r.title, author: r.author || '', pages: r.pages || 0, coverUrl: r.cover_url || '', reaction: r.reaction, text: r.text || '', photo: r.photo_url || '', createdAt: Date.parse(r.created_at) || Date.now() });
+
+function queueSync() { clearTimeout(syncTimer); syncTimer = setTimeout(sync, 500); }
+
+async function uploadPhoto(dataUrl) {
+  const blob = await (await fetch(dataUrl)).blob();
+  const path = `${ME}/${uid()}.jpg`;
+  const { error } = await sb.storage.from('photos').upload(path, blob, { contentType: 'image/jpeg', upsert: false });
+  if (error) throw error;
+  return sb.storage.from('photos').getPublicUrl(path).data.publicUrl;
+}
+
+async function sync() {
+  if (!CLOUD || !db || !authUser) return;
+  if (syncing) { syncAgain = true; return; }
+  syncing = true;
+  try {
+    // profile
+    const pr = profileRow(), prJ = JSON.stringify(pr);
+    if (synced['p:me'] !== prJ) { const { error } = await sb.from('profiles').upsert(pr); if (error) throw error; synced['p:me'] = prJ; }
+
+    // groups I created (+ my membership)
+    for (const g of db.groups.filter(g => !g.demo && (g.createdBy || ME) === ME)) {
+      const row = groupRow(g), j = JSON.stringify(row);
+      if (synced['g:' + g.id] === j) continue;
+      const isNew = !synced['g:' + g.id];
+      const { error } = isNew ? await sb.from('groups').insert(row) : await sb.from('groups').update({ name: g.name }).eq('id', g.id);
+      if (error) throw error;
+      if (isNew) { const r = await sb.from('group_members').insert({ group_id: g.id, user_id: ME }); if (r.error && r.error.code !== '23505') throw r.error; }
+      synced['g:' + g.id] = j;
+    }
+
+    // my books (upload any new photos first)
+    const mine = db.books.filter(b => b.userId === ME && !b.demo);
+    for (const b of mine) {
+      if (b.photo && b.photo.startsWith('data:')) { b.photo = await uploadPhoto(b.photo); localStorage.setItem(cacheKey(), JSON.stringify(db)); }
+      const row = bookRow(b), j = JSON.stringify(row);
+      if (synced['b:' + b.id] === j) continue;
+      const { error } = await sb.from('books').upsert(row); if (error) throw error;
+      synced['b:' + b.id] = j;
+    }
+    const bookIds = new Set(mine.map(b => b.id));
+    for (const k of Object.keys(synced).filter(k => k.startsWith('b:') && !bookIds.has(k.slice(2)))) {
+      const { error } = await sb.from('books').delete().eq('id', k.slice(2)); if (error) throw error;
+      delete synced[k];
+    }
+
+    // my posts
+    const myPosts = db.posts.filter(p => p.userId === ME && !p.demo);
+    for (const p of myPosts) {
+      if (p.photo && p.photo.startsWith('data:')) p.photo = await uploadPhoto(p.photo);
+      if (p.coverUrl && p.coverUrl.startsWith('data:')) {
+        const b = db.books.find(x => x.userId === ME && norm(x.title) === norm(p.title) && x.photo && !x.photo.startsWith('data:'));
+        p.coverUrl = b ? b.photo : await uploadPhoto(p.coverUrl);
+      }
+      const row = postRow(p), j = JSON.stringify(row);
+      if (synced['o:' + p.id] === j) continue;
+      const { error } = await sb.from('posts').upsert(row); if (error) throw error;
+      synced['o:' + p.id] = j;
+    }
+    const postIds = new Set(myPosts.map(p => p.id));
+    for (const k of Object.keys(synced).filter(k => k.startsWith('o:') && !postIds.has(k.slice(2)))) {
+      const { error } = await sb.from('posts').delete().eq('id', k.slice(2)); if (error) throw error;
+      delete synced[k];
+    }
+    localStorage.setItem(cacheKey(), JSON.stringify(db));
+    syncErrShown = false;
+  } catch (e) {
+    console.error('Sync failed', e);
+    if (!syncErrShown) { toast("Couldn't save to the cloud. Will retry."); syncErrShown = true; }
+    clearTimeout(syncTimer); syncTimer = setTimeout(sync, 15000);
+  } finally {
+    syncing = false;
+    if (syncAgain) { syncAgain = false; queueSync(); }
+  }
+}
+
+/* pull everything visible to me from Supabase and rebuild db (keeps sample data) */
+async function pull() {
+  const { data: prof, error: pe } = await sb.from('profiles').select('*').eq('id', ME).maybeSingle();
+  if (pe) throw pe;
+  if (!prof) { db = null; return; }
+  const mem = await sb.from('group_members').select('group_id').eq('user_id', ME);
+  if (mem.error) throw mem.error;
+  const gids = mem.data.map(r => r.group_id);
+  let groups = [], members = [];
+  if (gids.length) {
+    const [g, m] = await Promise.all([
+      sb.from('groups').select('*').in('id', gids),
+      sb.from('group_members').select('group_id,user_id').in('group_id', gids)
+    ]);
+    if (g.error) throw g.error; if (m.error) throw m.error;
+    groups = g.data; members = m.data;
+  }
+  const userIds = [...new Set([ME, ...members.map(m => m.user_id)])];
+  const [profs, books, posts, admin] = await Promise.all([
+    sb.from('profiles').select('id,name,show_progress').in('id', userIds),
+    sb.from('books').select('*').in('user_id', userIds),
+    sb.from('posts').select('*').in('user_id', userIds).order('created_at', { ascending: false }).limit(300),
+    sb.rpc('am_i_admin')
+  ]);
+  if (profs.error) throw profs.error; if (books.error) throw books.error; if (posts.error) throw posts.error;
+  isAdmin = !!admin.data;
+
+  const prev = db || load();
+  const demo = prev ? {
+    users: (prev.users || []).filter(u => u.demo),
+    groups: (prev.groups || []).filter(g => g.demo).map(g => ({ ...g, members: g.members.map(id => id === 'me' ? ME : id) })),
+    books: (prev.books || []).filter(b => b.demo),
+    posts: (prev.posts || []).filter(p => p.demo)
+  } : { users: [], groups: [], books: [], posts: [] };
+  // keep any of my local changes that haven't reached the cloud yet
+  const localMine = prev ? (prev.books || []).filter(b => (b.userId === ME) && !b.demo) : [];
+
+  db = {
+    version: 2,
+    me: { id: ME, name: prof.name, showProgress: prof.show_progress !== false, theme: prof.theme || 'teal' },
+    users: [...profs.data.filter(p => p.id !== ME).map(p => ({ id: p.id, name: p.name, showProgress: p.show_progress !== false })), ...demo.users],
+    groups: [...groups.map(g => ({ id: g.id, name: g.name, code: g.code, createdBy: g.created_by, createdAt: Date.parse(g.created_at), members: members.filter(m => m.group_id === g.id).map(m => m.user_id) })), ...demo.groups],
+    books: [...books.data.map(rowToBook), ...demo.books],
+    posts: [...posts.data.map(rowToPost), ...demo.posts]
+  };
+  // what the cloud has now
+  synced = { 'p:me': JSON.stringify({ id: ME, name: prof.name, show_progress: prof.show_progress !== false, theme: prof.theme || 'teal' }) };
+  db.groups.filter(g => !g.demo && g.createdBy === ME).forEach(g => synced['g:' + g.id] = JSON.stringify(groupRow(g)));
+  db.books.filter(b => b.userId === ME && !b.demo).forEach(b => synced['b:' + b.id] = JSON.stringify(bookRow(b)));
+  db.posts.filter(p => p.userId === ME && !p.demo).forEach(p => synced['o:' + p.id] = JSON.stringify(postRow(p)));
+  // re-apply unsynced local edits (newer than the cloud copy)
+  localMine.forEach(lb => {
+    const cb = db.books.find(b => b.id === lb.id);
+    if (!cb) { if (lb.photo && lb.photo.startsWith('data:')) db.books.push(lb); }
+    else if ((lb.updatedAt || 0) > (cb.updatedAt || 0)) Object.assign(cb, lb);
+  });
+  applyTheme(db.me.theme);
+  localStorage.setItem(cacheKey(), JSON.stringify(db));
+  queueSync();
+}
+
+async function joinByCode(code) {
+  const { data, error } = await sb.rpc('join_group', { p_code: code });
+  history.replaceState(null, '', location.pathname);
+  pendingJoin = null;
+  if (error || !data) { toast("That invite link didn't work. Ask for a new one."); return; }
+  await pull();
+  ui.screen = 'group'; ui.gid = data; ui.tab = 'discover';
+  render();
+  const g = curGroup(); if (g) toast('You joined ' + g.name);
+}
+
+let refreshing = false;
+async function refresh() {
+  if (!CLOUD || !authUser || refreshing || !db) return;
+  refreshing = true;
+  try { await sync(); await pull(); if (!ui.sheet) render(); } catch (e) { console.error(e); }
+  refreshing = false;
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refresh(); });
+function seed(name) {
+  const now = Date.now(), day = 86400000;
+  const demoBook = (userId, title, author, pages, page) => ({
+    id: uid(), userId, title, author, pages, page, status: 'reading',
+    coverUrl: '', photo: '', from: '', track: true, updatedAt: now, demo: true
+  });
+  return {
+    version: 1,
+    me: { id: ME, name, showProgress: true, theme: (() => { try { return localStorage.getItem('bookclub.theme') || 'teal'; } catch (e) { return 'teal'; } })() },
+    users: [
+      { id: 'demo_priya', name: 'Priya', showProgress: true, demo: true },
+      { id: 'demo_arjun', name: 'Arjun', showProgress: false, demo: true },
+      { id: 'demo_meera', name: 'Meera', showProgress: true, demo: true }
+    ],
+    groups: [{ id: 'demo', name: 'Demo Club', code: 'demo', members: [ME, 'demo_priya', 'demo_arjun', 'demo_meera'], createdAt: now, demo: true }],
+    books: [
+      demoBook('demo_priya', 'Atomic Habits', 'James Clear', 320, 198),
+      demoBook('demo_arjun', 'Wings of Fire', 'A.P.J. Abdul Kalam', 180, 60),
+      demoBook('demo_meera', 'The Alchemist', 'Paulo Coelho', 208, 62)
+    ],
+    posts: [
+      { id: uid(), userId: 'demo_meera', title: "Man's Search for Meaning", author: 'Viktor E. Frankl', pages: 165, coverUrl: '', reaction: 'up', text: 'Made me rethink how I handle a bad week at work.', photo: '', createdAt: now - 2 * day, demo: true },
+      { id: uid(), userId: 'demo_arjun', title: 'Sapiens', author: 'Yuval Noah Harari', pages: 443, coverUrl: '', reaction: 'mid', text: 'Big ideas, but the middle dragged for me.', photo: '', createdAt: now - 5 * day, demo: true }
+    ]
+  };
+}
+const userById = id => id === ME ? db.me : db.users.find(u => u.id === id);
+const myBooks = () => db.books.filter(b => b.userId === ME);
+const onMyShelf = title => myBooks().some(b => norm(b.title) === norm(title));
+const hasDemo = () => db.groups.some(g => g.demo) || db.users.some(u => u.demo);
+const curGroup = () => db.groups.find(x => x.id === ui.gid);
+
+/* ---------- ui state ---------- */
+const ui = {
+  screen: 'groups', gid: null, tab: 'read', shelfTab: null,
+  sheet: null, sheetData: {},
+  share: { bookId: null, reaction: null, text: '', photo: '' },
+  search: { q: '', loading: false, results: [], error: '' }
+};
+
+/* ---------- toast ---------- */
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
+}
+
+/* ---------- covers ---------- */
+function coverHTML(b, w, h) {
+  const src = b.photo || b.coverUrl;
+  const fs = Math.round(w * 0.42), bg = colorFor(b.title);
+  const fallback = `<span class="cover" style="width:${w}px;height:${h}px;font-size:${fs}px;background:${bg}">${initial(b.title)}</span>`;
+  if (!src) return fallback;
+  return `<img class="cover" src="${esc(src)}" alt="" loading="lazy" style="width:${w}px;height:${h}px;background:${bg}" data-fallback="${initial(b.title)}">`;
+}
+/* fluid cover: fills its container at 2:3, shows title + author when there's no image */
+function fcover(b) {
+  const src = b.photo || b.coverUrl, bg = colorFor(b.title);
+  const gen = `<span class="gen"><b>${esc(b.title)}</b><i>${esc(b.author || '')}</i></span>`;
+  return `<span class="fcover" style="background:${bg}">${gen}${src ? `<img src="${esc(src)}" alt="" loading="lazy" data-hide-on-error="1">` : ''}</span>`;
+}
+function editableFcover(b) {
+  return `<label class="cover-wrap" style="width:100%">
+    <span class="sr">Change the cover photo of ${esc(b.title)}</span>
+    <input class="file" type="file" accept="image/*" data-photo-for="${b.id}">
+    ${fcover(b)}
+    <span class="cam">${I.cam(14)}</span>
+  </label>`;
+}
+function reactionHTML(k, size) {
+  const r = REACT[k]; if (!r) return '';
+  return `<span class="reaction" style="color:${r.color};background:${r.bg}">${I[k](size || 14)}${r.label}</span>`;
+}
+function avatar(u, extra = '') {
+  return `<span class="av ${u && u.id === ME ? 'me' : ''}" ${extra}>${initial(u ? u.name : '?')}</span>`;
+}
+/* broken cover images: show the generated cover underneath */
+document.addEventListener('error', e => {
+  const t = e.target;
+  if (!(t instanceof HTMLImageElement)) return;
+  if (t.dataset.hideOnError) t.remove();
+  else if (t.dataset.fallback) {
+    const s = document.createElement('span');
+    s.className = 'cover'; s.textContent = t.dataset.fallback;
+    s.style.cssText = t.style.cssText + `;font-size:${Math.round(parseInt(t.style.width) * .42)}px`;
+    t.replaceWith(s);
+  }
+}, true);
+
+/* ---------- render ---------- */
+function render() {
+  const app = document.getElementById('app');
+  if (ui.loading) { app.innerHTML = '<div class="loading">Opening your book club…</div>'; return; }
+  if (!db) { app.innerHTML = onboardHTML(); renderSheet(); return; }
+  if (ui.screen === 'group' && !curGroup()) ui.screen = 'groups';
+  app.innerHTML = ui.screen === 'group' ? groupHTML() : groupsHTML();
+  renderSheet();
+}
+
+function onboardHTML() {
+  return `<div class="onboard">
+    <h1>The Book Club</h1>
+    <p>Read at your own pace. Discover through others. Share what stays with you.</p>
+    <label class="label" for="ob-name">What should your groups call you?</label>
+    <input class="field" id="ob-name" placeholder="Your first name" autocomplete="given-name" maxlength="40">
+    <button class="btn primary block" data-act="onboard">Get started</button>
+  </div>`;
+}
+
+function groupsHTML() {
+  const groups = db.groups.slice().sort((a, b) => (a.demo ? 1 : 0) - (b.demo ? 1 : 0) || b.createdAt - a.createdAt);
+  const list = groups.map(g => {
+    const now = db.books.filter(b => b.status === 'reading' && g.members.includes(b.userId));
+    const minis = now.slice(0, 5).map(b => coverHTML(b, 22, 32)).join('');
+    return `<button class="group-btn" data-act="open-group" data-id="${g.id}">
+      <span class="badge">${initial(g.name)}</span>
+      <span class="grow" style="display:flex;flex-direction:column;gap:2px">
+        <span class="title" style="font-size:16px">${esc(g.name)}${g.demo ? '<span class="demo-tag">Sample</span>' : ''}</span>
+        <span class="sub">${g.members.length} ${g.members.length === 1 ? 'member' : 'members'}${now.length ? ` · ${now.length} reading now` : ''}</span>
+        ${minis ? `<span class="minicovers">${minis}</span>` : ''}
+      </span>
+      <span style="color:var(--muted)">${I.chev()}</span>
+    </button>`;
+  }).join('');
+  return `<div class="hero">
+      <p class="kicker">Hi ${esc(db.me.name)}</p>
+      <h1>The Book Club</h1>
+      <button class="icon-btn gear" aria-label="Settings" data-act="settings">${I.gear()}</button>
+    </div>
+    <div class="principle">
+      <div><b>Read</b><span>at your own pace</span></div>
+      <div><b>Discover</b><span>through others</span></div>
+      <div><b>Share</b><span>what stays with you</span></div>
+    </div>
+    <div class="content" style="padding-bottom:40px">
+      <div class="section">
+        <h2 class="h2">Your groups</h2>
+        ${list}
+        <button class="create" data-act="create-open">
+          <span class="badge">${I.plus(22)}</span>
+          <span class="grow" style="display:flex;flex-direction:column;gap:2px">
+            <span class="title">Create a group</span>
+            <span class="sub">For friends, coworkers or family</span>
+          </span>
+        </button>
+      </div>
+    </div>`;
+}
+
+function groupHTML() {
+  const g = curGroup();
+  const body = ui.tab === 'read' ? readHTML() : ui.tab === 'discover' ? discoverHTML(g) : shareHTML(g);
+  const tab = (k, label) => `<button class="tab ${ui.tab === k ? 'on' : ''}" data-act="tab" data-id="${k}" ${ui.tab === k ? 'aria-current="page"' : ''}>${I[k]()}${label}</button>`;
+  const faces = g.members.slice(0, 4).map(id => avatar(userById(id))).join('');
+  return `<div class="topbar">
+      <button class="icon-btn" aria-label="Back to groups" data-act="back">${I.back()}</button>
+      <div class="t">
+        <div class="name">${esc(g.name)}${g.demo ? '<span class="demo-tag">Sample</span>' : ''}</div>
+        <div class="stack">${faces}<small>${g.members.length} ${g.members.length === 1 ? 'member' : 'members'}</small></div>
+      </div>
+      <button class="btn soft" style="border-radius:22px" data-act="invite">${I.plus(16)} Invite</button>
+    </div>
+    <div class="content">${body}</div>
+    <nav class="tabs" aria-label="Sections">${tab('read', 'Read')}${tab('discover', 'Discover')}${tab('share', 'Share')}</nav>`;
+}
+
+/* ----- Read ----- */
+function readHTML() {
+  const mine = myBooks();
+  const by = s => mine.filter(b => b.status === s).sort((a, b) => b.updatedAt - a.updatedAt);
+  const reading = by('reading');
+  const shelves = { want: by('want'), paused: by('paused'), finished: by('finished') };
+  const on = db.me.showProgress;
+  if (!ui.shelfTab || !shelves[ui.shelfTab]) ui.shelfTab = shelves.want.length ? 'want' : shelves.paused.length ? 'paused' : 'finished';
+
+  const nowCards = reading.map(b => `<div class="card">
+      <div class="now">
+        ${editableFcover(b)}
+        <div class="meta">
+          <div class="title clamp2" style="font-size:16px">${esc(b.title)}</div>
+          <div class="sub">${esc(b.author || '')}</div>
+          ${tracked(b) ? progControl(b, 'c') : `<div class="small" style="margin-top:8px">Reading · progress not tracked</div>
+          <button class="link" style="align-self:flex-start;padding:6px 0" data-act="track-toggle" data-id="${b.id}">${I.plus(14)} Track progress</button>`}
+        </div>
+      </div>
+      <div class="grid2">
+        <button class="btn" data-act="book" data-id="${b.id}">More</button>
+        <button class="btn primary" data-act="finish" data-id="${b.id}">I finished it</button>
+      </div>
+    </div>`).join('');
+
+  const empty = `<div class="empty-card">
+      <span class="ill">${I.book()}</span>
+      <div class="title">What are you reading?</div>
+      <p class="empty">Add the book you're on, or find one your group recommends.</p>
+      <div class="grid2" style="width:100%">
+        <button class="btn primary" data-act="add-open">${I.search(16)} Find a book</button>
+        <button class="btn" data-act="tab" data-id="discover">See group picks</button>
+      </div>
+    </div>`;
+
+  const labels = { want: 'Want to read', paused: 'Paused', finished: 'Finished' };
+  const segs = Object.keys(labels).filter(k => shelves[k].length || k === ui.shelfTab)
+    .map(k => `<button class="${ui.shelfTab === k ? 'on' : ''}" data-act="shelf" data-id="${k}">${labels[k]}</button>`).join('');
+  const shelf = shelves[ui.shelfTab];
+  const hint = { want: 'Save books from Discover or search to fill this.', paused: 'Books you set aside will wait here.', finished: 'Books you finish land here.' };
+  const items = shelf.map(b => `<button class="shelf-item" data-act="book" data-id="${b.id}">
+      ${fcover(b)}
+      <span class="title clamp2">${esc(b.title)}</span>
+      <span class="small">${esc(b.status === 'want' ? (b.from || b.author || '') : b.status === 'paused' ? (tracked(b) ? pct(b) + '% read' : 'Paused') : (b.author || ''))}</span>
+    </button>`).join('');
+  const anyShelf = shelves.want.length + shelves.paused.length + shelves.finished.length;
+
+  return `
+    <div class="section">
+      <div class="sec-head">
+        <h2 class="h2">Reading now</h2>
+        <button class="pill ${on ? 'on' : ''}" data-act="toggle-progress" aria-pressed="${on}" aria-label="${on ? 'Your progress is visible to your groups. Tap to hide.' : 'Your progress is hidden. Tap to show.'}">${on ? I.eye(15) + 'Progress visible' : I.eyeoff(15) + 'Progress hidden'}</button>
+      </div>
+      ${reading.length ? nowCards + `<button class="btn ghost" style="color:var(--teal);align-self:flex-start;padding:0 4px" data-act="add-open">${I.plus(16)} Add another book</button>` : empty}
+    </div>
+    ${anyShelf ? `<div class="section">
+      <h2 class="h2">My shelf</h2>
+      <div class="seg" role="tablist">${segs}</div>
+      ${shelf.length ? `<div class="grid3">${items}</div>` : `<p class="empty">${hint[ui.shelfTab]}</p>`}
+    </div>` : ''}`;
+}
+
+/* ----- Discover ----- */
+function discoverHTML(g) {
+  const others = g.members.filter(id => id !== ME);
+  const readingNow = db.books.filter(b => others.includes(b.userId) && b.status === 'reading').sort((a, b) => b.updatedAt - a.updatedAt);
+  const carousel = readingNow.map(b => {
+    const u = userById(b.userId) || { name: 'Member' };
+    const saved = onMyShelf(b.title);
+    return `<div class="ccard">
+      <div class="who">${avatar(u)}<span><b style="color:var(--ink)">${esc(u.name)}</b></span></div>
+      ${fcover(b)}
+      ${u.showProgress !== false && tracked(b) ? `<div class="bar" style="height:4px"><div style="width:${pct(b)}%"></div></div>` : `<div class="small">Reading</div>`}
+      <button class="btn ${saved ? '' : 'outline'} save-mini" ${saved ? 'disabled' : ''} data-act="save-book" data-id="${b.id}">${saved ? 'On your shelf' : I.plus(14) + ' Want to read'}</button>
+    </div>`;
+  }).join('');
+
+  const posts = db.posts.filter(p => g.members.includes(p.userId)).sort((a, b) => b.createdAt - a.createdAt).map(p => {
+    const u = userById(p.userId) || { name: 'Member' };
+    const isMe = p.userId === ME, saved = onMyShelf(p.title);
+    return `<article class="card">
+      <div class="post-head">
+        ${avatar(u)}
+        <div class="grow"><div class="title" style="font-size:14px">${isMe ? 'You' : esc(u.name)} <span style="font-weight:400;color:var(--muted)">finished a book</span></div><div class="small">${timeAgo(p.createdAt)}</div></div>
+        ${isMe ? `<button class="icon-btn" aria-label="Delete this post" data-act="delete-post" data-id="${p.id}" style="color:var(--muted)">${I.close(16)}</button>` : ''}
+      </div>
+      ${p.photo ? `<img class="photo" src="${esc(p.photo)}" alt="Photo shared with ${esc(p.title)}">` : ''}
+      ${p.text ? `<p class="thought">${esc(p.text)}</p>` : ''}
+      <div class="book-strip">
+        ${coverHTML(p, 40, 60)}
+        <div class="grow" style="display:flex;flex-direction:column;gap:4px;align-items:flex-start">
+          <div class="title" style="font-size:14px">${esc(p.title)}</div>
+          ${reactionHTML(p.reaction)}
+        </div>
+        ${isMe ? '' : `<button class="btn ${saved ? '' : 'outline'} save-mini" ${saved ? 'disabled' : ''} data-act="save-post" data-id="${p.id}" aria-label="${saved ? 'On your shelf' : 'Add ' + esc(p.title) + ' to Want to read'}">${saved ? 'Saved' : I.plus(14) + ' Save'}</button>`}
+      </div>
+    </article>`;
+  }).join('');
+
+  return `<div class="section">
+      <h2 class="h2">Reading right now</h2>
+      ${carousel ? `<div class="carousel">${carousel}</div>` : `<div class="empty-card"><span class="ill">${I.book()}</span><p class="empty">${others.length ? 'Nobody here is mid-book right now.' : "It's just you so far. Invite a few people to see what they're reading."}</p>${others.length ? '' : '<button class="btn primary" data-act="invite">Invite people</button>'}</div>`}
+    </div>
+    <div class="section">
+      <h2 class="h2">What stayed with us</h2>
+      ${posts || '<p class="empty">When someone finishes a book and shares a thought, it shows up here.</p>'}
+    </div>`;
+}
+
+/* ----- Share ----- */
+function shareHTML(g) {
+  const s = ui.share;
+  const options = myBooks().filter(b => b.status === 'reading' || b.status === 'finished').sort((a, b) => b.updatedAt - a.updatedAt);
+  if (s.bookId && !options.find(b => b.id === s.bookId)) s.bookId = null;
+  const canPost = s.bookId && s.reaction;
+  const picks = options.map(b => `<button class="pick ${s.bookId === b.id ? 'on' : ''}" aria-pressed="${s.bookId === b.id}" data-act="share-book" data-id="${b.id}">${fcover(b)}<span class="small">${esc(b.title)}</span></button>`).join('');
+  return `<div style="display:flex;flex-direction:column;gap:4px">
+      <h2 class="h2" style="font-size:24px">Share what stays with you</h2>
+      <p class="empty">A line, a quote, a learning. It helps someone find their next book.</p>
+    </div>
+    <div class="section" style="gap:8px">
+      <div class="h3">1 · The book</div>
+      ${options.length ? `<div class="pick-row">${picks}</div>` : `<div class="empty-card"><p class="empty">Add a book on the Read tab first.</p><button class="btn primary" data-act="add-open">${I.search(16)} Find a book</button></div>`}
+    </div>
+    <div class="section" style="gap:8px">
+      <div class="h3">2 · How was it?</div>
+      <div class="grid3">${['up', 'mid', 'down'].map(k => `<button class="react ${s.reaction === k ? 'on' : ''}" aria-pressed="${s.reaction === k}" data-act="react" data-id="${k}">${I[k](24)}${REACT[k].label}</button>`).join('')}</div>
+    </div>
+    <div class="section" style="gap:8px">
+      <label class="h3" for="thought">3 · What stayed with you? <span style="text-transform:none;letter-spacing:0;font-weight:400">(optional)</span></label>
+      <textarea class="field" id="thought" rows="4" maxlength="1000" placeholder="One line is enough">${esc(s.text)}</textarea>
+      ${s.photo ? `<img class="photo" src="${esc(s.photo)}" alt="Your photo to share"><button class="btn" data-act="share-photo-remove">Remove photo</button>`
+        : `<label class="drop"><input class="file" type="file" accept="image/*" data-share-photo="1">${I.cam(22)}<span>Add a photo<small>The cover, a page you loved, your reading spot</small></span></label>`}
+    </div>
+    <button class="btn primary block" data-act="post" ${canPost ? '' : 'disabled'}>${canPost ? 'Share with ' + esc(g.name) : 'Pick a book and a reaction'}</button>
+    <p class="small" style="margin:-14px 0 0;text-align:center">Your post shows in every group you're in.</p>`;
+}
+
+/* ---------- sheets ---------- */
+function renderSheet(animate) {
+  const root = document.getElementById('sheet-root');
+  if (!ui.sheet) { root.innerHTML = ''; document.body.style.overflow = ''; return; }
+  document.body.style.overflow = 'hidden';
+  const head = t => `<div class="grabber"></div><div class="row"><h2>${t}</h2><button class="icon-btn" aria-label="Close" data-act="close" style="background:var(--bg);border-radius:22px">${I.close()}</button></div>`;
+  const d = ui.sheetData;
+  let inner = '', tall = false;
+
+  if (ui.sheet === 'create') {
+    inner = `${head('Create a group')}
+      <label class="label" for="g-name">Group name</label>
+      <input class="field" id="g-name" maxlength="40" placeholder="e.g. Weekend Readers" enterkeyhint="done">
+      <p class="small" style="margin:0">You'll get a link to invite people next.</p>
+      <button class="btn primary block" data-act="create-save">Create group</button>`;
+  }
+
+  if (ui.sheet === 'invite') {
+    const g = curGroup();
+    inner = `${head('Invite to ' + esc(g.name))}
+      <p class="empty">Anyone with this link can join in one tap.</p>
+      <div class="row" style="gap:8px;padding:6px 6px 6px 14px;border:1px solid var(--field);border-radius:14px">
+        <span class="grow" style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(inviteLink(g))}</span>
+        <button class="btn primary" data-act="copy-link">${d.copied ? 'Copied' : 'Copy'}</button>
+      </div>
+      ${navigator.share ? '<button class="btn outline block" data-act="share-link">Send on WhatsApp, SMS…</button>' : ''}
+      ${CLOUD ? '<p class="small" style="margin:0">They can start reading straight away. No sign-up needed.</p>' : '<p class="small" style="margin:0">Joining by link starts working once the app is connected to Supabase.</p>'}`;
+  }
+
+  if (ui.sheet === 'add') {
+    tall = true;
+    inner = `${head('Add a book')}
+      <form class="search" data-form="search" role="search">
+        ${I.search(18)}
+        <label class="sr" for="q">Search by title or author</label>
+        <input class="field" id="q" type="search" placeholder="Search title or author" value="${esc(ui.search.q)}" autocomplete="off" enterkeyhint="search">
+      </form>
+      <div id="results">${resultsHTML()}</div>
+      <button class="link" data-act="manual-open" style="align-self:flex-start">Can't find it? Add it yourself</button>`;
+  }
+
+  if (ui.sheet === 'manual') {
+    inner = `${head('Add your own')}
+      <div style="display:grid;grid-template-columns:96px minmax(0,1fr);gap:14px;align-items:start">
+        <label class="cover-wrap" style="width:96px">
+          <span class="sr">Add a cover photo</span>
+          <input class="file" type="file" accept="image/*" data-manual-photo="1">
+          ${d.photo ? `<span class="fcover"><img src="${esc(d.photo)}" alt=""></span>` : `<span class="fcover" style="background:var(--teal-xl);box-shadow:none;border:1.5px dashed #9CC9C4;display:flex;align-items:center;justify-content:center;color:var(--teal)">${I.cam(24)}</span>`}
+        </label>
+        <div class="section" style="gap:8px">
+          <label class="label" for="m-title">Title</label>
+          <input class="field" id="m-title" maxlength="120" value="${esc(d.title || '')}">
+          <label class="label" for="m-author">Author <span style="font-weight:400">(optional)</span></label>
+          <input class="field" id="m-author" maxlength="80" value="${esc(d.author || '')}">
+        </div>
+      </div>
+      <label class="label" for="m-pages">Number of pages <span style="font-weight:400">(optional)</span></label>
+      <input class="field" id="m-pages" type="number" inputmode="numeric" min="1" value="${esc(d.pages || '')}">
+      <div class="grid2">
+        <button class="btn outline" data-act="manual-save" data-status="want" style="height:52px">Want to read</button>
+        <button class="btn primary" data-act="manual-save" data-status="reading" style="height:52px">Start reading</button>
+      </div>`;
+  }
+
+  if (ui.sheet === 'book') {
+    const b = db.books.find(x => x.id === d.id);
+    if (!b) { ui.sheet = null; return renderSheet(); }
+    const statusLabel = { reading: 'Reading now', paused: 'Paused', want: 'Want to read', finished: 'Finished' }[b.status];
+    const tr = tracked(b);
+    const progressFields = b.status === 'want' ? '' : `
+      <button class="toggle-row" data-act="track-toggle" data-id="${b.id}" aria-pressed="${tr}">
+        <span class="grow" style="display:flex;flex-direction:column;gap:2px">
+          <span class="title" style="font-size:14px">Track my progress</span>
+          <span class="small">${tr ? 'Optional. Turn off any time.' : 'Optional. Off means you just show as reading.'}</span>
+        </span>
+        <span class="sw ${tr ? 'on' : ''}"></span>
+      </button>
+      ${tr ? `${progControl(b, 's')}
+      <div class="section" style="gap:6px">
+        <label class="label" for="p-total">Total pages <span style="font-weight:400">(leave blank to track in %)</span></label>
+        <input class="field" id="p-total" type="number" inputmode="numeric" min="1" value="${b.pages || ''}" data-pages-for="${b.id}">
+      </div>` : ''}`;
+    const actionsRow = {
+      reading: `<button class="btn" data-act="pause" data-id="${b.id}">Pause</button><button class="btn" data-act="finish" data-id="${b.id}">I finished it</button>`,
+      paused: `<button class="btn primary" data-act="resume" data-id="${b.id}" style="grid-column:span 2">Resume reading</button>`,
+      want: `<button class="btn primary" data-act="start" data-id="${b.id}" style="grid-column:span 2;height:52px">Start reading</button>`,
+      finished: `<button class="btn" data-act="share-this" data-id="${b.id}" style="grid-column:span 2">Share what stayed with you</button>`
+    }[b.status];
+    inner = `<div class="grabber"></div>
+      <div style="display:grid;grid-template-columns:96px minmax(0,1fr) 44px;gap:14px;align-items:start">
+        ${editableFcover(b)}
+        <div style="display:flex;flex-direction:column;gap:4px;padding-top:4px">
+          <span class="h3">${statusLabel}</span>
+          <h2 style="font-size:20px">${esc(b.title)}</h2>
+          <span class="sub">${esc(b.author || '')}</span>
+          ${b.from ? `<span class="small">${esc(b.from)}</span>` : ''}
+        </div>
+        <button class="icon-btn" aria-label="Close" data-act="close" style="background:var(--bg);border-radius:22px">${I.close()}</button>
+      </div>
+      ${progressFields}
+      <div class="grid2">${actionsRow}</div>
+      <button class="btn danger" data-act="remove" data-id="${b.id}" style="align-self:center">Not for me — remove from shelf</button>`;
+  }
+
+  if (ui.sheet === 'settings') {
+    const cur = db.me.theme || 'teal';
+    const sw = Object.entries(THEMES).map(([k, t]) => `<button class="swatch ${cur === k ? 'on' : ''}" aria-pressed="${cur === k}" data-act="theme" data-id="${k}"><i style="background:${t.dark ? 'linear-gradient(135deg,#1B1E22 50%,#5CC8BD 50%)' : t.accent}"></i>${t.name}</button>`).join('');
+    const email = authUser && !authUser.is_anonymous ? authUser.email : '';
+    const pendingEmail = authUser && authUser.new_email;
+    const account = !CLOUD ? '' : email ? `<div class="card" style="background:var(--bg);box-shadow:none">
+        <div class="title" style="font-size:14px">Account</div>
+        <p class="empty" style="font-size:13px">Signed in as <b style="color:var(--ink)">${esc(email)}</b>. Your books are safe and you can use them on any device.</p>
+        <button class="btn" data-act="sign-out">Sign out</button></div>`
+      : `<div class="card" style="background:var(--bg);box-shadow:none">
+        <div class="title" style="font-size:14px">Keep your books safe <span style="font-weight:400;color:var(--muted)">(optional)</span></div>
+        <p class="empty" style="font-size:13px">${pendingEmail ? `We sent a link to <b style="color:var(--ink)">${esc(pendingEmail)}</b>. Tap it to finish.` : 'Add your email so you can open your books on another phone. No password.'}</p>
+        <label class="sr" for="acc-email">Email</label>
+        <input class="field" id="acc-email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com">
+        <div class="grid2">
+          <button class="btn primary" data-act="email-link">Add email</button>
+          <button class="btn" data-act="email-signin">I have an account</button>
+        </div></div>`;
+    inner = `${head('Settings')}
+      <label class="label" for="s-name">Your name</label>
+      <div class="row" style="gap:8px"><input class="field grow" id="s-name" maxlength="40" value="${esc(db.me.name)}"><button class="btn primary" style="height:50px" data-act="settings-save">Save</button></div>
+      <div class="label">Theme</div>
+      <div class="swatches">${sw}</div>
+      ${account}
+      ${isAdmin ? '<button class="btn outline block" data-act="admin">Open admin panel</button>' : ''}
+      ${hasDemo() ? `<div class="card" style="background:var(--bg);box-shadow:none">
+        <div class="title" style="font-size:14px">Sample group</div>
+        <p class="empty" style="font-size:13px">Demo Club, Priya, Arjun and Meera are sample data so you can try Discover. Remove them when you're ready.</p>
+        <button class="btn" data-act="demo-remove">Remove sample data</button></div>` : ''}
+      <div class="card" style="background:var(--bg);box-shadow:none">
+        <div class="title" style="font-size:14px">Your data</div>
+        <p class="empty" style="font-size:13px">${CLOUD ? 'Your books, groups and posts are saved to the cloud.' : 'Everything is saved on this device for now. Clearing your browser data will erase it.'}</p>
+        ${CLOUD ? '' : '<button class="btn danger" data-act="reset">Erase everything on this device</button>'}
+      </div>`;
+  }
+
+  if (ui.sheet === 'admin') {
+    tall = true;
+    const a = d.data;
+    const fmt = t => t ? new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: '2-digit' }) : '';
+    inner = `${head('Admin')}
+      ${d.error ? `<p class="empty">${esc(d.error)}</p>` : !a ? '<div class="spinner">Loading…</div>' : `
+      <div class="stats">
+        <div class="stat"><b>${a.users}</b><span>People</span></div>
+        <div class="stat"><b>${a.email_users}</b><span>Added email</span></div>
+        <div class="stat"><b>${a.active_7d}</b><span>Active 7 days</span></div>
+        <div class="stat"><b>${a.groups}</b><span>Groups</span></div>
+        <div class="stat"><b>${a.books}</b><span>Books added</span></div>
+        <div class="stat"><b>${a.posts}</b><span>Thoughts shared</span></div>
+      </div>
+      <div class="h3">Most added books</div>
+      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Book</th><th>People</th></tr></thead><tbody>
+        ${(a.top_books || []).map(r => `<tr><td>${esc(r.title)}</td><td>${r.n}</td></tr>`).join('') || '<tr><td colspan="2">None yet</td></tr>'}
+      </tbody></table></div>
+      <div class="h3">Newest people</div>
+      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Joined</th><th>Books</th></tr></thead><tbody>
+        ${(a.recent_users || []).map(r => `<tr><td>${esc(r.name)}</td><td>${r.email ? esc(r.email) : '<span class="small">—</span>'}</td><td>${fmt(r.created_at)}</td><td>${r.books}</td></tr>`).join('')}
+      </tbody></table></div>
+      <div class="h3">Groups</div>
+      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Group</th><th>Members</th><th>Created</th></tr></thead><tbody>
+        ${(a.groups_list || []).map(r => `<tr><td>${esc(r.name)}</td><td>${r.members}</td><td>${fmt(r.created_at)}</td></tr>`).join('') || '<tr><td colspan="3">None yet</td></tr>'}
+      </tbody></table></div>`}`;
+  }
+
+  root.innerHTML = `<div class="overlay ${animate ? 'anim' : ''}" data-act="overlay"><div class="sheet ${tall ? 'tall' : ''}" role="dialog" aria-modal="true">${inner}</div></div>`;
+  if (animate) {
+    const first = root.querySelector('#g-name, #q, #m-title');
+    if (first) setTimeout(() => first.focus(), 260);
+  }
+}
+function openSheet(name, data = {}) { ui.sheet = name; ui.sheetData = data; renderSheet(true); }
+function closeSheet() { ui.sheet = null; ui.sheetData = {}; renderSheet(); }
+const inviteLink = g => location.origin + location.pathname + '?join=' + g.code;
+
+/* ---------- add-book results ---------- */
+function suggestions() {
+  // books people in your groups are reading or have shared, not already on your shelf
+  const myGroups = db.groups.filter(g => g.members.includes(ME));
+  const people = new Set(myGroups.flatMap(g => g.members).filter(id => id !== ME));
+  const seen = new Set(), out = [];
+  const push = (x, who) => {
+    if (seen.has(norm(x.title)) || onMyShelf(x.title)) return;
+    seen.add(norm(x.title));
+    out.push({ title: x.title, author: x.author, pages: x.pages, coverUrl: x.coverUrl, from: 'Saved from ' + who });
+  };
+  db.books.filter(b => people.has(b.userId) && b.status === 'reading').forEach(b => push(b, userById(b.userId)?.name || 'a friend'));
+  db.posts.filter(p => people.has(p.userId) && p.reaction !== 'down').forEach(p => push(p, userById(p.userId)?.name || 'a friend'));
+  return out.slice(0, 6);
+}
+function resultRow(r, i, src) {
+  const inS = onMyShelf(r.title);
+  return `<div class="result">
+    ${coverHTML(r, 40, 60)}
+    <div class="grow"><div class="title clamp2" style="font-size:14px">${esc(r.title)}</div><div class="small">${esc(r.author || 'Unknown author')}${r.pages ? ' · ' + r.pages + ' pages' : ''}</div></div>
+    ${inS ? '<span class="small">On your shelf</span>' : `<div class="row" style="gap:6px">
+      <button class="btn" style="padding:0 12px;font-size:13px" data-act="add-result" data-src="${src}" data-id="${i}" data-status="want" aria-label="Want to read ${esc(r.title)}">Want</button>
+      <button class="btn primary" style="padding:0 12px;font-size:13px" data-act="add-result" data-src="${src}" data-id="${i}" data-status="reading" aria-label="Start reading ${esc(r.title)}">Start</button></div>`}
+  </div>`;
+}
+function resultsHTML() {
+  const s = ui.search;
+  if (!s.q) {
+    const sug = suggestions();
+    ui.sheetData.suggest = sug;
+    return sug.length ? `<div class="h3" style="margin:4px 0 2px">Picks from your groups</div>${sug.map((r, i) => resultRow(r, i, 'suggest')).join('')}`
+      : '<p class="empty" style="padding:8px 0">Search millions of books by title or author.</p>';
+  }
+  if (s.loading) return Array.from({ length: 4 }, () => `<div class="result"><span class="skel" style="width:40px;height:60px"></span><div class="grow" style="display:flex;flex-direction:column;gap:8px"><span class="skel" style="height:12px;width:70%"></span><span class="skel" style="height:10px;width:45%"></span></div></div>`).join('');
+  if (s.error) return `<p class="empty" style="padding:8px 0">${esc(s.error)}</p>`;
+  return s.results.map((r, i) => resultRow(r, i, 'search')).join('');
+}
+function renderResults() { const el = document.getElementById('results'); if (el) el.innerHTML = resultsHTML(); }
+
+/* ---------- photos ---------- */
+function readPhoto(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        const max = 900, scale = Math.min(1, max / Math.max(img.width, img.height));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        resolve(c.toDataURL('image/jpeg', 0.72));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ---------- book search (Open Library) ---------- */
+let searchTimer, searchSeq = 0;
+function queueSearch(q) {
+  clearTimeout(searchTimer);
+  ui.search.q = q;
+  if (q.length < 2) { ui.search = { q, loading: false, results: [], error: '' }; renderResults(); return; }
+  ui.search.loading = true; ui.search.error = ''; renderResults();
+  searchTimer = setTimeout(() => searchBooks(q), 400);
+}
+async function searchBooks(q) {
+  const seq = ++searchSeq;
+  try {
+    const url = 'https://openlibrary.org/search.json?limit=15&fields=title,author_name,number_of_pages_median,cover_i&q=' + encodeURIComponent(q);
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('bad');
+    const data = await res.json();
+    if (seq !== searchSeq) return;
+    ui.search.results = (data.docs || []).map(d => ({
+      title: d.title,
+      author: (d.author_name || []).slice(0, 2).join(', '),
+      pages: d.number_of_pages_median || 0,
+      coverUrl: d.cover_i ? `https://covers.openlibrary.org/b/id/${d.cover_i}-M.jpg` : ''
+    }));
+    ui.search.error = ui.search.results.length ? '' : 'No matches. Try fewer words, or add it yourself.';
+  } catch (e) {
+    if (seq !== searchSeq) return;
+    ui.search.error = "Couldn't reach the book search. Check your connection, or add it yourself.";
+  }
+  ui.search.loading = false;
+  if (ui.sheet === 'add') renderResults();
+}
+
+/* ---------- data actions ---------- */
+function addBook({ title, author = '', pages = 0, coverUrl = '', photo = '', status = 'want', from = '' }) {
+  if (onMyShelf(title)) { toast('Already on your shelf'); return null; }
+  const b = { id: uid(), userId: ME, title: title.trim(), author, pages: +pages || 0, page: 0, percent: 0, track: false, status, coverUrl, photo, from, updatedAt: Date.now() };
+  db.books.push(b); save();
+  return b;
+}
+function updBook(id, patch) {
+  const b = db.books.find(x => x.id === id); if (!b) return;
+  Object.assign(b, patch, { updatedAt: Date.now() }); save();
+}
+function saveFromOther(x, userId) {
+  const u = userById(userId);
+  if (addBook({ title: x.title, author: x.author, pages: x.pages, coverUrl: x.coverUrl, status: 'want', from: 'Saved from ' + (u?.name || 'a friend') })) {
+    ui.shelfTab = 'want'; render(); toast('Added to your Want to read');
+  }
+}
+
+const actions = {
+  async onboard() {
+    const name = document.getElementById('ob-name').value.trim();
+    if (!name) { toast('Add your name to continue'); return; }
+    db = seed(name); save(); render();
+    if (CLOUD) { clearTimeout(syncTimer); await sync(); if (pendingJoin) await joinByCode(pendingJoin); }
+  },
+  theme(id) {
+    applyTheme(id); db.me.theme = id; save(); renderSheet(); render();
+  },
+  async admin() {
+    openSheet('admin', {});
+    const { data, error } = await sb.rpc('admin_overview');
+    if (ui.sheet !== 'admin') return;
+    ui.sheetData = error ? { error: "Couldn't load admin data: " + error.message } : { data };
+    renderSheet();
+  },
+  async 'email-link'() {
+    const email = document.getElementById('acc-email').value.trim();
+    if (!/^\S+@\S+\.\S+$/.test(email)) { toast('Enter a valid email'); return; }
+    const { data, error } = await sb.auth.updateUser({ email }, { emailRedirectTo: location.origin + location.pathname });
+    if (error) { toast(/already/i.test(error.message) ? 'That email already has an account. Tap "I have an account".' : error.message); return; }
+    authUser = data.user || authUser; renderSheet(); toast('Check your inbox and tap the link');
+  },
+  async 'email-signin'() {
+    const email = document.getElementById('acc-email').value.trim();
+    if (!/^\S+@\S+\.\S+$/.test(email)) { toast('Enter a valid email'); return; }
+    if (!confirm('Signing in switches this phone to that account. Books added on this phone without an email will not move over. Continue?')) return;
+    const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: false, emailRedirectTo: location.origin + location.pathname } });
+    if (error) { toast(/signups not allowed|not found/i.test(error.message) ? 'No account with that email. Use "Add email" instead.' : error.message); return; }
+    toast('Check your inbox and tap the link to sign in');
+  },
+  async 'sign-out'() {
+    if (!confirm('Sign out on this phone?')) return;
+    await sb.auth.signOut();
+    try { localStorage.removeItem(cacheKey()); } catch (e) {}
+    location.reload();
+  },
+  'open-group'(id) { ui.screen = 'group'; ui.gid = id; ui.tab = 'read'; render(); scrollTo(0, 0); },
+  back() { ui.screen = 'groups'; render(); scrollTo(0, 0); },
+  tab(id) { closeSheet(); ui.tab = id; render(); scrollTo(0, 0); },
+  shelf(id) { ui.shelfTab = id; render(); },
+  settings() { openSheet('settings'); },
+  'settings-save'() {
+    const n = document.getElementById('s-name').value.trim();
+    if (!n) { toast("Name can't be empty"); return; }
+    db.me.name = n; save(); closeSheet(); render(); toast('Saved');
+  },
+  'demo-remove'() {
+    const demoUsers = db.users.filter(u => u.demo).map(u => u.id);
+    db.users = db.users.filter(u => !u.demo);
+    db.groups = db.groups.filter(g => !g.demo);
+    db.books = db.books.filter(b => !demoUsers.includes(b.userId));
+    db.posts = db.posts.filter(p => !demoUsers.includes(p.userId));
+    save(); closeSheet(); ui.screen = 'groups'; render(); toast('Sample data removed');
+  },
+  reset() {
+    if (!confirm('Erase all your books, groups and posts on this device?')) return;
+    localStorage.removeItem(STORE_KEY); db = null; closeSheet(); render();
+  },
+  'create-open'() { openSheet('create'); },
+  'create-save'() {
+    const name = document.getElementById('g-name').value.trim();
+    if (!name) { toast('Give your group a name'); return; }
+    const g = { id: uid(), name, code: joinCode(), members: [ME], createdBy: ME, createdAt: Date.now() };
+    db.groups.push(g); save();
+    ui.screen = 'group'; ui.gid = g.id; ui.tab = 'read'; render();
+    openSheet('invite');
+  },
+  invite() { openSheet('invite'); },
+  async 'copy-link'() {
+    try { await navigator.clipboard.writeText(inviteLink(curGroup())); ui.sheetData.copied = true; renderSheet(); }
+    catch (e) { toast('Could not copy. Press and hold the link to copy it.'); }
+  },
+  async 'share-link'() {
+    const g = curGroup();
+    try { await navigator.share({ title: 'The Book Club', text: `Join "${g.name}" on The Book Club`, url: inviteLink(g) }); } catch (e) {}
+  },
+  'toggle-progress'() {
+    db.me.showProgress = !db.me.showProgress; save(); render();
+    toast(db.me.showProgress ? 'Your groups can see your progress' : 'Progress hidden. Groups only see the book.');
+  },
+  'add-open'() { ui.search = { q: '', loading: false, results: [], error: '' }; openSheet('add'); },
+  'add-result'(i, el) {
+    const list = el.dataset.src === 'suggest' ? ui.sheetData.suggest : ui.search.results;
+    const r = list && list[+i]; if (!r) return;
+    const status = el.dataset.status;
+    if (!addBook({ ...r, status })) return;
+    if (status === 'reading') { closeSheet(); ui.tab = 'read'; render(); scrollTo(0, 0); toast('Happy reading'); }
+    else { ui.shelfTab = 'want'; render(); renderResults(); toast('Added to Want to read'); }
+  },
+  'manual-open'() {
+    openSheet('manual', { photo: '', title: ui.search.q || '' });
+  },
+  'manual-save'(_, el) {
+    const title = document.getElementById('m-title').value.trim();
+    if (!title) { toast('Add a title'); document.getElementById('m-title').focus(); return; }
+    const b = addBook({
+      title, author: document.getElementById('m-author').value.trim(),
+      pages: +document.getElementById('m-pages').value || 0,
+      photo: ui.sheetData.photo || '', status: el.dataset.status
+    });
+    if (!b) return;
+    if (b.status === 'want') ui.shelfTab = 'want';
+    closeSheet(); ui.tab = 'read'; render(); toast(b.status === 'reading' ? 'Happy reading' : 'Added to Want to read');
+  },
+  book(id) { openSheet('book', { id }); },
+  'track-toggle'(id) {
+    const b = db.books.find(x => x.id === id); if (!b) return;
+    const on = !tracked(b);
+    updBook(id, { track: on });
+    render(); renderSheet();
+    toast(on ? 'Tracking progress for this book' : 'Progress tracking off for this book');
+  },
+  finish(id) {
+    const b = db.books.find(x => x.id === id);
+    updBook(id, { status: 'finished', page: b.pages || b.page, percent: 100 });
+    ui.share = { bookId: id, reaction: null, text: '', photo: '' };
+    closeSheet(); ui.tab = 'share'; render(); scrollTo(0, 0); toast('Well read! Share a thought, if you like.');
+  },
+  'share-this'(id) { ui.share = { bookId: id, reaction: null, text: '', photo: '' }; closeSheet(); ui.tab = 'share'; render(); scrollTo(0, 0); },
+  pause(id) { updBook(id, { status: 'paused' }); ui.shelfTab = 'paused'; closeSheet(); render(); toast('Paused. Pick it up whenever.'); },
+  resume(id) { updBook(id, { status: 'reading' }); closeSheet(); render(); scrollTo(0, 0); },
+  start(id) { updBook(id, { status: 'reading' }); closeSheet(); render(); scrollTo(0, 0); toast('Happy reading'); },
+  remove(id) { db.books = db.books.filter(b => b.id !== id); save(); closeSheet(); render(); toast('Removed. No pressure.'); },
+  'save-book'(id) { const b = db.books.find(x => x.id === id); if (b) saveFromOther(b, b.userId); },
+  'save-post'(id) { const p = db.posts.find(x => x.id === id); if (p) saveFromOther(p, p.userId); },
+  'delete-post'(id) {
+    if (!confirm('Delete this post?')) return;
+    db.posts = db.posts.filter(p => p.id !== id); save(); render();
+  },
+  'share-book'(id) { ui.share.bookId = id; render(); },
+  react(k) { ui.share.reaction = k; render(); },
+  'share-photo-remove'() { ui.share.photo = ''; render(); },
+  post() {
+    const s = ui.share, b = db.books.find(x => x.id === s.bookId);
+    if (!b || !s.reaction) return;
+    const text = (document.getElementById('thought')?.value || '').trim();
+    db.posts.push({
+      id: uid(), userId: ME, title: b.title, author: b.author, pages: b.pages,
+      coverUrl: b.photo || b.coverUrl, reaction: s.reaction, text, photo: s.photo, createdAt: Date.now()
+    });
+    const prev = { status: b.status, page: b.page, percent: b.percent };
+    b.status = 'finished'; b.page = b.pages || b.page; b.percent = 100; b.updatedAt = Date.now();
+    if (!save()) { db.posts.pop(); Object.assign(b, prev); return; }
+    ui.share = { bookId: null, reaction: null, text: '', photo: '' };
+    ui.tab = 'discover'; render(); scrollTo(0, 0); toast('Shared with ' + curGroup().name);
+  },
+  close() { closeSheet(); },
+  overlay(_, el, e) { if (e.target === el) closeSheet(); }
+};
+
+/* ---------- events ---------- */
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]');
+  if (!el) return;
+  const act = el.dataset.act;
+  if (act === 'overlay' && e.target !== el) return;
+  e.preventDefault();
+  const fn = actions[act];
+  if (fn) fn(el.dataset.id, el, e);
+});
+document.addEventListener('submit', e => {
+  if (e.target.dataset.form === 'search') {
+    e.preventDefault();
+    const q = document.getElementById('q').value.trim();
+    clearTimeout(searchTimer);
+    if (q) { ui.search.q = q; ui.search.loading = true; renderResults(); searchBooks(q); }
+    document.getElementById('q').blur();
+  }
+});
+/* progress: slider and number box stay in sync; saved when you let go / leave the box */
+function syncProgress(id, raw, commit) {
+  const b = db.books.find(x => x.id === id); if (!b) return;
+  const max = progMax(b);
+  let v = Math.round(+raw);
+  if (!isFinite(v)) return;
+  v = Math.max(0, Math.min(max, v));
+  const tmp = Object.assign({}, b, b.pages ? { page: v } : { percent: v });
+  document.querySelectorAll(`[data-prog-range="${id}"]`).forEach(el => { el.value = v; el.style.setProperty('--p', pct(tmp) + '%'); });
+  document.querySelectorAll(`[data-prog-num="${id}"]`).forEach(el => { if (commit || el !== document.activeElement) el.value = v; });
+  document.querySelectorAll(`[data-prog-label="${id}"]`).forEach(el => { el.textContent = progLabel(tmp); });
+  if (!commit) return;
+  const patch = b.pages ? { page: v } : { percent: v };
+  const wasFinished = b.status === 'finished';
+  if (wasFinished && v < max) patch.status = 'reading';
+  updBook(id, patch);
+  if (patch.status) { render(); renderSheet(); toast('Moved back to Reading now'); }
+  else if (v === max && b.status === 'reading') toast('Last page! Tap "I finished it" when you\'re done.');
+}
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (t.dataset && t.dataset.progRange) syncProgress(t.dataset.progRange, t.value, false);
+  if (t.dataset && t.dataset.progNum && t.value !== '') syncProgress(t.dataset.progNum, t.value, false);
+  if (e.target.id === 'thought') ui.share.text = e.target.value;
+  if (e.target.id === 'q') queueSearch(e.target.value.trim());
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.id === 'ob-name') actions.onboard();
+  if (e.key === 'Enter' && e.target.id === 'g-name') actions['create-save']();
+  if (e.key === 'Escape' && ui.sheet) closeSheet();
+});
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t.dataset && t.dataset.progRange) syncProgress(t.dataset.progRange, t.value, true);
+  if (t.dataset && t.dataset.progNum) syncProgress(t.dataset.progNum, t.value === '' ? 0 : t.value, true);
+  if (t.dataset && t.dataset.pagesFor) {
+    const b = db.books.find(x => x.id === t.dataset.pagesFor); if (!b) return;
+    const total = Math.max(0, parseInt(t.value, 10) || 0);
+    if (total === b.pages) return;
+    const p = pct(b);
+    // switching between % and pages keeps roughly the same place in the book
+    const patch = total ? { pages: total, page: b.pages ? Math.min(b.page, total) : Math.round(p / 100 * total) } : { pages: 0, percent: p };
+    updBook(b.id, patch); render(); renderSheet();
+  }
+});
+document.addEventListener('change', async e => {
+  const t = e.target;
+  if (!(t instanceof HTMLInputElement) || t.type !== 'file' || !t.files?.[0]) return;
+  let url;
+  try { url = await readPhoto(t.files[0]); } catch (err) { toast("Couldn't read that photo"); return; }
+  if (t.dataset.photoFor) {
+    const b = db.books.find(x => x.id === t.dataset.photoFor);
+    const old = b.photo; b.photo = url;
+    if (!save()) { b.photo = old; return; }
+    render(); toast('Cover photo updated');
+  } else if (t.dataset.sharePhoto) {
+    ui.share.text = document.getElementById('thought')?.value || ui.share.text;
+    ui.share.photo = url; render();
+  } else if (t.dataset.manualPhoto) {
+    ['title', 'author', 'pages'].forEach(k => { const el = document.getElementById('m-' + k); if (el) ui.sheetData[k] = el.value; });
+    ui.sheetData.photo = url; renderSheet();
+  }
+});
+
+/* ---------- start ---------- */
+(async function init() {
+  if (!CLOUD) {
+    if (db && db.me.theme) applyTheme(db.me.theme);
+    render();
+    if (pendingJoin && db) toast('Invite links start working once Supabase is connected.');
+    return;
+  }
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  ui.loading = true; render();
+  try {
+    let { data: { session } } = await sb.auth.getSession();
+    if (!session) {
+      const r = await sb.auth.signInAnonymously();
+      if (r.error) throw r.error;
+      session = r.data.session;
+    }
+    authUser = session.user; ME = authUser.id;
+    sb.auth.onAuthStateChange((event, s) => {
+      if (s && s.user && s.user.id !== ME) { location.reload(); return; }   // signed in as someone else via email link
+      if (s && s.user) { authUser = s.user; if (ui.sheet === 'settings') renderSheet(); }
+      if (event === 'USER_UPDATED' && authUser.email && !authUser.is_anonymous) toast('Email added. Your books are safe.');
+    });
+    db = load();                 // show cached copy straight away
+    ui.loading = !db; render();
+    await pull();
+    ui.loading = false;
+    if (db && pendingJoin) await joinByCode(pendingJoin); else render();
+  } catch (e) {
+    console.error(e);
+    ui.loading = false;
+    db = db || load();
+    render();
+    toast("Couldn't reach the server. Showing what's saved on this phone.");
+  }
+})();
+</script>
+</body>
+</html>
