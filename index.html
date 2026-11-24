@@ -222,6 +222,12 @@ textarea.field{height:auto;padding:12px 14px;line-height:1.5;resize:none}
 .cal .sel{outline:2px solid var(--ink);outline-offset:-2px}
 .cal .today{font-weight:800;text-decoration:underline;text-underline-offset:3px}
 .cal .future{color:var(--muted);opacity:.5}
+/* settings menu */
+.set-group{background:var(--bg);border-radius:16px;overflow:hidden;display:flex;flex-direction:column}
+.set-row{display:flex;align-items:center;gap:12px;width:100%;min-height:54px;padding:8px 12px;border:none;background:transparent;text-align:left;font-size:15px;font-weight:500;color:var(--ink)}
+.set-row+.set-row{border-top:1px solid var(--line)}
+.set-ico{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.set-val{font-size:13px;color:var(--muted);max-width:45%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* themes + account + admin */
 .swatches{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .swatch{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 6px;border-radius:14px;border:1.5px solid var(--line);background:var(--card);font-size:12px;font-weight:600;color:var(--muted)}
@@ -1017,6 +1023,7 @@ function renderSheet(animate) {
   }
 
   if (ui.sheet === 'settings') {
+    const page = d.page || '';
     const cur = db.me.theme || 'teal';
     const sw = Object.entries(THEMES).map(([k, t]) => `<button class="swatch ${cur === k ? 'on' : ''}" aria-pressed="${cur === k}" data-act="theme" data-id="${k}"><i style="background:${t.dark ? 'linear-gradient(135deg,#1B1E22 50%,#5CC8BD 50%)' : t.accent}"></i>${t.name}</button>`).join('');
     const email = authUser && !authUser.is_anonymous ? authUser.email : '';
@@ -1024,6 +1031,15 @@ function renderSheet(animate) {
         <div class="title" style="font-size:14px">Account</div>
         <p class="empty" style="font-size:13px">Signed in as <b style="color:var(--ink)">${esc(email)}</b>. Use the same email and password on any other phone or laptop.</p>
         <button class="btn" data-act="sign-out">Sign out</button></div>`
+      : d.signin ? `<div class="card" style="background:var(--bg);box-shadow:none">
+        <div class="title" style="font-size:14px">Sign in</div>
+        <p class="empty" style="font-size:13px">Use the email and password you created on your other device.</p>
+        <label class="label" for="acc-email">Email</label>
+        <input class="field" id="acc-email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com">
+        <label class="label" for="acc-pw">Password</label>
+        <input class="field" id="acc-pw" type="password" autocomplete="current-password">
+        <button class="btn primary block" data-act="acc-signin">Sign in</button>
+        <button class="link" data-act="acc-mode" style="align-self:center">New here? Create an account instead</button></div>`
       : `<div class="card" style="background:var(--bg);box-shadow:none">
         <div class="title" style="font-size:14px">Create an account <span style="font-weight:400;color:var(--muted)">(optional)</span></div>
         <p class="empty" style="font-size:13px">Your books are already saved. An account just lets you open them on another phone or laptop.</p>
@@ -1031,26 +1047,95 @@ function renderSheet(animate) {
         <input class="field" id="acc-email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com">
         <label class="label" for="acc-pw">Password <span style="font-weight:400">(at least 6 characters)</span></label>
         <input class="field" id="acc-pw" type="password" autocomplete="new-password" minlength="6">
-        <div class="grid2">
-          <button class="btn primary" data-act="acc-create">Create account</button>
-          <button class="btn" data-act="acc-signin">Sign in instead</button>
-        </div></div>`;
-    inner = `${head('Settings')}
-      <label class="label" for="s-name">Your name</label>
-      <div class="row" style="gap:8px"><input class="field grow" id="s-name" maxlength="40" value="${esc(db.me.name)}"><button class="btn primary" style="height:50px" data-act="settings-save">Save</button></div>
-      <div class="label">Theme</div>
-      <div class="swatches">${sw}</div>
-      ${account}
-      ${isAdmin ? '<button class="btn outline block" data-act="admin">Open admin panel</button>' : ''}
-      ${hasDemo() ? `<div class="card" style="background:var(--bg);box-shadow:none">
-        <div class="title" style="font-size:14px">Sample group</div>
-        <p class="empty" style="font-size:13px">Demo Club, Priya, Arjun and Meera are sample data so you can try Discover. Remove them when you're ready.</p>
-        <button class="btn" data-act="demo-remove">Remove sample data</button></div>` : ''}
-      <div class="card" style="background:var(--bg);box-shadow:none">
-        <div class="title" style="font-size:14px">Your data</div>
-        <p class="empty" style="font-size:13px">${CLOUD ? 'Your books, groups and posts are saved to the cloud.' : 'Everything is saved on this device for now. Clearing your browser data will erase it.'}</p>
-        ${CLOUD ? '' : '<button class="btn danger" data-act="reset">Erase everything on this device</button>'}
-      </div>`;
+        <button class="btn primary block" data-act="acc-create">Create account</button>
+        <button class="link" data-act="acc-mode" style="align-self:center">Already have an account? Sign in</button></div>`;
+    const back = t => `<div class="grabber"></div><div class="row"><button class="icon-btn" aria-label="Back to settings" data-act="set-page" data-id="" style="background:var(--bg);border-radius:22px">${I.back(20)}</button><h2>${t}</h2></div>`;
+    const ico = (path, bg, fg) => `<span class="set-ico" style="background:${bg};color:${fg}">${svg(18, path)}</span>`;
+    const row = (pageId, icon, label, value, act) => `<button class="set-row" data-act="${act || 'set-page'}" data-id="${pageId}">${icon}<span class="grow">${label}</span><span class="set-val">${esc(value || '')}</span><span style="color:var(--muted)">${I.chev(18)}</span></button>`;
+    const P = {
+      user: '<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/>',
+      cloud: '<path d="M17.5 19a4.5 4.5 0 1 0-1.4-8.78A6 6 0 0 0 4 12a4 4 0 0 0 1 7.87"/><path d="M12 13v8M9 16l3-3 3 3"/>',
+      palette: '<circle cx="13.5" cy="6.5" r="1.5"/><circle cx="17.5" cy="10.5" r="1.5"/><circle cx="8.5" cy="7.5" r="1.5"/><circle cx="6.5" cy="12.5" r="1.5"/><path d="M12 2a10 10 0 0 0 0 20c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.3A5.7 5.7 0 0 0 22 9.7C22 5.4 17.5 2 12 2z"/>',
+      target: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+      eye: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',
+      phone: '<rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/>',
+      help: '<circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/>',
+      data: '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.7-4 3-9 3s-9-1.3-9-3"/><path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5"/>',
+      shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+      sparkle: '<path d="M12 3l1.9 5.8L20 10l-6.1 1.2L12 17l-1.9-5.8L4 10l6.1-1.2z"/>'
+    };
+    if (!page) {
+      inner = `${head('Settings')}
+        <div class="set-group">
+          ${CLOUD ? row('account', ico(P.cloud, '#E3EEFB', '#2A5DA8'), email ? 'Account' : 'Create account / Sign in', email ? email : 'Use on other devices') : ''}
+          ${row('name', ico(P.user, '#F3E8FB', '#6B3FA0'), 'Your name', db.me.name)}
+        </div>
+        <div class="set-group">
+          ${row('theme', ico(P.palette, '#FCEBDD', '#A94E2B'), 'Display & theme', (THEMES[cur] || THEMES.teal).name)}
+          ${row('goal', ico(P.target, '#E3F1F0', '#0A4F4F'), 'Daily goal', db.me.goal ? db.me.goal + ' pages' : 'Off')}
+          ${row('privacy', ico(P.eye, '#E8F3E4', '#2F6B3B'), 'Privacy', db.me.showProgress ? 'Progress visible' : 'Progress hidden')}
+          ${row('data', ico(P.data, '#EEF0F2', '#4A525C'), 'Data', CLOUD ? 'Saved to cloud' : 'This phone only')}
+          ${row('install', ico(P.phone, '#E6E9F8', '#3D4FB0'), 'Install as an app', '')}
+          ${row('help', ico(P.help, '#FCEFD9', '#8A5A1F'), 'How it works', '')}
+        </div>
+        ${isAdmin ? `<div class="set-group">${row('', ico(P.shield, '#1B1F24', '#FFFFFF'), 'Admin panel', 'Only you', 'admin')}</div>` : ''}
+        <p class="small" style="text-align:center;margin:0">The Book Club · beta</p>
+        <button class="btn block" data-act="close">Done</button>`;
+    } else if (page === 'account') {
+      inner = `${back(email ? 'Account' : 'Create account / Sign in')}${account}`;
+    } else if (page === 'name') {
+      inner = `${back('Your name')}
+        <p class="empty" style="font-size:13px">This is how people in your clubs see you.</p>
+        <label class="sr" for="s-name">Your name</label>
+        <input class="field" id="s-name" maxlength="40" value="${esc(db.me.name)}">
+        <button class="btn primary block" data-act="settings-save">Save</button>`;
+    } else if (page === 'theme') {
+      inner = `${back('Display & theme')}<div class="swatches">${sw}</div>
+        <p class="small" style="margin:0">Midnight is a dark theme, easier on the eyes at night.</p>`;
+    } else if (page === 'goal') {
+      inner = `${back('Daily goal')}
+        <p class="empty" style="font-size:13px">Optional. It only changes how full your Today dial looks. Nobody else sees it, and there are no reminders or streaks.</p>
+        <label class="label" for="goal-n">Pages a day</label>
+        <input class="field" id="goal-n" type="number" inputmode="numeric" min="1" max="1000" placeholder="e.g. 20" value="${db.me.goal || ''}">
+        <div class="grid2"><button class="btn" data-act="goal-clear">No goal</button><button class="btn primary" data-act="goal-save">Save</button></div>`;
+    } else if (page === 'privacy') {
+      const on = db.me.showProgress;
+      inner = `${back('Privacy')}
+        <button class="toggle-row" data-act="toggle-progress" aria-pressed="${on}">
+          <span class="grow" style="display:flex;flex-direction:column;gap:2px"><span class="title" style="font-size:14px">Show my progress to my clubs</span>
+          <span class="small">${on ? 'Others see a progress bar on books you track' : 'Others only see which book you are reading'}</span></span>
+          <span class="sw ${on ? 'on' : ''}"></span>
+        </button>
+        <div class="card" style="background:var(--bg);box-shadow:none">
+          <div class="title" style="font-size:14px">Always private</div>
+          <p class="empty" style="font-size:13px">Your Today dial, daily pages, calendar and goal are only ever visible to you.</p>
+        </div>`;
+    } else if (page === 'data') {
+      inner = `${back('Data')}
+        <div class="card" style="background:var(--bg);box-shadow:none">
+          <p class="empty" style="font-size:13px">${CLOUD ? (email ? 'Your books, clubs and posts are saved to the cloud and linked to ' + esc(email) + '.' : 'Your books, clubs and posts are saved to the cloud. Create an account to open them on another device.') : 'Everything is saved on this device. Clearing your browser data will erase it.'}</p>
+        </div>
+        ${hasDemo() ? `<div class="card" style="background:var(--bg);box-shadow:none">
+          <div class="title" style="font-size:14px">Sample club</div>
+          <p class="empty" style="font-size:13px">Demo Club, Priya, Arjun and Meera are sample data so you can try Discover.</p>
+          <button class="btn" data-act="demo-remove">Remove sample data</button></div>` : ''}
+        ${CLOUD ? '' : '<button class="btn danger" data-act="reset">Erase everything on this device</button>'}`;
+    } else if (page === 'install') {
+      inner = `${back('Install as an app')}
+        <p class="empty" style="font-size:13px">Add it to your home screen so it opens like a normal app.</p>
+        <div class="card" style="background:var(--bg);box-shadow:none"><div class="title" style="font-size:14px">iPhone (Safari)</div>
+          <p class="empty" style="font-size:13px">Tap the Share button at the bottom, then <b style="color:var(--ink)">Add to Home Screen</b>.</p></div>
+        <div class="card" style="background:var(--bg);box-shadow:none"><div class="title" style="font-size:14px">Android (Chrome)</div>
+          <p class="empty" style="font-size:13px">Tap the ⋮ menu at the top right, then <b style="color:var(--ink)">Add to Home screen</b> or <b style="color:var(--ink)">Install app</b>.</p></div>`;
+    } else if (page === 'help') {
+      inner = `${back('How it works')}
+        ${[['Read', 'Add the books you are reading, at your own pace. Track progress only if you want to.'],
+           ['Discover', 'Inside a club, see what others are reading and save books to your Want to read list.'],
+           ['Share', 'When you finish a book, react and share a line about what stayed with you.'],
+           ['Today', 'Your home dial shows pages you read today. It is private to you.'],
+           ['Clubs', 'Create a club and send the invite link. Friends can join without signing up.']]
+          .map(([t, x]) => `<div class="card" style="background:var(--bg);box-shadow:none"><div class="title" style="font-size:14px">${t}</div><p class="empty" style="font-size:13px">${x}</p></div>`).join('')}`;
+    }
   }
 
   if (ui.sheet === 'today') {
@@ -1275,6 +1360,7 @@ const actions = {
     ui.sheetData = error ? { error: "Couldn't load admin data: " + error.message } : { data };
     renderSheet();
   },
+  'acc-mode'() { ui.sheetData.signin = !ui.sheetData.signin; renderSheet(); setTimeout(() => document.getElementById('acc-email')?.focus(), 50); },
   async 'acc-create'() {
     const email = document.getElementById('acc-email').value.trim();
     const password = document.getElementById('acc-pw').value;
@@ -1309,6 +1395,7 @@ const actions = {
   tab(id) { closeSheet(); ui.tab = id; render(); scrollTo(0, 0); },
   shelf(id) { ui.shelfTab = id; render(); },
   settings() { openSheet('settings'); },
+  'set-page'(id) { ui.sheetData = { page: id || '' }; renderSheet(); },
   'today-open'() { openSheet('today'); },
   calendar() { openSheet('calendar', { month: dayStr().slice(0, 7), sel: dayStr() }); },
   'cal-month'(m) { ui.sheetData.month = m; renderSheet(); },
@@ -1317,13 +1404,15 @@ const actions = {
   'goal-save'() {
     const n = parseInt(document.getElementById('goal-n').value, 10);
     if (!n || n < 1) { toast('Enter pages, or tap No goal'); return; }
-    db.me.goal = Math.min(1000, n); save(); closeSheet(); toast('Daily goal set');
+    db.me.goal = Math.min(1000, n); save();
+    if (ui.sheet === 'settings') { ui.sheetData = { page: '' }; renderSheet(); render(); } else closeSheet();
+    toast('Daily goal set');
   },
-  'goal-clear'() { db.me.goal = 0; save(); closeSheet(); toast('No daily goal'); },
+  'goal-clear'() { db.me.goal = 0; save(); if (ui.sheet === 'settings') { ui.sheetData = { page: '' }; renderSheet(); render(); } else closeSheet(); toast('No daily goal'); },
   'settings-save'() {
     const n = document.getElementById('s-name').value.trim();
     if (!n) { toast("Name can't be empty"); return; }
-    db.me.name = n; save(); closeSheet(); render(); toast('Saved');
+    db.me.name = n; save(); ui.sheetData = { page: '' }; renderSheet(); render(); toast('Saved');
   },
   'demo-remove'() {
     const demoUsers = db.users.filter(u => u.demo).map(u => u.id);
