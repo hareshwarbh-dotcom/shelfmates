@@ -276,6 +276,7 @@ html.comfy .btn, html.comfy .chip { min-height: 2.75rem; }
 .welcome { padding: calc(2.2rem + env(safe-area-inset-top)) 1.2rem 2rem; max-width: 560px; margin: 0 auto; }
 .welcome .hb-logo { font-size: 2.2rem; white-space: normal; }
 .welcome .tag { font-size: 1.05rem; color: var(--muted); margin: .4rem 0 1rem; line-height: 1.5; }
+.shelf-art { display: block; width: 100%; height: auto; margin: 0 0 1.1rem; }
 .wcovers { display: flex; gap: .5rem; margin: 1rem 0 .4rem; }
 .wcovers .fcover { flex: 1; }
 
@@ -708,11 +709,42 @@ function setSyncState(s) {
 }
 
 /* ----- Welcome (new visitors) ----- */
+/* drawn bookshelf: uses theme colours, so it works in dark and light */
+function shelfArt() {
+  const A = 'var(--accent)', mix = n => `color-mix(in srgb, var(--accent) ${n}%, var(--soft))`;
+  const books = [
+    [8, 58, 16, mix(90)], [26, 70, 14, mix(45)], [42, 50, 18, 'var(--muted)'], [62, 66, 12, A], [76, 56, 20, mix(65)],
+    [104, 72, 14, mix(30)], [120, 62, 16, A], [138, 48, 13, 'var(--muted)'], [153, 68, 18, mix(55)]
+  ];
+  const books2 = [[8, 50, 18, mix(60)], [28, 64, 14, A], [44, 56, 16, mix(35)], [62, 44, 22, 'var(--muted)'], [90, 60, 15, mix(80)], [107, 52, 14, mix(45)]];
+  const row = (list, base) => list.map(([x, h, w, c]) => `<rect x="${x}" y="${base - h}" width="${w}" height="${h}" rx="2" fill="${c}"/><rect x="${x + 3}" y="${base - h + 8}" width="${w - 6}" height="2" rx="1" fill="var(--bg)" opacity=".35"/>`).join('');
+  return `<svg class="shelf-art" viewBox="0 0 320 170" role="img" aria-label="A bookshelf">
+    <rect x="0" y="0" width="320" height="170" rx="14" fill="var(--card)"/>
+    <g transform="translate(18,8)">
+      ${row(books, 74)}
+      <rect x="-6" y="74" width="296" height="6" rx="3" fill="var(--line)"/>
+      <g transform="translate(212,22)"><rect x="0" y="34" width="34" height="18" rx="3" fill="var(--soft)" stroke="var(--line)"/>
+        <path d="M17 34c-2-12-12-16-14-26 8 4 12 10 14 18 2-10 8-16 16-20-4 10-12 16-16 28" fill="${mix(40)}"/></g>
+      <g transform="rotate(-14 178 74)"><rect x="172" y="22" width="15" height="52" rx="2" fill="${mix(70)}"/></g>
+      ${row(books2, 146)}
+      <g transform="translate(138,96)"><rect x="0" y="38" width="60" height="12" rx="2" fill="${A}"/><rect x="4" y="27" width="52" height="11" rx="2" fill="${mix(50)}"/><rect x="2" y="16" width="56" height="11" rx="2" fill="var(--muted)"/></g>
+      <g transform="translate(222,98)"><circle cx="18" cy="30" r="17" fill="none" stroke="${A}" stroke-width="3"/><path d="M18 20v10l7 5" stroke="${A}" stroke-width="3" fill="none" stroke-linecap="round"/><rect x="10" y="46" width="16" height="2" rx="1" fill="var(--line)"/></g>
+      <rect x="-6" y="146" width="296" height="6" rx="3" fill="var(--line)"/>
+    </g>
+  </svg>`;
+}
+
 function welcomeHTML() {
-  const sample = [{ title: 'Atomic Habits', author: 'James Clear' }, { title: 'Wings of Fire', author: 'A.P.J. Abdul Kalam' }, { title: 'The Alchemist', author: 'Paulo Coelho' }, { title: 'Ikigai', author: 'García & Miralles' }];
+  const ol = isbn => `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg?default=false`;
+  const sample = [
+    { title: 'Atomic Habits', author: 'James Clear', coverUrl: ol('9780735211292') },
+    { title: 'Wings of Fire', author: 'A.P.J. Abdul Kalam', coverUrl: ol('9788173711466') },
+    { title: 'The Psychology of Money', author: 'Morgan Housel', coverUrl: ol('9780857197689') },
+    { title: 'Ikigai', author: 'García & Miralles', coverUrl: ol('9781786330895') }];
   return `<div class="welcome">
+    ${shelfArt()}
     <h1 class="hb-logo">${APP.first} <span>${esc(APP.second)}</span></h1>
-    <p class="tag">Read your own books, together. A small, calm space to see what your friends are reading and share what stays with you.</p>
+    <p class="tag">Your books, your pace, shared with friends.</p>
     ${pendingJoin ? `<div class="banner accent"><span class="b-icon">💌</span><div><div class="item-title" id="invite-title">You've been invited to a club</div><div class="sub">Add your name to join. No sign-up needed.</div></div></div>` : `<div class="wcovers">${sample.map(fcover).join('')}</div>`}
     <div class="mgroup">
       <div class="mrow static"><span class="mi">📖</span><span class="mt">Read<small>at your own pace, your own books</small></span></div>
