@@ -190,6 +190,38 @@ textarea.field{height:auto;padding:12px 14px;line-height:1.5;resize:none}
 .onboard p{margin:0 0 12px;font-size:16px;line-height:1.5;color:var(--muted)}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
+/* home: today dial */
+.homebar{display:flex;align-items:center;gap:8px;padding:calc(14px + env(safe-area-inset-top)) 12px 4px 20px}
+.homebar .hi{flex:1;min-width:0}
+.homebar .hi small{display:block;font-size:13px;color:var(--muted)}
+.homebar .hi b{font-family:var(--head);font-size:24px;font-weight:800;letter-spacing:-.4px}
+.today{background:var(--card);border-radius:24px;box-shadow:var(--shadow);padding:18px 16px 14px;display:flex;flex-direction:column;gap:6px}
+.trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));text-align:center;gap:6px}
+.trio span{display:block;font-size:12px;color:var(--muted)}
+.trio b{display:block;font-family:var(--head);font-size:26px;font-weight:700;color:var(--teal)}
+.dial{position:relative;width:240px;height:220px;margin:4px auto 0}
+.dial>svg{position:absolute;inset:0;width:100%;height:100%}
+.dial .mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-top:6px}
+.dial .dnum{font-family:var(--head);font-size:64px;font-weight:800;line-height:1;letter-spacing:-2px}
+.dial .lbl{font-size:14px;color:var(--muted);margin-top:4px;display:flex;align-items:center;gap:6px}
+.dial .goal{font-size:13px;color:var(--muted);margin-top:8px}
+.dial-btn{position:absolute;bottom:2px;width:44px;height:44px;border-radius:22px;border:none;background:var(--bg);color:var(--ink);display:flex;align-items:center;justify-content:center}
+.week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;align-items:end;height:96px;padding:8px 4px 0;border-top:1px solid var(--line);margin-top:6px}
+.week div{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;height:100%}
+.week i{display:block;width:60%;max-width:18px;border-radius:5px 5px 2px 2px;background:var(--teal-b);min-height:3px}
+.week .on i{background:var(--teal)}
+.week span{font-size:11px;color:var(--muted)}
+.week .on span{color:var(--ink);font-weight:600}
+.week em{font-style:normal;font-size:10px;color:var(--muted);height:12px}
+/* calendar */
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;text-align:center}
+.cal .dow{font-size:11px;font-weight:600;color:var(--muted);padding:4px 0}
+.cal button{aspect-ratio:1;border:none;border-radius:12px;background:transparent;font-size:14px;font-weight:500;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;color:var(--ink);min-height:40px}
+.cal button small{font-size:9px;font-weight:600;line-height:1}
+.cal .l1{background:var(--teal-xl)}.cal .l2{background:var(--teal-l)}.cal .l3{background:var(--teal-b)}.cal .l4{background:var(--teal);color:var(--on)}
+.cal .sel{outline:2px solid var(--ink);outline-offset:-2px}
+.cal .today{font-weight:800;text-decoration:underline;text-underline-offset:3px}
+.cal .future{color:var(--muted);opacity:.5}
 /* themes + account + admin */
 .swatches{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .swatch{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 6px;border-radius:14px;border:1.5px solid var(--line);background:var(--card);font-size:12px;font-weight:600;color:var(--muted)}
@@ -294,6 +326,17 @@ const tracked = b => b.track ?? (b.page > 0 || !!b.percent);
 const progMax = b => b.pages || 100;
 const progVal = b => b.pages ? b.page : (b.percent || 0);
 const progLabel = b => b.pages ? `Page ${b.page} of ${b.pages} · ${pct(b)}%` : `${pct(b)}% read`;
+/* ---------- private reading log: pages read per book per day ---------- */
+const dayStr = d => { const x = new Date(d || Date.now()); return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); };
+function logPages(b, delta) {
+  if (!db || !delta || !b || b.userId !== ME) return;
+  db.log = db.log || [];
+  const day = dayStr();
+  let e = db.log.find(l => l.bookId === b.id && l.day === day);
+  if (!e) { if (delta < 0) return; e = { id: uid(), bookId: b.id, title: b.title, day, pages: 0 }; db.log.push(e); }
+  e.pages = Math.max(0, e.pages + delta); e.updatedAt = Date.now();
+}
+const pagesOn = day => (db.log || []).filter(l => l.day === day).reduce((n, l) => n + l.pages, 0);
 function progControl(b, pre) {
   const v = progVal(b), max = progMax(b);
   return `<div class="prog">
@@ -342,7 +385,8 @@ const iso = ts => new Date(ts || Date.now()).toISOString();
 const bookRow = b => ({ id: b.id, user_id: ME, title: b.title, author: b.author || '', pages: b.pages || 0, page: b.page || 0, percent: b.percent || 0, track: !!tracked(b), status: b.status, cover_url: b.coverUrl || '', photo_url: b.photo || '', from_note: b.from || '', updated_at: iso(b.updatedAt) });
 const postRow = p => ({ id: p.id, user_id: ME, title: p.title, author: p.author || '', pages: p.pages || 0, cover_url: p.coverUrl || '', reaction: p.reaction, text: p.text || '', photo_url: p.photo || '', created_at: iso(p.createdAt) });
 const groupRow = g => ({ id: g.id, name: g.name, code: g.code, created_by: ME, created_at: iso(g.createdAt) });
-const profileRow = () => ({ id: ME, name: db.me.name, show_progress: db.me.showProgress !== false, theme: db.me.theme || 'teal' });
+const profileRow = () => ({ id: ME, name: db.me.name, show_progress: db.me.showProgress !== false, theme: db.me.theme || 'teal', daily_goal: db.me.goal || null });
+const logRow = l => ({ id: l.id, user_id: ME, book_id: l.bookId, title: l.title, day: l.day, pages: l.pages, updated_at: iso(l.updatedAt) });
 const rowToBook = r => ({ id: r.id, userId: r.user_id, title: r.title, author: r.author || '', pages: r.pages || 0, page: r.page || 0, percent: r.percent || 0, track: r.track, status: r.status, coverUrl: r.cover_url || '', photo: r.photo_url || '', from: r.from_note || '', updatedAt: Date.parse(r.updated_at) || Date.now() });
 const rowToPost = r => ({ id: r.id, userId: r.user_id, title: r.title, author: r.author || '', pages: r.pages || 0, coverUrl: r.cover_url || '', reaction: r.reaction, text: r.text || '', photo: r.photo_url || '', createdAt: Date.parse(r.created_at) || Date.now() });
 
@@ -389,6 +433,16 @@ async function sync() {
     for (const k of Object.keys(synced).filter(k => k.startsWith('b:') && !bookIds.has(k.slice(2)))) {
       const { error } = await sb.from('books').delete().eq('id', k.slice(2)); if (error) throw error;
       delete synced[k];
+    }
+
+    // my private reading log (only books still in the cloud)
+    for (const l of (db.log || [])) {
+      if (!synced['b:' + l.bookId] && !db.books.some(b => b.id === l.bookId && b.userId === ME && !b.demo)) continue;
+      if (!synced['b:' + l.bookId]) continue;
+      const row = logRow(l), j = JSON.stringify(row);
+      if (synced['l:' + l.id] === j) continue;
+      const { error } = await sb.from('reading_log').upsert(row, { onConflict: 'user_id,book_id,day' }); if (error) throw error;
+      synced['l:' + l.id] = j;
     }
 
     // my posts
@@ -439,11 +493,13 @@ async function pull() {
     groups = g.data; members = m.data;
   }
   const userIds = [...new Set([ME, ...members.map(m => m.user_id)])];
-  const [profs, books, posts, admin] = await Promise.all([
+  const since = dayStr(Date.now() - 400 * 86400000);
+  const [profs, books, posts, admin, log] = await Promise.all([
     sb.from('profiles').select('id,name,show_progress').in('id', userIds),
     sb.from('books').select('*').in('user_id', userIds),
     sb.from('posts').select('*').in('user_id', userIds).order('created_at', { ascending: false }).limit(300),
-    sb.rpc('am_i_admin')
+    sb.rpc('am_i_admin'),
+    sb.from('reading_log').select('*').eq('user_id', ME).gte('day', since)
   ]);
   if (profs.error) throw profs.error; if (books.error) throw books.error; if (posts.error) throw posts.error;
   isAdmin = !!admin.data;
@@ -459,15 +515,22 @@ async function pull() {
   const localMine = prev ? (prev.books || []).filter(b => (b.userId === ME) && !b.demo) : [];
 
   db = {
-    version: 2,
-    me: { id: ME, name: prof.name, showProgress: prof.show_progress !== false, theme: prof.theme || 'teal' },
+    version: 3,
+    me: { id: ME, name: prof.name, showProgress: prof.show_progress !== false, theme: prof.theme || 'teal', goal: prof.daily_goal || 0 },
+    log: (log.data || []).map(r => ({ id: r.id, bookId: r.book_id, title: r.title, day: r.day, pages: r.pages, updatedAt: Date.parse(r.updated_at) || 0 })),
     users: [...profs.data.filter(p => p.id !== ME).map(p => ({ id: p.id, name: p.name, showProgress: p.show_progress !== false })), ...demo.users],
     groups: [...groups.map(g => ({ id: g.id, name: g.name, code: g.code, createdBy: g.created_by, createdAt: Date.parse(g.created_at), members: members.filter(m => m.group_id === g.id).map(m => m.user_id) })), ...demo.groups],
     books: [...books.data.map(rowToBook), ...demo.books],
     posts: [...posts.data.map(rowToPost), ...demo.posts]
   };
   // what the cloud has now
-  synced = { 'p:me': JSON.stringify({ id: ME, name: prof.name, show_progress: prof.show_progress !== false, theme: prof.theme || 'teal' }) };
+  synced = { 'p:me': JSON.stringify({ id: ME, name: prof.name, show_progress: prof.show_progress !== false, theme: prof.theme || 'teal', daily_goal: prof.daily_goal || null }) };
+  db.log.forEach(l => synced['l:' + l.id] = JSON.stringify(logRow(l)));
+  // keep newer local log entries
+  ((prev && prev.log) || []).forEach(ll => {
+    const cl = db.log.find(l => l.bookId === ll.bookId && l.day === ll.day);
+    if (!cl) db.log.push(ll); else if ((ll.updatedAt || 0) > (cl.updatedAt || 0)) { cl.pages = ll.pages; cl.updatedAt = ll.updatedAt; }
+  });
   db.groups.filter(g => !g.demo && g.createdBy === ME).forEach(g => synced['g:' + g.id] = JSON.stringify(groupRow(g)));
   db.books.filter(b => b.userId === ME && !b.demo).forEach(b => synced['b:' + b.id] = JSON.stringify(bookRow(b)));
   db.posts.filter(p => p.userId === ME && !p.demo).forEach(p => synced['o:' + p.id] = JSON.stringify(postRow(p)));
@@ -596,6 +659,7 @@ function render() {
   const app = document.getElementById('app');
   if (ui.loading) { app.innerHTML = '<div class="loading">Opening your book club…</div>'; return; }
   if (!db) { app.innerHTML = onboardHTML(); renderSheet(); return; }
+  db.log = db.log || [];
   if (ui.screen === 'group' && !curGroup()) ui.screen = 'groups';
   app.innerHTML = ui.screen === 'group' ? groupHTML() : groupsHTML();
   renderSheet();
@@ -609,6 +673,50 @@ function onboardHTML() {
     <input class="field" id="ob-name" placeholder="Your first name" autocomplete="given-name" maxlength="40">
     <button class="btn primary block" data-act="onboard">Get started</button>
   </div>`;
+}
+
+function dialSVG(p) {
+  const r = 96, c = 2 * Math.PI * r, L = c * 0.75, f = Math.max(0, Math.min(1, p)) * L;
+  return `<svg viewBox="0 0 240 220" aria-hidden="true">
+    <g transform="rotate(135 120 116)">
+      <circle cx="120" cy="116" r="${r}" fill="none" stroke="var(--line)" stroke-width="14" stroke-linecap="round" stroke-dasharray="${L} ${c}"/>
+      ${f > 0 ? `<circle cx="120" cy="116" r="${r}" fill="none" stroke="var(--teal)" stroke-width="14" stroke-linecap="round" stroke-dasharray="${f} ${c}" style="transition:stroke-dasharray .6s"/>` : ''}
+    </g></svg>`;
+}
+function todayCardHTML() {
+  const today = dayStr(), n = pagesOn(today), goal = db.me.goal || 0;
+  const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setDate(d.getDate() - 6 + i); return d; });
+  const vals = days.map(d => pagesOn(dayStr(d)));
+  const best = Math.max(1, ...vals, ...(db.log || []).filter(l => l.day >= dayStr(Date.now() - 30 * 86400000)).map(l => pagesOn(l.day)));
+  const p = goal ? n / goal : n / best;
+  const wk = vals.reduce((a, b) => a + b, 0);
+  const ym = today.slice(0, 7);
+  const daysRead = new Set((db.log || []).filter(l => l.day.startsWith(ym) && l.pages > 0).map(l => l.day)).size;
+  const onTheGo = myBooks().filter(b => b.status === 'reading').length;
+  const max = Math.max(1, ...vals);
+  const bars = days.map((d, i) => `<div class="${i === 6 ? 'on' : ''}"><em>${vals[i] || ''}</em><i style="height:${Math.round(vals[i] / max * 56) + 3}px"></i><span>${d.toLocaleDateString(undefined, { weekday: 'narrow' })}</span></div>`).join('');
+  const anyTracked = myBooks().some(b => b.status === 'reading' && tracked(b) && b.pages);
+  return `<section class="today" aria-label="Your reading today. Only you can see this.">
+    <div class="trio">
+      <div><b>${wk}</b><span>Pages this week</span></div>
+      <div><b>${daysRead}</b><span>Days read this month</span></div>
+      <div><b>${onTheGo}</b><span>Books on the go</span></div>
+    </div>
+    <div class="dial">
+      ${dialSVG(p)}
+      <div class="mid">
+        <span class="lbl">Today</span>
+        <span class="dnum" id="today-num">${n}</span>
+        <span class="lbl">pages read</span>
+        <span class="goal">${goal ? `Goal ${goal} · ${Math.min(100, Math.round(n / goal * 100))}%` : ''}</span>
+      </div>
+      <button class="dial-btn" style="left:0" aria-label="Open reading calendar" data-act="calendar">${svg(20, '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>')}</button>
+      <button class="dial-btn" style="right:0" aria-label="${goal ? 'Change daily goal' : 'Set a daily goal'}" data-act="goal-open">${svg(20, '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>')}</button>
+    </div>
+    <button class="btn primary block" data-act="today-open" style="margin-top:4px">${anyTracked ? 'Update today’s reading' : 'Log what you read'}</button>
+    <div class="week" aria-label="Pages read in the last 7 days">${bars}</div>
+    <p class="small" style="margin:4px 0 0;text-align:center">Only you can see this.</p>
+  </section>`;
 }
 
 function groupsHTML() {
@@ -626,28 +734,26 @@ function groupsHTML() {
       <span style="color:var(--muted)">${I.chev()}</span>
     </button>`;
   }).join('');
-  return `<div class="hero">
-      <p class="kicker">Hi ${esc(db.me.name)}</p>
-      <h1>The Book Club</h1>
-      <button class="icon-btn gear" aria-label="Settings" data-act="settings">${I.gear()}</button>
+  const hour = new Date().getHours();
+  const hello = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  return `<div class="homebar">
+      <div class="hi"><small>${hello}</small><b>${esc(db.me.name)}</b></div>
+      <button class="icon-btn" aria-label="Settings" data-act="settings">${I.gear()}</button>
     </div>
-    <div class="principle">
-      <div><b>Read</b><span>at your own pace</span></div>
-      <div><b>Discover</b><span>through others</span></div>
-      <div><b>Share</b><span>what stays with you</span></div>
-    </div>
-    <div class="content" style="padding-bottom:40px">
+    <div class="content" style="padding-top:10px;padding-bottom:40px">
+      ${todayCardHTML()}
       <div class="section">
-        <h2 class="h2">Your groups</h2>
+        <h2 class="h2">Your clubs</h2>
         ${list}
         <button class="create" data-act="create-open">
           <span class="badge">${I.plus(22)}</span>
           <span class="grow" style="display:flex;flex-direction:column;gap:2px">
-            <span class="title">Create a group</span>
+            <span class="title">Create a club</span>
             <span class="sub">For friends, coworkers or family</span>
           </span>
         </button>
       </div>
+      <p class="small" style="text-align:center;margin:0">Read at your own pace · Discover through others · Share what stays with you</p>
     </div>`;
 }
 
@@ -946,6 +1052,63 @@ function renderSheet(animate) {
       </div>`;
   }
 
+  if (ui.sheet === 'today') {
+    const reading = myBooks().filter(b => b.status === 'reading').sort((a, b) => b.updatedAt - a.updatedAt);
+    inner = `${head('Today’s reading')}
+      <p class="empty" style="font-size:13px">Move the slider to where you are now. Pages you move forward today count toward today. <b id="today-num" style="color:var(--ink)">${pagesOn(dayStr())}</b> pages so far.</p>
+      ${reading.map(b => `<div class="card" style="box-shadow:none;background:var(--bg)">
+        <div class="row">${coverHTML(b, 36, 54)}<div class="grow"><div class="title" style="font-size:14px">${esc(b.title)}</div><div class="small">${esc(b.author || '')}</div></div></div>
+        ${tracked(b) && b.pages ? progControl(b, 't')
+          : tracked(b) ? `<p class="small" style="margin:0">This book tracks in %, so pages can't be counted. Add the total pages to count them:</p>
+              <input class="field" type="number" inputmode="numeric" min="1" placeholder="Total pages" data-pages-for="${b.id}">`
+          : `<button class="btn soft" data-act="track-toggle" data-id="${b.id}">${I.plus(14)} Track progress for this book</button>`}
+      </div>`).join('') || `<div class="empty-card" style="box-shadow:none;background:var(--bg)"><p class="empty">Nothing on the go. Add the book you're reading.</p><button class="btn primary" data-act="add-open">${I.search(16)} Find a book</button></div>`}
+      <button class="btn block" data-act="close">Done</button>`;
+  }
+
+  if (ui.sheet === 'goal') {
+    inner = `${head('Daily goal')}
+      <p class="empty" style="font-size:13px">Optional. It only changes how full your dial looks. Nobody else sees it, and there are no reminders or streaks.</p>
+      <label class="label" for="goal-n">Pages a day</label>
+      <input class="field" id="goal-n" type="number" inputmode="numeric" min="1" max="1000" placeholder="e.g. 20" value="${db.me.goal || ''}">
+      <div class="grid2">
+        <button class="btn" data-act="goal-clear">No goal</button>
+        <button class="btn primary" data-act="goal-save">Save</button>
+      </div>`;
+  }
+
+  if (ui.sheet === 'calendar') {
+    const m = d.month || dayStr().slice(0, 7);
+    const [y, mo] = m.split('-').map(Number);
+    const first = new Date(y, mo - 1, 1), daysIn = new Date(y, mo, 0).getDate();
+    const lead = (first.getDay() + 6) % 7; // Monday first
+    const today = dayStr(), sel = d.sel || today;
+    const goal = db.me.goal || 0;
+    const lvl = n => !n ? '' : goal ? (n >= goal ? 'l4' : n >= goal * .5 ? 'l3' : 'l2') : (n >= 40 ? 'l4' : n >= 20 ? 'l3' : n >= 8 ? 'l2' : 'l1');
+    let cells = ['M', 'T', 'W', 'T', 'F', 'S', 'S'].map(x => `<span class="dow">${x}</span>`).join('') + '<span></span>'.repeat(lead);
+    let monthPages = 0, monthDays = 0;
+    for (let i = 1; i <= daysIn; i++) {
+      const ds = `${m}-${String(i).padStart(2, '0')}`, n = pagesOn(ds);
+      if (n) { monthPages += n; monthDays++; }
+      const fut = ds > today;
+      cells += `<button class="${lvl(n)} ${ds === sel ? 'sel' : ''} ${ds === today ? 'today' : ''} ${fut ? 'future' : ''}" ${fut ? 'disabled' : ''} data-act="cal-day" data-id="${ds}" aria-label="${ds}: ${n} pages">${i}${n ? `<small>${n}</small>` : ''}</button>`;
+    }
+    const entries = (db.log || []).filter(l => l.day === sel && l.pages > 0);
+    const nextM = (() => { const x = new Date(y, mo, 1); return dayStr(x).slice(0, 7); })();
+    const prevM = (() => { const x = new Date(y, mo - 2, 1); return dayStr(x).slice(0, 7); })();
+    inner = `${head(first.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }))}
+      <div class="row" style="justify-content:space-between">
+        <button class="btn" data-act="cal-month" data-id="${prevM}" aria-label="Previous month">${I.back(18)}</button>
+        <span class="sub">${monthPages} pages · ${monthDays} ${monthDays === 1 ? 'day' : 'days'}</span>
+        <button class="btn" data-act="cal-month" data-id="${nextM}" aria-label="Next month" ${nextM > today.slice(0, 7) ? 'disabled' : ''}>${I.chev(18)}</button>
+      </div>
+      <div class="cal">${cells}</div>
+      <div class="card" style="box-shadow:none;background:var(--bg)">
+        <div class="title" style="font-size:14px">${new Date(sel + 'T12:00').toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short' })}</div>
+        ${entries.length ? entries.map(l => `<div class="row" style="justify-content:space-between"><span class="sub" style="color:var(--ink)">${esc(l.title)}</span><b>${l.pages} pages</b></div>`).join('') : '<p class="empty" style="font-size:13px">No reading logged.</p>'}
+      </div>`;
+  }
+
   if (ui.sheet === 'admin') {
     tall = true;
     const a = d.data;
@@ -981,7 +1144,7 @@ function renderSheet(animate) {
   }
 }
 function openSheet(name, data = {}) { ui.sheet = name; ui.sheetData = data; renderSheet(true); }
-function closeSheet() { ui.sheet = null; ui.sheetData = {}; renderSheet(); }
+function closeSheet() { const was = ui.sheet; ui.sheet = null; ui.sheetData = {}; renderSheet(); if (['today', 'goal', 'calendar'].includes(was)) render(); }
 const inviteLink = g => location.origin + location.pathname + '?join=' + g.code;
 
 /* ---------- add-book results ---------- */
@@ -1137,6 +1300,17 @@ const actions = {
   tab(id) { closeSheet(); ui.tab = id; render(); scrollTo(0, 0); },
   shelf(id) { ui.shelfTab = id; render(); },
   settings() { openSheet('settings'); },
+  'today-open'() { openSheet('today'); },
+  calendar() { openSheet('calendar', { month: dayStr().slice(0, 7), sel: dayStr() }); },
+  'cal-month'(m) { ui.sheetData.month = m; renderSheet(); },
+  'cal-day'(ds) { ui.sheetData.sel = ds; renderSheet(); },
+  'goal-open'() { openSheet('goal'); },
+  'goal-save'() {
+    const n = parseInt(document.getElementById('goal-n').value, 10);
+    if (!n || n < 1) { toast('Enter pages, or tap No goal'); return; }
+    db.me.goal = Math.min(1000, n); save(); closeSheet(); toast('Daily goal set');
+  },
+  'goal-clear'() { db.me.goal = 0; save(); closeSheet(); toast('No daily goal'); },
   'settings-save'() {
     const n = document.getElementById('s-name').value.trim();
     if (!n) { toast("Name can't be empty"); return; }
@@ -1210,6 +1384,7 @@ const actions = {
   },
   finish(id) {
     const b = db.books.find(x => x.id === id);
+    if (b.pages && tracked(b)) logPages(b, b.pages - b.page);
     updBook(id, { status: 'finished', page: b.pages || b.page, percent: 100 });
     ui.share = { bookId: id, reaction: null, text: '', photo: '' };
     closeSheet(); ui.tab = 'share'; render(); scrollTo(0, 0); toast('Well read! Share a thought, if you like.');
@@ -1237,6 +1412,7 @@ const actions = {
       coverUrl: b.photo || b.coverUrl, reaction: s.reaction, text, photo: s.photo, createdAt: Date.now()
     });
     const prev = { status: b.status, page: b.page, percent: b.percent };
+    if (b.status !== 'finished' && b.pages && tracked(b)) logPages(b, b.pages - b.page);
     b.status = 'finished'; b.page = b.pages || b.page; b.percent = 100; b.updatedAt = Date.now();
     if (!save()) { db.posts.pop(); Object.assign(b, prev); return; }
     ui.share = { bookId: null, reaction: null, text: '', photo: '' };
@@ -1278,10 +1454,12 @@ function syncProgress(id, raw, commit) {
   document.querySelectorAll(`[data-prog-label="${id}"]`).forEach(el => { el.textContent = progLabel(tmp); });
   if (!commit) return;
   const patch = b.pages ? { page: v } : { percent: v };
+  if (b.pages) logPages(b, v - b.page);
   const wasFinished = b.status === 'finished';
   if (wasFinished && v < max) patch.status = 'reading';
   updBook(id, patch);
   if (patch.status) { render(); renderSheet(); toast('Moved back to Reading now'); }
+  else if (ui.screen === 'groups' && ui.sheet === 'today') { const n = document.getElementById('today-num'); if (n) n.textContent = pagesOn(dayStr()); }
   else if (v === max && b.status === 'reading') toast('Last page! Tap "I finished it" when you\'re done.');
 }
 document.addEventListener('input', e => {
