@@ -195,6 +195,21 @@ html.comfy .btn, html.comfy .chip { min-height: 2.75rem; }
 .wshelf span { position: absolute; bottom: -1.5rem; font-size: .72rem; color: var(--muted); }
 .wshelf .on span { color: var(--ink); font-weight: 700; }
 .today-card .wshelf { margin-bottom: 1.6rem; }
+/* today card (book-first) */
+.tslides { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 1rem; margin-top: .6rem; scrollbar-width: none; }
+.tslides::-webkit-scrollbar { display: none; }
+.tslide { flex: 0 0 100%; scroll-snap-align: start; display: flex; gap: .9rem; align-items: center; }
+.tcover { all: unset; cursor: pointer; width: 4.8rem; flex-shrink: 0; position: relative; display: block; }
+.tcover .ribbon { position: absolute; top: -4px; right: .7rem; width: .7rem; height: 1.9rem; background: #FFC83D; clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%); }
+.tpager { display: flex; justify-content: center; gap: 5px; margin-top: .5rem; }
+.tpager i { width: 6px; height: 6px; border-radius: 50%; background: var(--line); }
+.tpager i.on { background: var(--muted); }
+.tweek { display: flex; justify-content: space-between; margin-top: .9rem; padding: 0 .3rem; }
+.tday { display: flex; flex-direction: column; align-items: center; gap: .3rem; font-size: .72rem; color: var(--muted); }
+.tday i { width: .6rem; height: .6rem; border-radius: 50%; border: 1px solid var(--line); }
+.tday i.read { background: var(--accent); border-color: var(--accent); }
+.tday.on { color: var(--ink); font-weight: 700; }
+.tday.on i { box-shadow: 0 0 0 3px var(--accent-soft); }
 /* celebrations */
 .cele { position: fixed; inset: 0; z-index: 40; display: flex; align-items: center; justify-content: center; background: rgba(10,12,18,.45); animation: fade .2s ease-out; padding: 1.5rem; }
 .cele-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-sheet); padding: 1.4rem 1.2rem 1.1rem; max-width: 22rem; width: 100%; text-align: center; animation: pop .35s cubic-bezier(.2,1.4,.4,1); position: relative; z-index: 2; }
@@ -806,31 +821,41 @@ function welcomeHTML() {
 }
 
 /* ----- Home ----- */
-/* today: a stack of books that grows with pages read (1 book ≈ 10 pages) */
-const SPINE = i => [`var(--accent)`, `color-mix(in srgb, var(--accent) 60%, var(--soft))`, `var(--muted)`, `color-mix(in srgb, var(--accent) 35%, var(--soft))`, `color-mix(in srgb, var(--accent) 80%, var(--ink))`][i % 5];
-function stackSVG(n, goal) {
-  const per = 10, maxBooks = 9, H = 150, bh = 14, gap = 2;
-  const count = Math.min(maxBooks, Math.ceil(n / per));
-  const widths = [96, 84, 104, 90, 80, 100, 88, 94, 86], offs = [6, 14, 0, 10, 18, 4, 12, 8, 16];
-  let books = '';
-  for (let i = 0; i < count; i++) {
-    const y = H - 8 - (i + 1) * (bh + gap), w = widths[i], x = 8 + offs[i];
-    books += `<g class="sbook" style="animation-delay:${i * 60}ms"><rect x="${x}" y="${y}" width="${w}" height="${bh}" rx="2.5" fill="${SPINE(i)}"/><rect x="${x + 8}" y="${y + 5}" width="${Math.round(w * .35)}" height="2.5" rx="1" fill="var(--bg)" opacity=".4"/><rect x="${x + w - 10}" y="${y}" width="3" height="${bh}" fill="var(--bg)" opacity=".18"/></g>`;
-  }
-  let mark = '';
-  if (goal) {
-    const gb = Math.min(maxBooks, Math.ceil(goal / per)), gy = H - 8 - gb * (bh + gap);
-    mark = `<line x1="4" y1="${gy}" x2="128" y2="${gy}" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3"/><path d="M118 ${gy - 1}h10v16l-5-4-5 4z" fill="#FFC83D"/>`;
-  }
-  const empty = !count ? `<rect x="14" y="${H - 8 - bh - gap}" width="96" height="${bh}" rx="2.5" fill="none" stroke="var(--line)" stroke-dasharray="4 3"/>` : '';
-  return `<svg viewBox="0 0 132 ${H}" width="132" height="${H}" aria-hidden="true">${books}${empty}${mark}<rect x="0" y="${H - 8}" width="132" height="5" rx="2.5" fill="var(--line)"/></svg>`;
-}
-function weekShelf(days, vals) {
-  const max = Math.max(1, ...vals);
-  return `<div class="wshelf" aria-label="Pages read in the last 7 days">${days.map((d, i) => {
-    const v = vals[i], h = v ? Math.round(18 + v / max * 62) : 0;
-    return `<div class="${i === 6 ? 'on' : ''}"><em>${v || ''}</em>${v ? `<i style="height:${h}px;background:${i === 6 ? 'var(--accent)' : SPINE(i + 1)}"></i>` : '<i class="none"></i>'}<span>${d.toLocaleDateString('en-IN', { weekday: 'narrow' })}</span></div>`;
-  }).join('')}</div>`;
+/* today: the book(s) you're reading, with a bookmark */
+const pagesForBookToday = id => (db.log || []).filter(l => l.bookId === id && l.day === dayStr()).reduce((n, l) => n + l.pages, 0);
+function todayCardHTML() {
+  const reading = myBooks().filter(b => b.status === 'reading').sort((a, b) => b.updatedAt - a.updatedAt);
+  if (!reading.length) return '';
+  const today = dayStr(), n = pagesOn(today), goal = db.me.goal || 0;
+  const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setDate(d.getDate() - 6 + i); return d; });
+  const vals = days.map(d => pagesOn(dayStr(d)));
+  const wk = vals.reduce((a, b) => a + b, 0);
+  const slides = reading.map(b => {
+    const bt = pagesForBookToday(b.id);
+    return `<div class="tslide">
+      <button class="tcover" data-act="book" data-id="${b.id}" aria-label="Open ${esc(b.title)}">${fcover(b)}<span class="ribbon" aria-hidden="true"></span></button>
+      <div style="min-width:0;flex:1">
+        <div class="small">Reading now</div>
+        <div class="item-title clamp2" style="font-size:1.05rem">${esc(b.title)}</div>
+        ${tracked(b) ? `<div class="meta">${b.pages ? `Page ${b.page} of ${b.pages}` : `${pct(b)}% read`}</div>
+          <div class="bar" style="margin-top:.5rem"><div style="width:${pct(b)}%"></div></div>
+          <span class="pill ${bt ? 'soon' : 'later'}" style="display:inline-block;margin-top:.55rem">${bt ? `+${bt} pages today` : 'Not opened yet today'}</span>`
+        : `<div class="meta">${esc(b.author || '')}</div><button class="link" style="padding-left:0" data-act="track-toggle" data-id="${b.id}">＋ Track progress</button>`}
+      </div>
+    </div>`;
+  }).join('');
+  const dots = days.map((d, i) => `<span class="tday ${i === 6 ? 'on' : ''}"><small>${d.toLocaleDateString('en-IN', { weekday: 'narrow' })}</small><i class="${vals[i] ? 'read' : ''}" title="${vals[i]} pages"></i></span>`).join('');
+  return `<section class="card today-card" style="margin-top:.3rem" aria-label="Your reading today. Only you can see this.">
+    <div class="row" style="justify-content:space-between">
+      <span class="section-label" style="margin:0">Today</span>
+      <span class="row" style="gap:.4rem"><button class="iconbtn" aria-label="Reading calendar" data-act="calendar">🗓️</button><button class="iconbtn" aria-label="${goal ? 'Change daily goal' : 'Set a daily goal'}" data-act="settings" data-id="prefs">🎯</button></span>
+    </div>
+    <div class="tslides">${slides}</div>
+    ${reading.length > 1 ? `<div class="tpager" aria-hidden="true">${reading.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div>` : ''}
+    <button class="btn accent block" style="margin-top:.7rem" data-act="today-open">🔖 Move my bookmark</button>
+    <div class="tweek" aria-label="Days you read this week">${dots}</div>
+    <p class="sub" style="text-align:center;margin:.5rem 0 0;font-size:.8rem">${n}${goal ? ` of ${goal}` : ''} ${n === 1 && !goal ? 'page' : 'pages'} today · ${wk} this week · 🔒 only you see this</p>
+  </section>`;
 }
 function homeHTML() {
   const today = dayStr(), n = pagesOn(today), goal = db.me.goal || 0;
@@ -853,25 +878,7 @@ function homeHTML() {
   }).join('');
   return `
     ${hasDemo() ? `<div class="banner info"><span class="b-icon">🧪</span><div class="grow"><div class="item-title">You're exploring with sample data</div><div class="sub">Priya, Arjun and Meera are pretend. Your own books stay when you remove them.</div></div><button class="btn" data-act="demo-remove">Remove</button></div>` : ''}
-    <section class="card today-card" style="margin-top:.3rem" aria-label="Your reading today. Only you can see this.">
-      <div class="row" style="justify-content:space-between">
-        <span class="section-label" style="margin:0">Today</span>
-        <span class="row" style="gap:.4rem"><button class="iconbtn" aria-label="Reading calendar" data-act="calendar">🗓️</button><button class="iconbtn" aria-label="${goal ? 'Change daily goal' : 'Set a daily goal'}" data-act="settings" data-id="prefs">🎯</button></span>
-      </div>
-      <div class="today-row">
-        ${stackSVG(n, goal)}
-        <div class="today-num">
-          <span class="dnum" id="today-num">${n}</span>
-          <span class="lbl">pages today</span>
-          <span class="goal">${goal ? (n >= goal ? `🔖 Goal of ${goal} reached` : `🔖 ${goal - n} more to your goal of ${goal}`) : n ? 'Lovely. Keep going at your pace.' : 'Nothing yet today.'}</span>
-        </div>
-      </div>
-      <button class="btn accent block" data-act="today-open">🔖 Move my bookmark</button>
-      <div class="section-label" style="margin:.9rem 0 .2rem">This week</div>
-      ${weekShelf(days, vals)}
-      <p class="sub" style="margin:.6rem 0 0;text-align:center">${wk} ${wk === 1 ? 'page' : 'pages'} this week · ${daysRead} ${daysRead === 1 ? 'day' : 'days'} this month · ${onTheGo} ${onTheGo === 1 ? 'book' : 'books'} on the go</p>
-      <p class="small" style="text-align:center;margin:.3rem 0 0">🔒 Only you can see this</p>
-    </section>
+    ${todayCardHTML()}
     <div class="section-label">Your clubs</div>
     ${clubCards || `<div class="card empty">No clubs yet. Start one and send the link to a few friends.</div>`}
     <div class="actions" style="margin-top:0">
@@ -1701,6 +1708,12 @@ document.addEventListener('click', e => {
   const fn = actions[act];
   if (fn) fn(el.dataset.id, el, e);
 });
+document.addEventListener('scroll', e => {
+  const el = e.target;
+  if (!(el instanceof HTMLElement) || !el.classList.contains('tslides')) return;
+  const i = Math.round(el.scrollLeft / el.clientWidth);
+  el.parentElement.querySelectorAll('.tpager i').forEach((d, k) => d.classList.toggle('on', k === i));
+}, true);
 document.addEventListener('submit', e => {
   if (e.target.dataset.form === 'search') {
     e.preventDefault();
