@@ -179,6 +179,33 @@ html.comfy .btn, html.comfy .chip { min-height: 2.75rem; }
 .cover-wrap { position: relative; flex-shrink: 0; display: block; cursor: pointer; }
 .cam { position: absolute; right: -6px; bottom: -6px; width: 1.9rem; height: 1.9rem; border-radius: 50%; background: var(--card); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; font-size: .85rem; }
 
+/* today: book stack + week shelf */
+.today-row { display: flex; align-items: flex-end; gap: 1rem; margin: .4rem 0 .8rem; }
+.today-num { display: flex; flex-direction: column; padding-bottom: .4rem; min-width: 0; }
+.today-num .dnum { font-family: var(--font-display); font-size: 3.6rem; font-weight: 700; line-height: 1; letter-spacing: -1.5px; }
+.today-num .lbl { font-size: .95rem; color: var(--muted); }
+.today-num .goal { font-size: .82rem; color: var(--muted); margin-top: .5rem; }
+.sbook { animation: drop .35s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes drop { from { transform: translateY(-14px); opacity: 0; } }
+.wshelf { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: .4rem; align-items: end; height: 7rem; border-bottom: 4px solid var(--line); border-radius: 0 0 2px 2px; padding: 0 .3rem; }
+.wshelf div { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 3px; height: 100%; position: relative; }
+.wshelf i { display: block; width: 62%; max-width: 20px; border-radius: 3px 3px 0 0; }
+.wshelf i.none { height: 18px; border: 1px dashed var(--line); border-bottom: none; background: none; }
+.wshelf em { font-style: normal; font-size: .66rem; color: var(--muted); }
+.wshelf span { position: absolute; bottom: -1.5rem; font-size: .72rem; color: var(--muted); }
+.wshelf .on span { color: var(--ink); font-weight: 700; }
+.today-card .wshelf { margin-bottom: 1.6rem; }
+/* celebrations */
+.cele { position: fixed; inset: 0; z-index: 40; display: flex; align-items: center; justify-content: center; background: rgba(10,12,18,.45); animation: fade .2s ease-out; padding: 1.5rem; }
+.cele-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-sheet); padding: 1.4rem 1.2rem 1.1rem; max-width: 22rem; width: 100%; text-align: center; animation: pop .35s cubic-bezier(.2,1.4,.4,1); position: relative; z-index: 2; }
+.cele-card .big { font-size: 2.6rem; line-height: 1; }
+.cele-card h2 { font-family: var(--font-display); font-size: 1.35rem; font-weight: 600; margin: .5rem 0 .3rem; }
+.cele-card p { margin: 0; color: var(--muted); line-height: 1.5; }
+.cele-card .ccover { width: 4.6rem; margin: .7rem auto 0; }
+@keyframes pop { from { transform: scale(.85); opacity: 0; } }
+.confetti { position: fixed; inset: 0; pointer-events: none; z-index: 1; overflow: hidden; }
+.confetti i { position: absolute; top: -12px; width: 8px; height: 12px; border-radius: 2px; animation: fall 1.6s ease-in forwards; }
+@keyframes fall { to { transform: translateY(105vh) rotate(540deg); opacity: .8; } }
 /* today dial */
 .today-card { padding: .9rem .8rem .8rem; }
 .dial { position: relative; width: 15rem; height: 13.6rem; margin: .4rem auto 0; }
@@ -292,6 +319,7 @@ html.comfy .btn, html.comfy .chip { min-height: 2.75rem; }
 <body>
 <div class="app" id="app"></div>
 <div id="sheet-root"></div>
+<div id="cele-root"></div>
 <div class="toast fixed hide" id="toast" role="status" aria-live="polite"><span id="toast-msg"></span></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -411,7 +439,7 @@ const iso = ts => new Date(ts || Date.now()).toISOString();
 const bookRow = b => ({ id: b.id, user_id: ME, title: b.title, author: b.author || '', pages: b.pages || 0, page: b.page || 0, percent: b.percent || 0, track: !!tracked(b), status: b.status, cover_url: b.coverUrl || '', photo_url: b.photo || '', from_note: b.from || '', updated_at: iso(b.updatedAt) });
 const postRow = p => ({ id: p.id, user_id: ME, title: p.title, author: p.author || '', pages: p.pages || 0, cover_url: p.coverUrl || '', reaction: p.reaction, text: p.text || '', photo_url: p.photo || '', created_at: iso(p.createdAt) });
 const groupRow = g => ({ id: g.id, name: g.name, code: g.code, created_by: ME, created_at: iso(g.createdAt) });
-const profileRow = () => ({ id: ME, name: db.me.name, show_progress: db.me.showProgress !== false, theme: db.me.theme || 'teal', daily_goal: db.me.goal || null });
+const profileRow = () => ({ id: ME, name: db.me.name, show_progress: db.me.showProgress !== false, theme: db.me.theme || 'teal', daily_goal: db.me.goal || null, show_clubs: !!db.me.showClubs });
 const logRow = l => ({ id: l.id, user_id: ME, book_id: l.bookId, title: l.title, day: l.day, pages: l.pages, updated_at: iso(l.updatedAt) });
 const rowToBook = r => ({ id: r.id, userId: r.user_id, title: r.title, author: r.author || '', pages: r.pages || 0, page: r.page || 0, percent: r.percent || 0, track: r.track, status: r.status, coverUrl: r.cover_url || '', photo: r.photo_url || '', from: r.from_note || '', updatedAt: Date.parse(r.updated_at) || Date.now() });
 const rowToPost = r => ({ id: r.id, userId: r.user_id, title: r.title, author: r.author || '', pages: r.pages || 0, coverUrl: r.cover_url || '', reaction: r.reaction, text: r.text || '', photo: r.photo_url || '', createdAt: Date.parse(r.created_at) || Date.now() });
@@ -545,7 +573,7 @@ async function pull() {
 
   db = {
     version: 3,
-    me: { id: ME, name: prof.name, showProgress: prof.show_progress !== false, theme: prof.theme || 'teal', goal: prof.daily_goal || 0 },
+    me: { id: ME, name: prof.name, showProgress: prof.show_progress !== false, theme: prof.theme || 'teal', goal: prof.daily_goal || 0, showClubs: !!prof.show_clubs },
     log: (log.data || []).map(r => ({ id: r.id, bookId: r.book_id, title: r.title, day: r.day, pages: r.pages, updatedAt: Date.parse(r.updated_at) || 0 })),
     users: [...profs.data.filter(p => p.id !== ME).map(p => ({ id: p.id, name: p.name, showProgress: p.show_progress !== false })), ...demo.users],
     groups: [...groups.map(g => ({ id: g.id, name: g.name, code: g.code, createdBy: g.created_by, createdAt: Date.parse(g.created_at), members: members.filter(m => m.group_id === g.id).map(m => m.user_id) })), ...demo.groups],
@@ -553,7 +581,7 @@ async function pull() {
     posts: [...posts.data.map(rowToPost), ...demo.posts]
   };
   // what the cloud has now
-  synced = { 'p:me': JSON.stringify({ id: ME, name: prof.name, show_progress: prof.show_progress !== false, theme: prof.theme || 'teal', daily_goal: prof.daily_goal || null }) };
+  synced = { 'p:me': JSON.stringify({ id: ME, name: prof.name, show_progress: prof.show_progress !== false, theme: prof.theme || 'teal', daily_goal: prof.daily_goal || null, show_clubs: !!prof.show_clubs }) };
   db.log.forEach(l => synced['l:' + l.id] = JSON.stringify(logRow(l)));
   // keep newer local log entries
   ((prev && prev.log) || []).forEach(ll => {
@@ -645,6 +673,38 @@ function toast(msg, undo) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { el.classList.add('hide'); toastUndo = null; }, undo ? 6000 : 2600);
 }
+
+/* ---------- celebrations ---------- */
+const CELE = {
+  start: [['📖', 'A new story begins', '<b>{t}</b> is on your nightstand. Enjoy it, at your own pace.'],
+          ['✨', 'Off you go', 'Settling in with <b>{t}</b>. Happy reading.'],
+          ['🌱', 'Fresh pages', '<b>{t}</b>. Enjoy every chapter.']],
+  finish: [['🎉', 'You finished {t}!', "One more story that's now part of you."],
+           ['✨', 'Another one read', '<b>{t}</b>. What a journey.'],
+           ['📚', "That's a wrap!", '<b>{t}</b> joins your finished shelf.']],
+  want: ['🔖 Saved for later. {t} is waiting on your shelf.', '🔖 Good find. {t} is on your Want to read list.', '🔖 {t} saved. It will be there when you are ready.']
+};
+const pick = a => a[Math.floor(Math.random() * a.length)];
+let celeTimer;
+function celebrate(kind, b) {
+  const [emoji, head, body] = pick(CELE[kind]);
+  const t = esc(b.title);
+  const root = document.getElementById('cele-root');
+  const colors = ['var(--accent)', '#FFC83D', '#5dbb7e', '#e8766d', '#7fa9d6', '#d14b72'];
+  const bits = Array.from({ length: kind === 'finish' ? 46 : 24 }, (_, i) => `<i style="left:${Math.random() * 100}%;background:${colors[i % colors.length]};animation-delay:${Math.random() * .5}s;animation-duration:${1.2 + Math.random() * 1}s;transform:rotate(${Math.random() * 360}deg)"></i>`).join('');
+  root.innerHTML = `<div class="cele" data-act="cele-close" role="dialog" aria-modal="true" aria-label="${esc(head.replace('{t}', b.title))}">
+    <div class="confetti" aria-hidden="true">${bits}</div>
+    <div class="cele-card">
+      <div class="big" aria-hidden="true">${emoji}</div>
+      <h2>${head.replace('{t}', t)}</h2>
+      <p>${body.replace('{t}', t)}</p>
+      ${kind === 'finish' ? `<div class="ccover">${fcover(b)}</div>
+        <div class="formbtns"><button class="btn" data-act="cele-close">Later</button><button class="btn accent" data-act="cele-share" data-id="${b.id}">✍️ Share what stayed</button></div>` : '<p class="small" style="margin-top:.8rem">Tap anywhere to close</p>'}
+    </div></div>`;
+  clearTimeout(celeTimer);
+  if (kind === 'start') celeTimer = setTimeout(() => { root.innerHTML = ''; }, 3200);
+}
+const wantToast = title => toast(pick(CELE.want).replace('{t}', title));
 
 /* ---------- covers ---------- */
 function coverHTML(b, w, h) {
@@ -746,25 +806,39 @@ function welcomeHTML() {
 }
 
 /* ----- Home ----- */
-function dialSVG(p) {
-  const r = 96, c = 2 * Math.PI * r, L = c * 0.75, f = Math.max(0, Math.min(1, p)) * L;
-  return `<svg viewBox="0 0 240 220" aria-hidden="true"><g transform="rotate(135 120 116)">
-    <circle cx="120" cy="116" r="${r}" fill="none" stroke="var(--soft)" stroke-width="13" stroke-linecap="round" stroke-dasharray="${L} ${c}"/>
-    ${f > 0 ? `<circle cx="120" cy="116" r="${r}" fill="none" stroke="var(--accent)" stroke-width="13" stroke-linecap="round" stroke-dasharray="${f} ${c}" style="transition:stroke-dasharray .6s"/>` : ''}
-  </g></svg>`;
+/* today: a stack of books that grows with pages read (1 book ≈ 10 pages) */
+const SPINE = i => [`var(--accent)`, `color-mix(in srgb, var(--accent) 60%, var(--soft))`, `var(--muted)`, `color-mix(in srgb, var(--accent) 35%, var(--soft))`, `color-mix(in srgb, var(--accent) 80%, var(--ink))`][i % 5];
+function stackSVG(n, goal) {
+  const per = 10, maxBooks = 9, H = 150, bh = 14, gap = 2;
+  const count = Math.min(maxBooks, Math.ceil(n / per));
+  const widths = [96, 84, 104, 90, 80, 100, 88, 94, 86], offs = [6, 14, 0, 10, 18, 4, 12, 8, 16];
+  let books = '';
+  for (let i = 0; i < count; i++) {
+    const y = H - 8 - (i + 1) * (bh + gap), w = widths[i], x = 8 + offs[i];
+    books += `<g class="sbook" style="animation-delay:${i * 60}ms"><rect x="${x}" y="${y}" width="${w}" height="${bh}" rx="2.5" fill="${SPINE(i)}"/><rect x="${x + 8}" y="${y + 5}" width="${Math.round(w * .35)}" height="2.5" rx="1" fill="var(--bg)" opacity=".4"/><rect x="${x + w - 10}" y="${y}" width="3" height="${bh}" fill="var(--bg)" opacity=".18"/></g>`;
+  }
+  let mark = '';
+  if (goal) {
+    const gb = Math.min(maxBooks, Math.ceil(goal / per)), gy = H - 8 - gb * (bh + gap);
+    mark = `<line x1="4" y1="${gy}" x2="128" y2="${gy}" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3"/><path d="M118 ${gy - 1}h10v16l-5-4-5 4z" fill="#FFC83D"/>`;
+  }
+  const empty = !count ? `<rect x="14" y="${H - 8 - bh - gap}" width="96" height="${bh}" rx="2.5" fill="none" stroke="var(--line)" stroke-dasharray="4 3"/>` : '';
+  return `<svg viewBox="0 0 132 ${H}" width="132" height="${H}" aria-hidden="true">${books}${empty}${mark}<rect x="0" y="${H - 8}" width="132" height="5" rx="2.5" fill="var(--line)"/></svg>`;
+}
+function weekShelf(days, vals) {
+  const max = Math.max(1, ...vals);
+  return `<div class="wshelf" aria-label="Pages read in the last 7 days">${days.map((d, i) => {
+    const v = vals[i], h = v ? Math.round(18 + v / max * 62) : 0;
+    return `<div class="${i === 6 ? 'on' : ''}"><em>${v || ''}</em>${v ? `<i style="height:${h}px;background:${i === 6 ? 'var(--accent)' : SPINE(i + 1)}"></i>` : '<i class="none"></i>'}<span>${d.toLocaleDateString('en-IN', { weekday: 'narrow' })}</span></div>`;
+  }).join('')}</div>`;
 }
 function homeHTML() {
   const today = dayStr(), n = pagesOn(today), goal = db.me.goal || 0;
   const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setDate(d.getDate() - 6 + i); return d; });
   const vals = days.map(d => pagesOn(dayStr(d)));
-  const recent = (db.log || []).filter(l => l.day >= dayStr(Date.now() - 30 * 86400000)).map(l => pagesOn(l.day));
-  const best = Math.max(1, ...vals, ...recent);
-  const p = goal ? n / goal : n / best;
   const wk = vals.reduce((a, b) => a + b, 0);
   const daysRead = new Set((db.log || []).filter(l => l.day.startsWith(today.slice(0, 7)) && l.pages > 0).map(l => l.day)).size;
   const onTheGo = myBooks().filter(b => b.status === 'reading').length;
-  const max = Math.max(1, ...vals);
-  const bars = days.map((d, i) => `<div class="${i === 6 ? 'on' : vals[i] ? 'has' : ''}"><em>${vals[i] || ''}</em><i style="height:${(vals[i] / max * 3.6 + .2).toFixed(2)}rem"></i><span>${d.toLocaleDateString('en-IN', { weekday: 'narrow' })}</span></div>`).join('');
   const clubs = myClubs();
   const clubCards = clubs.map(g => {
     const nowB = db.books.filter(b => b.status === 'reading' && g.members.includes(b.userId));
@@ -779,26 +853,24 @@ function homeHTML() {
   }).join('');
   return `
     ${hasDemo() ? `<div class="banner info"><span class="b-icon">🧪</span><div class="grow"><div class="item-title">You're exploring with sample data</div><div class="sub">Priya, Arjun and Meera are pretend. Your own books stay when you remove them.</div></div><button class="btn" data-act="demo-remove">Remove</button></div>` : ''}
-    <div class="stats" style="margin-top:.3rem">
-      <div class="stat"><div class="n">${wk}</div><div class="l">Pages this week</div></div>
-      <div class="stat"><div class="n">${daysRead}</div><div class="l">Days read this month</div></div>
-      <div class="stat"><div class="n">${onTheGo}</div><div class="l">Books on the go</div></div>
-    </div>
-    <section class="card today-card" style="margin-top:.5rem" aria-label="Your reading today. Only you can see this.">
-      <div class="dial">
-        ${dialSVG(p)}
-        <div class="mid">
-          <span class="lbl">Today</span>
-          <span class="dnum" id="today-num">${n}</span>
-          <span class="lbl">pages read</span>
-          <span class="goal">${goal ? `Goal ${goal} · ${Math.min(100, Math.round(n / goal * 100))}%` : ''}</span>
-        </div>
-        <button class="iconbtn dbtn" style="left:0" aria-label="Reading calendar" data-act="calendar">🗓️</button>
-        <button class="iconbtn dbtn" style="right:0" aria-label="${goal ? 'Change daily goal' : 'Set a daily goal'}" data-act="settings" data-id="prefs">🎯</button>
+    <section class="card today-card" style="margin-top:.3rem" aria-label="Your reading today. Only you can see this.">
+      <div class="row" style="justify-content:space-between">
+        <span class="section-label" style="margin:0">Today</span>
+        <span class="row" style="gap:.4rem"><button class="iconbtn" aria-label="Reading calendar" data-act="calendar">🗓️</button><button class="iconbtn" aria-label="${goal ? 'Change daily goal' : 'Set a daily goal'}" data-act="settings" data-id="prefs">🎯</button></span>
       </div>
-      <button class="btn accent block" style="margin-top:.5rem" data-act="today-open">${onTheGo ? 'Update today’s reading' : 'Log what you read'}</button>
-      <div class="week" aria-label="Pages read in the last 7 days">${bars}</div>
-      <p class="small" style="text-align:center;margin:.5rem 0 0">🔒 Only you can see this</p>
+      <div class="today-row">
+        ${stackSVG(n, goal)}
+        <div class="today-num">
+          <span class="dnum" id="today-num">${n}</span>
+          <span class="lbl">pages today</span>
+          <span class="goal">${goal ? (n >= goal ? `🔖 Goal of ${goal} reached` : `🔖 ${goal - n} more to your goal of ${goal}`) : n ? 'Lovely. Keep going at your pace.' : 'Nothing yet today.'}</span>
+        </div>
+      </div>
+      <button class="btn accent block" data-act="today-open">🔖 Move my bookmark</button>
+      <div class="section-label" style="margin:.9rem 0 .2rem">This week</div>
+      ${weekShelf(days, vals)}
+      <p class="sub" style="margin:.6rem 0 0;text-align:center">${wk} ${wk === 1 ? 'page' : 'pages'} this week · ${daysRead} ${daysRead === 1 ? 'day' : 'days'} this month · ${onTheGo} ${onTheGo === 1 ? 'book' : 'books'} on the go</p>
+      <p class="small" style="text-align:center;margin:.3rem 0 0">🔒 Only you can see this</p>
     </section>
     <div class="section-label">Your clubs</div>
     ${clubCards || `<div class="card empty">No clubs yet. Start one and send the link to a few friends.</div>`}
@@ -967,7 +1039,8 @@ function renderSheet(animate) {
           ${mrow('set-page', 'display', '🎨', 'Display &amp; theme', { dark: 'Dark', light: 'Light', auto: 'Auto' }[display.theme] + ' · ' + display.accent[0].toUpperCase() + display.accent.slice(1))}
           ${mrow('set-page', 'data', '💾', 'Data &amp; backup', CLOUD ? (syncState === 'error' ? 'Not synced' : 'Synced') : 'This phone only')}
           ${standalone ? '' : mrow('set-page', 'install', '📱', 'Install as an app', '')}
-          ${mrow('about', '', '📖', 'About &amp; how to use', '')}
+          ${mrow('set-page', 'help', '📖', 'How to use', '')}
+          ${mrow('about', '', 'ℹ️', 'About ' + APP.first + ' ' + esc(APP.second), '')}
         </div>
         ${isAdmin ? `<div class="mgroup">${mrow('admin', '', '📊', 'Owner dashboard', 'Only you')}</div>` : ''}
         ${email ? `<div class="mgroup">${mrow('sign-out', '', '🚪', 'Log out', null, 'danger')}</div>` : ''}
@@ -1003,14 +1076,24 @@ function renderSheet(animate) {
       const g = db.me.goal || 0;
       const goals = [0, 10, 20, 30, 50];
       inner = `${title('Preferences')}
-        <div class="section-label">Privacy</div>
+        <div class="section-label">Visibility</div>
         <div class="mgroup" style="margin-top:0">
           <label class="mrow static"><span class="mt">Show my progress to my clubs<small>${db.me.showProgress ? 'Others see a progress bar on books you track' : 'Others only see which book you are reading'}</small></span><span class="switch"><input type="checkbox" data-pref="progress" ${db.me.showProgress ? 'checked' : ''}><span></span></span></label>
-          <div class="mrow static"><span class="mi">🔒</span><span class="mt">Always private<small>Your Today dial, daily pages, calendar and goal are only ever visible to you.</small></span></div>
+          <label class="mrow static"><span class="mt">Show which clubs I'm in<small>${db.me.showClubs ? 'People who share a club with you see your other clubs’ names' : 'Off: people only know about the clubs they share with you'}</small></span><span class="switch"><input type="checkbox" data-pref="clubs" ${db.me.showClubs ? 'checked' : ''}><span></span></span></label>
+        </div>
+        <div class="section-label">Who sees what</div>
+        <div class="mgroup" style="margin-top:0">
+          ${[['👤', 'Your name', 'People in your clubs'],
+             ['📚', 'Books you read and finish', 'People in your clubs'],
+             ['📊', 'Progress bars', db.me.showProgress ? 'People in your clubs' : 'Nobody (hidden)'],
+             ['✍️', 'Thoughts you share', 'People in your clubs'],
+             ['👥', 'Which clubs you’re in', db.me.showClubs ? 'Anyone who shares a club with you' : 'Only people in each club'],
+             ['🔒', 'Today, calendar, daily goal', 'Only you']]
+            .map(([i, t, w]) => `<div class="mrow static"><span class="mi">${i}</span><span class="mt">${t}</span><span class="ms" style="max-width:52%;white-space:normal;text-align:right">${w}</span></div>`).join('')}
         </div>
         <div class="section-label">Daily goal</div>
         <div class="mgroup" style="margin-top:0">
-          <div class="mrow static" style="flex-wrap:wrap"><span class="mt">Pages a day<small>Optional. Only changes how full your dial looks. No streaks, no reminders.</small></span>
+          <div class="mrow static" style="flex-wrap:wrap"><span class="mt">Pages a day<small>Optional. A bookmark shows it on your Today stack. No streaks, no reminders.</small></span>
             <div class="chips" style="margin:0;width:100%">${goals.map(x => `<button class="chip sm ${g === x ? 'on' : ''}" data-act="goal-set" data-id="${x}">${x ? x : 'Off'}</button>`).join('')}
               <button class="chip sm ${g && !goals.includes(g) ? 'on' : ''}" data-act="goal-custom">${g && !goals.includes(g) ? g : 'Other…'}</button></div></div>
         </div>
@@ -1044,7 +1127,7 @@ function renderSheet(animate) {
     } else if (page === 'help') {
       inner = `${title('How to use')}
         <div class="mgroup">
-          ${[['🏠', 'Home', 'Your Today dial shows pages you read today. Only you see it.'],
+          ${[['🏠', 'Home', 'Your Today card stacks up the pages you read today. Move your bookmark to update it. Only you see it.'],
              ['📚', 'Shelf', 'Books you are reading, want to read, paused and finished. Tracking progress is optional.'],
              ['🧭', 'Discover', 'What people in your clubs are reading. Save anything to Want to read.'],
              ['✍️', 'Share', 'Finished a book? React and share a line about what stayed with you.'],
@@ -1062,15 +1145,6 @@ function renderSheet(animate) {
       <div class="wcovers">${WELCOME_BOOKS.map(fcover).join('')}</div>
       ${PILLARS}
       <div class="banner accent"><span class="b-icon">🌱</span><div class="sub" style="color:var(--ink)">This isn't about how much anyone reads. It's a calm place to read more, find good books through people you know, and enjoy it together.</div></div>
-      <div class="section-label">How to use</div>
-      <div class="mgroup" style="margin-top:0">
-        ${[['🏠', 'Home', 'Your Today dial shows pages you read today. Only you see it.'],
-           ['📚', 'Shelf', 'Books you are reading, want to read, paused and finished. Tracking progress is optional.'],
-           ['🧭', 'Discover', 'What people in your clubs are reading. Save anything to Want to read.'],
-           ['✍️', 'Share', 'Finished a book? React and share a line about what stayed with you.'],
-           ['👥', 'Clubs', 'Create one on Home and send the code. Friends join without signing up.']]
-          .map(([i, t, x]) => `<div class="mrow static"><span class="mi">${i}</span><span class="mt">${t}<small>${x}</small></span></div>`).join('')}
-      </div>
       <p class="sub" style="text-align:center;margin:1rem 0 0">${APP.first} ${esc(APP.second)} · beta</p>
       <div class="formbtns"><button class="btn accent" data-act="about-invite">💌 Invite a friend</button><button class="btn primary" data-act="close">Done</button></div>`;
   }
@@ -1122,6 +1196,8 @@ function renderSheet(animate) {
       ${isMe ? '' : `<button class="btn" style="font-size:.74rem;padding:.2rem .4rem" ${saved ? 'disabled' : ''} data-act="save-book" data-id="${b.id}">${saved ? '✓ Saved' : '＋ Want'}</button>`}</div>`; };
     tall = true;
     inner = `<div class="row">${avatar(u)}<h2 class="sheet-title grow" style="margin:0">${esc(u.name)}${isMe ? ' (you)' : ''}</h2></div>
+      ${isMe ? `<p class="sub" style="margin:.4rem 0 0">${db.me.showClubs ? '👥 Your clubs are visible to people you share a club with.' : '👥 Your other clubs are private.'}</p>`
+        : d.clubs && d.clubs.length ? `<p class="sub" style="margin:.4rem 0 0">👥 Also in: ${d.clubs.map(esc).join(', ')}</p>` : ''}
       <div class="section-label">Reading now</div>
       ${now.length ? `<div class="shelf">${now.map(tile).join('')}</div>` : '<div class="sub">Nothing on the go right now.</div>'}
       <div class="section-label">Finished</div>
@@ -1178,8 +1254,8 @@ function renderSheet(animate) {
   /* ---- today, calendar ---- */
   if (ui.sheet === 'today') {
     const reading = myBooks().filter(b => b.status === 'reading').sort((a, b) => b.updatedAt - a.updatedAt);
-    inner = `${title('Today’s reading')}
-      <p class="sub">Move each slider to where you are now. Pages moved forward today count toward today: <b style="color:var(--ink)" id="today-num-s">${pagesOn(dayStr())}</b> so far.</p>
+    inner = `${title('Move my bookmark')}
+      <p class="sub">Move each slider to the page you're on. Pages you move forward count toward today: <b style="color:var(--ink)" id="today-num-s">${pagesOn(dayStr())}</b> so far.</p>
       ${reading.map(b => `<div class="card"><div class="row">${coverHTML(b, 32, 48)}<div class="grow"><div class="item-title">${esc(b.title)}</div><div class="meta">${esc(b.author || '')}</div></div></div>
         ${tracked(b) && b.pages ? progControl(b, 't')
           : tracked(b) ? `<p class="small">This book tracks in %, so pages can't be counted. Add its page count:</p><input class="hb-input" type="number" inputmode="numeric" min="1" placeholder="Total pages" data-pages-for="${b.id}">`
@@ -1335,7 +1411,7 @@ function updBook(id, patch) {
 function saveFromOther(x, userId) {
   const u = userById(userId);
   if (addBook({ title: x.title, author: x.author, pages: x.pages, coverUrl: x.coverUrl, status: 'want', from: 'Saved from ' + (u?.name || 'a friend') })) {
-    ui.shelfTab = 'want'; render(); toast('Added to your Want to read');
+    ui.shelfTab = 'want'; render(); wantToast(x.title);
   }
 }
 
@@ -1354,6 +1430,11 @@ async function finishOnboard() {
 function backToMenu() { ui.sheetData = { page: '' }; renderSheet(); }
 
 const actions = {
+  'cele-close'(_, el, e) {
+    if (el.classList.contains('cele') && e.target.closest('.cele-card') && el.querySelector('.formbtns')) return;
+    clearTimeout(celeTimer); document.getElementById('cele-root').innerHTML = '';
+  },
+  'cele-share'(id) { document.getElementById('cele-root').innerHTML = ''; ui.share = { bookId: id, reaction: null, text: '', photo: '' }; ui.sheet = null; ui.clubPage = null; ui.tab = 'share'; render(); scrollTo(0, 0); },
   undo() { const f = toastUndo; toastUndo = null; document.getElementById('toast').classList.add('hide'); if (f) f(); },
   async onboard() {
     const name = document.getElementById('ob-name').value.trim();
@@ -1476,7 +1557,15 @@ const actions = {
   'club-back'() { ui.clubPage = null; render(); scrollTo(0, 0); },
   'club-tab'(id) { ui.clubTab = id; render(); },
   invite(id) { openSheet('invite', { id }); },
-  member(id) { openSheet('member', { id }); },
+  async member(id) {
+    openSheet('member', { id });
+    if (!CLOUD || id === ME || String(id).startsWith('demo_')) return;
+    const { data } = await sb.rpc('member_clubs', { p_user: id });
+    if (ui.sheet !== 'member' || ui.sheetData.id !== id || !data) return;
+    const mine = new Set(myClubs().map(g => g.name));
+    ui.sheetData.clubs = data.map(r => r.name).filter(n => !mine.has(n));
+    renderSheet();
+  },
   whatsapp(id) {
     const g = db.groups.find(x => x.id === id);
     const msg = `Join my reading club "${g.name}" on ${APP.first} ${APP.second} 📚\n${inviteLink(g)}\nOr use code: ${g.code.toUpperCase()}`;
@@ -1502,8 +1591,8 @@ const actions = {
     const r = list && list[+i]; if (!r) return;
     const status = el.dataset.status;
     if (!addBook({ ...r, status })) return;
-    if (status === 'reading') { ui.sheet = null; if (!ui.clubPage) ui.tab = 'shelf'; render(); scrollTo(0, 0); toast('Happy reading 📖'); }
-    else { ui.shelfTab = 'want'; render(); renderResults(); toast('Added to Want to read'); }
+    if (status === 'reading') { ui.sheet = null; if (!ui.clubPage) ui.tab = 'shelf'; render(); scrollTo(0, 0); celebrate('start', r); }
+    else { ui.shelfTab = 'want'; render(); renderResults(); wantToast(r.title); }
   },
   'manual-open'() { openSheet('manual', { photo: '', title: ui.search.q || '' }); },
   'manual-save'(_, el) {
@@ -1512,7 +1601,7 @@ const actions = {
     const b = addBook({ title, author: document.getElementById('m-author').value.trim(), pages: +document.getElementById('m-pages').value || 0, photo: ui.sheetData.photo || '', status: el.dataset.status });
     if (!b) return;
     if (b.status === 'want') ui.shelfTab = 'want';
-    ui.sheet = null; if (!ui.clubPage) ui.tab = 'shelf'; render(); toast(b.status === 'reading' ? 'Happy reading 📖' : 'Added to Want to read');
+    ui.sheet = null; if (!ui.clubPage) ui.tab = 'shelf'; render(); if (b.status === 'reading') celebrate('start', b); else wantToast(b.title);
   },
   book(id) { openSheet('book', { id }); },
   'track-toggle'(id) {
@@ -1523,8 +1612,7 @@ const actions = {
     const b = db.books.find(x => x.id === id);
     if (b.pages && tracked(b)) logPages(b, b.pages - b.page);
     updBook(id, { status: 'finished', page: b.pages || b.page, percent: 100 });
-    ui.share = { bookId: id, reaction: null, text: '', photo: '' };
-    ui.sheet = null; ui.tab = 'share'; render(); scrollTo(0, 0); toast('Well read! 🎉 Share a thought, if you like.');
+    ui.sheet = null; render(); celebrate('finish', b);
   },
   'share-this'(id) { ui.share = { bookId: id, reaction: null, text: '', photo: '' }; ui.sheet = null; ui.tab = 'share'; render(); scrollTo(0, 0); },
   pause(id) {
@@ -1532,7 +1620,7 @@ const actions = {
     toast('Paused. Pick it up whenever.', () => { updBook(id, { status: 'reading' }); render(); });
   },
   resume(id) { updBook(id, { status: 'reading' }); closeSheet(); },
-  start(id) { updBook(id, { status: 'reading' }); closeSheet(); toast('Happy reading 📖'); },
+  start(id) { updBook(id, { status: 'reading' }); closeSheet(); celebrate('start', db.books.find(x => x.id === id)); },
   remove(id) {
     const b = db.books.find(x => x.id === id); if (!b) return;
     db.books = db.books.filter(x => x.id !== id); save(); closeSheet();
@@ -1641,6 +1729,10 @@ document.addEventListener('change', async e => {
   if (t.dataset && t.dataset.pref === 'progress') {
     db.me.showProgress = t.checked; save(); render();
     toast(t.checked ? 'Your clubs can see your progress' : 'Progress hidden. Clubs only see the book.');
+  }
+  if (t.dataset && t.dataset.pref === 'clubs') {
+    db.me.showClubs = t.checked; save(); renderSheet();
+    toast(t.checked ? 'People in your clubs can see your other clubs' : 'Your clubs are private again');
   }
   if (t.dataset && t.dataset.track) { updBook(t.dataset.track, { track: t.checked }); render(); }
   if (t.dataset && t.dataset.pagesFor) {
