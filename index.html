@@ -2,7 +2,7 @@
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#121419">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -108,13 +108,17 @@ img { max-width: 100%; }
 .iconbtn::after { content: ''; position: absolute; inset: -4px; }
 .syncdot { position: absolute; top: 4px; right: 4px; width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
 .syncdot.pending { background: var(--warning); } .syncdot.error { background: var(--red); }
-.link { background: none; border: none; color: var(--accent-text); font-weight: 600; font-size: .88rem; padding: .6rem .2rem; cursor: pointer; }
+.link { background: none; border: none; color: var(--accent-text); font-weight: 600; font-size: .88rem; padding: .6rem .3rem; min-height: 2.6rem; cursor: pointer; }
+.btn { min-height: 2.6rem; }
+.sheet-title, .item-title { overflow-wrap: anywhere; }
+.fb-img button::after, .pw-eye::after { content: ''; position: absolute; inset: -.6rem; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .chips { display: flex; gap: .4rem; overflow-x: auto; padding-bottom: 2px; margin-bottom: .6rem; scrollbar-width: none; }
 .chips::-webkit-scrollbar { display: none; }
 .chip { border: 1px solid var(--line); background: var(--card); border-radius: var(--radius-pill); padding: .35rem .85rem; min-height: 2.2rem; font-size: .88rem; cursor: pointer; white-space: nowrap; color: var(--ink); }
 .chip.on { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
-.chip.sm { min-height: 1.9rem; padding: .2rem .65rem; }
+.chip.sm { min-height: 2.3rem; padding: .25rem .75rem; }
 
 .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; }
 .stat { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: .6rem .75rem; }
@@ -260,7 +264,7 @@ body { background: var(--bg); }
 .fcover img { width: 100%; height: 100%; object-fit: cover; display: block; position: absolute; inset: 0; }
 .fcover .gen { position: absolute; inset: 0; padding: .6rem .55rem; display: flex; flex-direction: column; justify-content: space-between; color: #fff; }
 .fcover .gen b { font-family: var(--font-display); font-size: .95rem; line-height: 1.15; font-weight: 600; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
-.fcover .gen i { font-style: normal; font-size: .66rem; opacity: .85; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.fcover .gen i { font-style: normal; font-size: .74rem; opacity: .85; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .cover-wrap { position: relative; flex-shrink: 0; display: block; cursor: pointer; }
 .cam { position: absolute; right: -6px; bottom: -6px; width: 1.9rem; height: 1.9rem; border-radius: 50%; background: var(--card); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; font-size: .85rem; }
 
@@ -276,7 +280,7 @@ body { background: var(--bg); }
 .wshelf div { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 3px; height: 100%; position: relative; }
 .wshelf i { display: block; width: 62%; max-width: 20px; border-radius: 3px 3px 0 0; }
 .wshelf i.none { height: 18px; border: 1px dashed var(--line); border-bottom: none; background: none; }
-.wshelf em { font-style: normal; font-size: .66rem; color: var(--muted); }
+.wshelf em { font-style: normal; font-size: .74rem; color: var(--muted); }
 .wshelf span { position: absolute; bottom: -1.5rem; font-size: .72rem; color: var(--muted); }
 .wshelf .on span { color: var(--ink); font-weight: 700; }
 .today-card .wshelf { margin-bottom: 1.6rem; }
@@ -333,15 +337,15 @@ body { background: var(--bg); }
 .week .on i { background: var(--accent); }
 .week span { font-size: .72rem; color: var(--muted); }
 .week .on span { color: var(--ink); font-weight: 600; }
-.week em { font-style: normal; font-size: .66rem; color: var(--muted); height: .9rem; }
+.week em { font-style: normal; font-size: .74rem; color: var(--muted); height: .9rem; }
 
 /* clubs */
 .club-badge { width: 2.6rem; height: 2.6rem; border-radius: var(--radius-md); background: var(--accent-soft); color: var(--accent-text); display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 700; font-size: 1.2rem; flex-shrink: 0; }
 .minicovers { display: flex; gap: 3px; margin-top: .35rem; }
-.minicovers .cover { width: 1.3rem; height: 1.9rem; font-size: .6rem; border-radius: 2px; }
+.minicovers .cover { width: 1.3rem; height: 1.9rem; font-size: .72rem; border-radius: 2px; }
 .av { width: 2.2rem; height: 2.2rem; border-radius: 50%; background: var(--soft); color: var(--ink); display: inline-flex; align-items: center; justify-content: center; font-weight: 600; font-size: .85rem; flex-shrink: 0; border: 1px solid var(--line); }
 .av.me { background: var(--accent-soft); color: var(--accent-text); }
-.av.sm { width: 1.5rem; height: 1.5rem; font-size: .68rem; }
+.av.sm { width: 1.5rem; height: 1.5rem; font-size: .74rem; }
 .av.big { width: 3.4rem; height: 3.4rem; font-size: 1.3rem; }
 .code { font-family: var(--font-display); font-size: 2rem; font-weight: 700; letter-spacing: .35rem; text-align: center; padding: .6rem 0; }
 
@@ -400,7 +404,7 @@ a.mrow { text-decoration: none; }
 .cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; text-align: center; }
 .cal .dow { font-size: .7rem; font-weight: 600; color: var(--muted); padding: .2rem 0; }
 .cal button { aspect-ratio: 1; border: none; border-radius: var(--radius-md); background: transparent; font-size: .9rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; color: var(--ink); min-height: 2.6rem; cursor: pointer; }
-.cal button small { font-size: .58rem; font-weight: 600; line-height: 1; }
+.cal button small { font-size: .72rem; font-weight: 600; line-height: 1; }
 .cal .l1 { background: color-mix(in srgb, var(--accent) 18%, var(--card)); }
 .cal .l2 { background: color-mix(in srgb, var(--accent) 38%, var(--card)); }
 .cal .l3 { background: color-mix(in srgb, var(--accent) 62%, var(--card)); color: var(--on-accent, #fff); }
@@ -425,7 +429,7 @@ a.mrow { text-decoration: none; }
 /* admin */
 .tbl-wrap { overflow-x: auto; }
 .tbl { width: 100%; border-collapse: collapse; font-size: .82rem; }
-.tbl th { text-align: left; font-size: .68rem; font-weight: 600; letter-spacing: .5px; text-transform: uppercase; color: var(--muted); padding: .3rem .4rem .3rem 0; border-bottom: 1px solid var(--line); }
+.tbl th { text-align: left; font-size: .74rem; font-weight: 600; letter-spacing: .5px; text-transform: uppercase; color: var(--muted); padding: .3rem .4rem .3rem 0; border-bottom: 1px solid var(--line); }
 .tbl td { padding: .5rem .4rem .5rem 0; border-bottom: 1px solid var(--line); vertical-align: top; }
 .loading { display: flex; align-items: center; justify-content: center; min-height: 70vh; color: var(--muted); }
 
@@ -450,6 +454,7 @@ a.mrow { text-decoration: none; }
 const SUPABASE_URL = 'https://cyrctzuzumeunoyysqsl.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_VCJYEhIWT_dDg_THeeZmuw_qm0Gt-Nu';
 const CLOUD = !!(SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase);
+const OFFLINE = !!(SUPABASE_URL && SUPABASE_ANON_KEY) && !window.supabase;   // set up for the cloud, but it couldn't load (no internet)
 
 const APP = { first: 'Shelfmates', second: '& Me' };
 // Amazon Associates tag (e.g. 'shelfmates-21'). Leave '' until you have one; a "Buy on Amazon" button appears once set.
@@ -581,7 +586,7 @@ function progControl(b, pre) {
 
 
 /* ---------- data ---------- */
-const cacheKey = () => CLOUD ? STORE_KEY + ':' + ME : STORE_KEY;
+const cacheKey = () => (CLOUD || OFFLINE) ? STORE_KEY + ':' + ME : STORE_KEY;
 let db = CLOUD ? null : load();
 function load() {
   try { const raw = localStorage.getItem(cacheKey()); if (raw) return JSON.parse(raw); } catch (e) {}
@@ -768,9 +773,10 @@ async function pull() {
   // re-apply unsynced local edits (newer than the cloud copy)
   localMine.forEach(lb => {
     const cb = db.books.find(b => b.id === lb.id);
-    if (!cb) { if (lb.photo && lb.photo.startsWith('data:')) db.books.push(lb); }
+    if (!cb) { if ((lb.photo && lb.photo.startsWith('data:')) || lb.pendingNew) db.books.push(lb); }
     else if ((lb.updatedAt || 0) > (cb.updatedAt || 0)) Object.assign(cb, lb);
   });
+  (prev ? (prev.posts || []) : []).filter(p => p.pendingNew && p.userId === ME && !db.posts.some(x => x.id === p.id)).forEach(p => db.posts.push(p));
   localStorage.setItem(cacheKey(), JSON.stringify(db));
   queueSync();
 }
@@ -799,7 +805,7 @@ async function loadBookInfo(x) {
     let desc = typeof w.description === 'string' ? w.description : (w.description && w.description.value) || '';
     desc = desc.replace(/\r/g, '').split(/\n-{3,}|\n\s*\(\[source\]|\[source\]/)[0].replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').trim();
     done({ desc, year: hit.first_publish_year || '', pages: hit.number_of_pages_median || 0 });
-  } catch (e) { done({ desc: '' }); }
+  } catch (e) { done({ desc: '', failed: true }); }
 }
 async function reauth(email, password) {
   const { error } = await sb.auth.signInWithPassword({ email, password });
@@ -962,10 +968,17 @@ function askSave(kind) {
 }
 const guestBookCount = () => db ? myBooks().filter(b => !b.demo).length : 0;
 const nudgesSeen = () => { try { return JSON.parse(localStorage.getItem('sm.nudges') || '{}'); } catch (e) { return {}; } };
+/* pop-ups take turns: wait until nothing is open, no Undo is showing, and things have been calm for a moment */
+let lastBusy = 0;
+function calm(ms = 3000) {
+  const busy = !!ui.sheet || !!document.getElementById('cele-root').innerHTML || !!toastUndo;
+  if (busy) { lastBusy = Date.now(); return false; }
+  return Date.now() - lastBusy > ms;
+}
 function maybeNudge(key, tries = 0) {
   const repeat = key.startsWith('save');
   if (!CLOUD || signedInEmail() || (!repeat && nudgesSeen()[key])) return;
-  if (ui.sheet || document.getElementById('cele-root').innerHTML) { if (tries < (repeat ? 120 : 15)) setTimeout(() => maybeNudge(key, tries + 1), 1000); return; }
+  if (!calm() || stampQueue.length) { if (tries < (repeat ? 180 : 60)) setTimeout(() => maybeNudge(key, tries + 1), 1000); return; }
   if (repeat) { openSheet('nudge', { key }); return; }
   try { const n = nudgesSeen(); n[key] = 1; localStorage.setItem('sm.nudges', JSON.stringify(n)); } catch (e) {}
   openSheet('nudge', { key });
@@ -1094,7 +1107,7 @@ function showStampSoon() {
   clearTimeout(stampWait);
   stampWait = setTimeout(() => {
     if (!stampQueue.length) return;
-    if (ui.sheet || document.getElementById('cele-root').innerHTML) { showStampSoon(); return; }
+    if (!calm()) { showStampSoon(); return; }
     const k = stampQueue.shift(), [, t, , line, ramp] = STAMP[k], r = RAMP[ramp]; stampShown = k;
     const n = earnedKeys(db.me.stamps).length;
     document.getElementById('cele-root').innerHTML = `<div class="cele" data-act="cele-close" role="dialog" aria-modal="true" aria-label="New stamp: ${esc(t)}">
@@ -1106,7 +1119,7 @@ function showStampSoon() {
         <div class="formbtns"><button class="btn" data-act="cele-close">Lovely</button><button class="btn" style="background:${r[2]};color:#fff;border-color:${r[2]}" data-act="stamps-open">See my stamps</button></div>
       </div></div>`;
     if (stampQueue.length) showStampSoon();
-  }, 1600);
+  }, 1000);
 }
 const wantToast = (title, undo) => toast(pick(CELE.want).replace('{t}', title), undo);
 const myCopy = title => myBooks().find(b => norm(b.title) === norm(title));
@@ -1172,7 +1185,7 @@ function render() {
         ${club.demo ? '' : `<button class="btn accent" data-act="invite" data-id="${club.id}">💌 Invite</button>`}` : ui.tab === 'home' ? `<h1 class="hb-logo" style="margin:0"><button data-act="about" aria-label="About ${APP.first} ${esc(APP.second)}" style="all:unset;cursor:pointer">${APP.first} <span>${esc(APP.second)}</span></button></h1>` : `<h1 class="hb-logo">${titles[ui.tab]}</h1>`}
       ${club ? '' : `<button class="iconbtn" aria-label="Settings" data-act="settings">⚙︎`}${CLOUD ? `<span class="syncdot ${dotClass()}" id="syncdot"></span>` : ''}${club ? '' : '</button>'}
     </header>
-    <main class="hb-main">${body}<div class="fb-foot"><button data-act="feedback">💬 Send feedback</button></div></main>
+    <main class="hb-main">${ui.offline ? `<div class="banner warn" style="margin-top:.4rem"><span class="b-icon">📡</span><div class="sub" style="color:var(--ink)"><b>You're offline.</b> Showing your saved shelf. New books and thoughts are kept and sync when you're back.</div></div>` : ''}${body}<div class="fb-foot"><button data-act="feedback">💬 Send feedback</button></div></main>
     ${club || ui.tab !== 'share' ? '<button class="fab fixed" aria-label="Add a book" data-act="add-open">+</button>' : ''}
     <nav class="hb-nav fixed" aria-label="Sections"><div class="inner">
       <div class="side-logo">${APP.first} <span>${esc(APP.second)}</span></div>
@@ -1228,7 +1241,10 @@ function welcomeHTML() {
 const pagesForBookToday = id => (db.log || []).filter(l => l.bookId === id && l.day === dayStr()).reduce((n, l) => n + l.pages, 0);
 function todayCardHTML() {
   const reading = myBooks().filter(b => b.status === 'reading').sort((a, b) => b.updatedAt - a.updatedAt);
-  if (!reading.length) return '';
+  if (!reading.length) return myBooks().some(b => !b.demo) ? '' : `<div class="card" style="text-align:center;padding:1.3rem 1rem"><div style="font-size:2rem">📖</div>
+    <div class="item-title" style="font-size:1.05rem;margin:.3rem 0 .2rem">What are you reading right now?</div>
+    <p class="sub" style="margin:0 0 .8rem">Add it to your shelf. Friends in your clubs will see it.</p>
+    <button class="btn accent" data-act="add-open">＋ Add the book you're reading</button></div>`;
   const today = dayStr(), n = pagesOn(today), goal = db.me.goal || 0;
   const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setDate(d.getDate() - 6 + i); return d; });
   const vals = days.map(d => pagesOn(dayStr(d)));
@@ -1345,7 +1361,7 @@ function postCard(p, club) {
   const u = userById(p.userId) || { name: 'Member' }, isMe = p.userId === ME, saved = onMyShelf(p.title);
   const modBtn = !isMe && club && canManage(club) ? `<button class="iconbtn" style="border:none" aria-label="Hide this thought from ${esc(club.name)}" title="Hide from this club" data-act="club-hide" data-club="${club.id}" data-id="${p.id}">🙈</button>` : '';
   return `<article class="card">
-    <div class="row"><button style="all:unset;cursor:pointer" data-act="member" data-id="${p.userId}" aria-label="See ${esc(u.name)}'s shelf">${avatar(u)}</button><div class="grow"><div class="item-title">${isMe ? 'You' : esc(u.name)} <span style="font-weight:400;color:var(--muted)">finished a book</span></div><div class="meta">${timeAgo(p.createdAt)}</div></div>
+    <div class="row"><button style="all:unset;cursor:pointer" data-act="member" data-id="${p.userId}" aria-label="See ${esc(u.name)}'s shelf">${avatar(u)}</button><div class="grow"><div class="item-title">${isMe ? 'You' : esc(u.name)} <span style="font-weight:400;color:var(--muted)">shared a thought</span></div><div class="meta">${timeAgo(p.createdAt)}</div></div>
     ${isMe ? `<button class="iconbtn" style="border:none" aria-label="Delete this post" data-act="delete-post" data-id="${p.id}">🗑️</button>` : modBtn}</div>
     ${p.photo ? `<img class="photo" src="${esc(p.photo)}" alt="Photo shared with ${esc(p.title)}">` : ''}
     ${p.text ? `<p class="thought">${esc(p.text)}</p>` : ''}
@@ -1430,6 +1446,7 @@ function shareHTML() {
       : `<div class="card empty">Add a book to your shelf first.<br><br><button class="btn accent" data-act="add-open">＋ Add a book</button></div>`}
     <div class="section-label">2 · How was it?</div>
     <div class="reacts">${['up', 'mid', 'down'].map(k => `<button class="react ${s.reaction === k ? 'on' : ''}" aria-pressed="${s.reaction === k}" data-act="react" data-id="${k}"><b>${REACT[k].emoji}</b>${REACT[k].label}</button>`).join('')}</div>
+    ${(() => { const b = s.bookId && myBooks().find(x => x.id === s.bookId); return b && b.status !== 'finished' ? `<label class="mrow static" style="border:1px solid var(--line);border-radius:var(--radius-md);margin-top:.6rem;cursor:pointer"><span class="mt">I finished this book<small>Leave off if you're still reading. Your thought is shared either way.</small></span><span class="switch"><input type="checkbox" id="share-finished" ${s.finished ? 'checked' : ''} data-share-fin="1"><span></span></span></label>` : ''; })()}
     <div class="section-label"><label for="thought">3 · What stayed with you? <span style="text-transform:none;letter-spacing:0;font-weight:400">(optional)</span></label></div>
     <textarea class="hb-input" id="thought" rows="4" maxlength="1000" placeholder="One line is enough">${esc(s.text)}</textarea>
     <div style="margin-top:.5rem">${s.photo ? `<img class="photo" src="${esc(s.photo)}" alt="Your photo to share"><button class="btn" data-act="share-photo-remove">Remove photo</button>`
@@ -1724,7 +1741,7 @@ function renderSheet(animate) {
           <label class="hb-label" for="m-author">Author <span class="sub">(optional)</span></label><input class="hb-input" id="m-author" maxlength="80" value="${esc(d.author || '')}"></div>
       </div>
       <label class="hb-label" for="m-pages">Pages <span class="sub">(optional)</span></label><input class="hb-input" id="m-pages" type="number" inputmode="numeric" min="1" value="${esc(d.pages || '')}">
-      <label class="hb-label" for="m-genre">Genre <span class="sub">(optional)</span></label><select class="hb-input" id="m-genre"><option value="">Choose…</option>${GENRES.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select>
+      <label class="hb-label" for="m-genre">Genre <span class="sub">(optional)</span></label><select class="hb-input" id="m-genre"><option value="">Choose…</option>${GENRES.map(([v, l]) => `<option value="${v}" ${d.genre === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
       <div class="formbtns"><button class="btn" data-act="manual-save" data-status="want">Want to read</button><button class="btn primary" data-act="manual-save" data-status="reading">Start reading</button></div>`;
   }
   if (ui.sheet === 'book') {
@@ -1786,6 +1803,7 @@ function renderSheet(animate) {
       <div class="section-label">About the book</div>
       ${!info ? '<div class="skel" style="height:.8rem;width:95%"></div><div class="skel" style="height:.8rem;width:85%;margin-top:.4rem"></div><div class="skel" style="height:.8rem;width:60%;margin-top:.4rem"></div>'
         : info.desc ? `<p class="fb-desc">${esc(d.more || info.desc.length <= 420 ? info.desc : info.desc.slice(0, 400).replace(/\s+\S*$/, '') + '…')}</p>${info.desc.length > 420 ? `<button class="link" style="padding-left:0" data-act="fbook-more">${d.more ? 'Show less' : 'Read more'}</button>` : ''}`
+        : info.failed ? `<p class="sub" style="margin:0">Couldn't load the description. Check your connection.</p><button class="link" style="padding-left:0" data-act="fbook-retry">Try again</button>`
         : '<p class="sub" style="margin:0">No description available for this one.</p>'}
       ${holders.length ? `<div class="section-label">In your clubs</div><div class="mgroup" style="margin-top:0">${holders.map(line).join('')}</div>` : ''}
       ${thoughts.length ? `<div class="section-label">What stayed with them</div>${thoughts.map(p => { const u = userById(p.userId) || { name: 'Member' }; return `<div class="card"><div class="row">${avatar(u, 'sm')}<b style="font-size:.88rem">${esc(u.name)}</b> ${reactionPill(p.reaction)}</div>${p.text ? `<p class="thought" style="margin:.4rem 0 0">${esc(p.text)}</p>` : ''}<div class="meta">${timeAgo(p.createdAt)}</div></div>`; }).join('')}` : ''}
@@ -1854,7 +1872,7 @@ function renderSheet(animate) {
   root.innerHTML = `<div class="overlay ${animate ? 'anim' : ''}" data-act="overlay"><div class="sheet ${tall ? 'tall' : ''}" role="dialog" aria-modal="true">${inner}</div></div>`;
   sheetHeader(root.querySelector('.sheet')); addEyes(root);
   if (prevScroll) root.querySelector('.sheet').scrollTop = prevScroll;
-  if (animate) { const f = root.querySelector('#g-name, #q, #m-title, #wc-name, #wj-code'); if (f) setTimeout(() => f.focus(), 250); }
+  if (animate) { const f = root.querySelector('#g-name, #q, #m-title, #wc-name, #wj-code'); const sh = root.querySelector('.sheet'); sh.setAttribute('tabindex', '-1'); setTimeout(() => (f || sh).focus({ preventScroll: true }), 250); }
 }
 /* Save / Done live in a sticky header, top right. Big actions (Join, Start reading…) stay at the bottom. */
 const TOP_ACTS = /^(close|profile-save|name-save|fb-send|adm-save|create-save|club-edit-save|email-save|pass-save)$/;
@@ -1876,6 +1894,18 @@ function sheetHeader(sh) {
   head.appendChild(right);
   sh.prepend(head);
   if (!last.querySelector('button')) last.remove();
+}
+/* unsaved edits? (profile, club description, feedback, manual add) */
+function sheetDirty() {
+  const d = ui.sheetData || {}, v = id => document.getElementById(id)?.value;
+  if (ui.sheet === 'settings' && d.page === 'profile' && d.draft) {
+    const p = d.draft, me = db.me;
+    return (v('pf-name') ?? p.name) !== me.name || (v('pf-bio') ?? p.bio) !== (me.bio || '') || p.avatar !== (me.avatar || '') || p.genres.join() !== (me.genres || []).join();
+  }
+  if (ui.sheet === 'feedback') return !!(v('fb-text') || '').trim() || (d.imgs || []).length > 0;
+  if (ui.sheet === 'manual') return !!(v('m-title') || '').trim() && (v('m-title') || '').trim() !== (d.title0 || '');
+  if (ui.sheet === 'club-edit') { const g = db.groups.find(x => x.id === d.id); return g && ((v('ce-name') ?? g.name) !== g.name || (v('ce-about') ?? g.about ?? '') !== (g.about || '')); }
+  return false;
 }
 function openSheet(name, data = {}) { ui.sheet = name; ui.sheetData = data; renderSheet(true); }
 function closeSheet() { ui.sheet = null; ui.sheetData = {}; render(); }
@@ -2129,7 +2159,8 @@ async function searchBooks(q) {
 /* ---------- data actions ---------- */
 function addBook({ title, author = '', pages = 0, coverUrl = '', photo = '', status = 'want', from = '', genre = '' }) {
   if (onMyShelf(title)) { toast('Already on your shelf'); return null; }
-  const b = { id: uid(), userId: ME, title: title.trim(), author, pages: +pages || 0, page: 0, percent: 0, track: false, status, coverUrl, photo, from, genre, updatedAt: Date.now() };
+  const b = { id: uid(), userId: ME, title: title.trim(), author, pages: +pages || 0, page: 0, percent: 0, track: !!(+pages), status, coverUrl, photo, from, genre, updatedAt: Date.now() };
+  if (OFFLINE) b.pendingNew = true;
   db.books.push(b); save();
   askSave('book');
   return b;
@@ -2406,6 +2437,7 @@ const actions = {
     const k = el.dataset.k, x = (k === 'p' ? db.posts : db.books).find(y => y.id === id); if (!x) return;
     openSheet('fbook', { k, id }); loadBookInfo(x);
   },
+  'fbook-retry'() { const d = ui.sheetData, x = (d.k === 'p' ? db.posts : db.books).find(y => y.id === d.id); if (!x) return; delete bookInfo[norm(x.title)]; renderSheet(); loadBookInfo(x); },
   'fbook-more'() { ui.sheetData.more = !ui.sheetData.more; renderSheet(); },
   'club-edit'(id) { openSheet('club-edit', { id }); },
   async 'club-edit-save'() {
@@ -2492,7 +2524,7 @@ const actions = {
     if (status === 'reading') { ui.sheet = null; if (!ui.clubPage) ui.tab = 'shelf'; render(); scrollTo(0, 0); celebrate('start', b, () => takeBack(b)); }
     else { (ui.sheetData.added = ui.sheetData.added || []).push(b.id); ui.shelfTab = 'want'; render(); renderResults(); wantToast(r.title, () => { takeBack(b); renderResults(); }); }
   },
-  'manual-open'() { openSheet('manual', { photo: '', title: ui.search.q || '' }); },
+  'manual-open'() { openSheet('manual', { photo: '', title: ui.search.q || '', title0: ui.search.q || '' }); },
   'manual-save'(_, el) {
     const title = document.getElementById('m-title').value.trim();
     if (!title) { toast('Add a title'); return; }
@@ -2554,10 +2586,12 @@ const actions = {
     if (!b || !s.reaction) return;
     const text = (document.getElementById('thought')?.value || '').trim();
     const draft = { ...s, text }, bSnap = { status: b.status, page: b.page, percent: b.percent, updatedAt: b.updatedAt }, logSnap = JSON.parse(JSON.stringify(db.log || []));
-    if (b.status !== 'finished' && b.pages && tracked(b)) logPages(b, b.pages - b.page);
+    const markDone = b.status !== 'finished' && !!document.getElementById('share-finished')?.checked;
+    if (markDone && b.pages && tracked(b)) logPages(b, b.pages - b.page);
     const post = { id: uid(), userId: ME, title: b.title, author: b.author, pages: b.pages, coverUrl: b.photo || b.coverUrl, reaction: s.reaction, text, photo: s.photo, createdAt: Date.now() };
     db.posts.push(post);
-    Object.assign(b, { status: 'finished', page: b.pages || b.page, percent: 100, updatedAt: Date.now() });
+    if (markDone) Object.assign(b, { status: 'finished', page: b.pages || b.page, percent: 100, updatedAt: Date.now() });
+    if (OFFLINE) post.pendingNew = true;
     if (!save()) { db.posts.pop(); return; }
     ui.share = { bookId: null, reaction: null, text: '', photo: '' };
     ui.tab = 'discover'; ui.club = 'all'; render(); scrollTo(0, 0); askSave('post');
@@ -2588,7 +2622,7 @@ const actions = {
   'cal-month'(m) { ui.sheetData.month = m; renderSheet(); },
   'cal-day'(ds) { ui.sheetData.sel = ds; renderSheet(); },
   close() { closeSheet(); },
-  overlay(_, el, e) { if (e.target === el) closeSheet(); }
+  overlay(_, el, e) { if (e.target === el && (!sheetDirty() || confirm('Discard your changes?'))) closeSheet(); }
 };
 
 function confirmEmail(email) {
@@ -2670,7 +2704,14 @@ document.addEventListener('input', e => {
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.id === 'ob-name') actions.onboard();
   if (e.key === 'Enter' && e.target.id === 'g-name') actions['create-save']();
-  if (e.key === 'Escape' && ui.sheet) closeSheet();
+  if (e.key === 'Escape' && ui.sheet) { if (!sheetDirty() || confirm('Discard your changes?')) closeSheet(); }
+  if (e.key === 'Tab' && ui.sheet) {
+    const f = [...document.querySelectorAll('#sheet-root .sheet button:not([disabled]), #sheet-root .sheet input, #sheet-root .sheet select, #sheet-root .sheet textarea, #sheet-root .sheet a[href]')].filter(x => x.offsetParent);
+    if (!f.length) return;
+    const i = f.indexOf(document.activeElement);
+    if (e.shiftKey && (i <= 0)) { e.preventDefault(); f[f.length - 1].focus(); }
+    else if (!e.shiftKey && (i === -1 || i === f.length - 1)) { e.preventDefault(); f[0].focus(); }
+  }
 });
 document.addEventListener('change', async e => {
   const t = e.target;
@@ -2688,6 +2729,7 @@ document.addEventListener('change', async e => {
     else { t.value = prev; }
     return;
   }
+  if (t.dataset && t.dataset.shareFin) { ui.share.finished = t.checked; ui.share.text = document.getElementById('thought')?.value ?? ui.share.text; }
   if (t.dataset && t.dataset.pref === 'stamps') {
     db.me.showStamps = t.checked; save(); renderSheet();
     toast(t.checked ? 'Your clubs can see your stamps' : 'Your stamps are private again');
@@ -2728,7 +2770,7 @@ document.addEventListener('change', async e => {
     ui.share.text = document.getElementById('thought')?.value || ui.share.text;
     ui.share.photo = url; render();
   } else if (t.dataset.manualPhoto) {
-    ['title', 'author', 'pages'].forEach(k => { const el = document.getElementById('m-' + k); if (el) ui.sheetData[k] = el.value; });
+    ['title', 'author', 'pages', 'genre'].forEach(k => { const el = document.getElementById('m-' + k); if (el) ui.sheetData[k] = el.value; });
     ui.sheetData.photo = url; renderSheet();
   }
 });
@@ -2740,6 +2782,13 @@ applyDisplay();
 (async function init() {
   setTimeout(() => { try { const f = sessionStorage.getItem('sm.flash'); if (f) { sessionStorage.removeItem('sm.flash'); toast(f); } } catch (e) {} }, 1200);
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+  if (OFFLINE) {
+    try { ME = localStorage.getItem('sm.lastUser') || 'me'; } catch (e) {}
+    db = load(); ui.offline = true; render();
+    if (!db) document.getElementById('app').innerHTML = `<div class="welcome" style="text-align:center;padding-top:4rem"><div style="font-size:2.6rem">📡</div><h1 class="hb-logo" style="margin:.6rem 0 .4rem">You're offline</h1><p class="sub">Connect to the internet to open Shelfmates.</p><button class="btn primary" style="margin-top:1rem" onclick="location.reload()">Try again</button></div>`;
+    window.addEventListener('online', () => location.reload());
+    return;
+  }
   if (!CLOUD) { db = load(); render(); return; }
   sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   ui.loading = true; render();
@@ -2751,6 +2800,7 @@ applyDisplay();
       session = r.data.session;
     }
     authUser = session.user; ME = authUser.id;
+    try { localStorage.setItem('sm.lastUser', ME); } catch (e) {}
     sb.auth.onAuthStateChange((event, s) => {
       if (s && s.user && s.user.id !== ME) { location.reload(); return; }
       if (s && s.user) authUser = s.user;
