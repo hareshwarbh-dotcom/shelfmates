@@ -51,7 +51,7 @@ img { max-width: 100%; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .app { max-width: 560px; margin: 0 auto; min-height: 100vh; padding-bottom: 7rem; }
-.hb-header { display: flex; align-items: center; justify-content: space-between; gap: .6rem; padding: calc(.7rem + env(safe-area-inset-top)) 1rem .5rem; position: sticky; top: 0; background: var(--bg); z-index: 5; }
+.hb-header { display: flex; align-items: center; justify-content: space-between; gap: .6rem; padding: calc(.7rem + env(safe-area-inset-top)) 1rem .5rem; position: sticky; top: 0; background: color-mix(in srgb, var(--bg) 86%, transparent); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); z-index: 5; }
 .hb-logo { font-family: var(--font-display); font-size: 1.5rem; font-weight: 600; letter-spacing: -.4px; margin: 0; user-select: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hb-logo span { color: var(--accent); }
 .hb-main { padding: 0 1rem; }
@@ -133,6 +133,7 @@ textarea.hb-input { resize: none; line-height: 1.5; }
 .banner { display: flex; gap: .6rem; align-items: flex-start; border-radius: var(--radius-lg); padding: .6rem .8rem; border: 1px solid var(--line); margin: .6rem 0; }
 .banner.accent { background: var(--accent-soft); }
 .banner.info { background: var(--blue-soft); }
+.banner.warn { background: color-mix(in srgb, #f59e0b 14%, var(--card)); border-color: color-mix(in srgb, #f59e0b 40%, var(--line)); }
 .banner .b-icon { font-size: 1.3rem; }
 
 .overlay { position: fixed; inset: 0; background: rgba(10,12,18,.5); display: flex; align-items: flex-end; justify-content: center; z-index: 20; }
@@ -174,6 +175,42 @@ body { background: var(--bg); }
 .moodcard b { display: block; font-size: .88rem; font-weight: 600; }
 .moodcard small { display: block; font-size: .72rem; color: var(--muted); }
 .moodgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+/* ---------- layout pieces (phone first) ---------- */
+.home-grid { display: block; }
+.feed { display: block; }
+.side-logo, .hb-nav .side-only { display: none; }
+.toast.fixed.top { bottom: auto; top: calc(1rem + env(safe-area-inset-top)); }
+
+/* ---------- laptops and tablets in landscape ---------- */
+@media (min-width: 900px) {
+  .app { max-width: 1180px; padding: 0 2rem 3rem 252px; }
+  .app.no-nav { padding-left: 2rem; }
+  .hb-header { padding: 1.4rem 0 .8rem; position: static; background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .hb-main { padding: 0; }
+  .hb-nav.fixed { top: 0; bottom: 0; left: 0; right: auto; width: 220px; border-top: none; border-right: 1px solid var(--line); padding: 1.4rem .8rem; align-items: stretch; justify-content: flex-start; }
+  .hb-nav .inner { flex-direction: column; gap: .2rem; }
+  .hb-nav button { flex: none; flex-direction: row; justify-content: flex-start; gap: .7rem; min-height: 2.8rem; padding: 0 .8rem; font-size: .95rem; border-radius: var(--radius-md); }
+  .hb-nav button.on { background: var(--soft); }
+  .hb-nav button .ic { font-size: 1.15rem; }
+  .side-logo { display: block; font-family: var(--font-display); font-size: 1.35rem; font-weight: 600; padding: 0 .8rem 1.2rem; }
+  .side-logo span { color: var(--accent); }
+  .hb-nav .side-only { display: flex !important; margin-top: auto; }
+  .hb-header .iconbtn[data-act="settings"] { display: none; }
+  .home-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 1.4rem; align-items: start; }
+  .home-grid .home-right .section-label:first-child { margin-top: .3rem; }
+  .feed { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; align-items: start; }
+  .feed .card { margin: 0; }
+  .shelf { grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); }
+  .carousel { margin: 0; padding: 2px 0 .4rem; }
+  .pick-row { margin: 0; padding: 4px 0 .4rem; }
+  .overlay { align-items: center; padding: 2rem; }
+  .sheet { border-radius: var(--radius-sheet); max-height: 86vh; width: min(560px, 100%); padding: 1.4rem 1.4rem 1.4rem; }
+  .sheet.tall { min-height: 0; }
+  .fab.fixed { right: 2rem; bottom: 2rem; }
+  .toast.fixed { bottom: 2rem; }
+  .welcome { padding-top: 4rem; }
+}
+
 /* ============================================================
    Shelfmates additions, built from the same tokens
    ============================================================ */
@@ -367,7 +404,8 @@ const APP = { first: 'Shelfmates', second: '& Me' };
 const STORE_KEY = 'bookclub.v1';
 let ME = 'me';
 let sb = null, authUser = null, isAdmin = false;
-let pendingJoin = new URLSearchParams(location.search).get('join');
+const cleanCode = c => String(c || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+let pendingJoin = cleanCode(new URLSearchParams(location.search).get('join')) || null;
 let syncState = 'ok';   // ok | pending | error
 
 /* ---------- display settings (per device) ---------- */
@@ -747,6 +785,7 @@ function toast(msg, undo) {
   const el = document.getElementById('toast');
   toastUndo = undo || null;
   el.innerHTML = `<span>${esc(msg)}</span>${undo ? '<button data-act="undo">Undo</button>' : ''}`;
+  el.classList.toggle('top', !!ui.sheet);
   el.classList.remove('hide');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { el.classList.add('hide'); toastUndo = null; }, undo ? 6000 : 2600);
@@ -771,16 +810,34 @@ function installStepsHTML() {
   return now + desktop + `<p class="sub">On a phone? Open ${esc(location.host)} there and follow the steps for iPhone or Android.</p>` + ios + android;
 }
 
+function switchWarnHTML() {
+  const n = signedInEmail() ? 0 : guestBookCount();
+  if (!n) return '';
+  return `<div class="banner warn" style="margin-bottom:.8rem"><span class="b-icon">⚠️</span><div class="sub" style="color:var(--ink)">You have <b>${n} book${n > 1 ? 's' : ''}</b> saved here as a guest. Signing in switches to your other account, and ${n > 1 ? "these won't" : "it won't"} move over.<br><button class="btn accent" style="margin-top:.5rem" data-act="settings" data-id="account">Create account instead to keep ${n > 1 ? 'them' : 'it'}</button></div></div>`;
+}
 /* ---------- gentle account nudges (guests only, once each) ---------- */
 const NUDGE = {
   books3: ['📚', 'Your shelf is growing', 'Save it with an account so you never lose it.'],
   post: ['✍️', 'Keep your thoughts safe', 'Create an account and use Shelfmates on your laptop too.'],
-  club: ['👥', 'Take your club everywhere', 'Create an account so you can open your club from any device.']
+  club: ['👥', 'Take your club everywhere', 'Create an account so you can open your club from any device.'],
+  save: ['☁️', 'Save your shelf first?', "Right now your books live only in this browser. Create a free account so they're safe if you switch phones or clear your browser."],
+  savepost: ['✍️', 'Save your thoughts first?', "Right now what you share lives only in this browser. Create a free account so it's safe if you switch phones or clear your browser."]
 };
+/* ask guests to save: on the 1st add / share, then every 3rd, until they create an account */
+function askSave(kind) {
+  if (!CLOUD || signedInEmail()) return;
+  let c = {}; try { c = JSON.parse(localStorage.getItem('sm.saveAsk') || '{}'); } catch (e) {}
+  const n = (c[kind] || 0) + 1; c[kind] = n;
+  try { localStorage.setItem('sm.saveAsk', JSON.stringify(c)); } catch (e) {}
+  if ((n - 1) % 3 === 0) setTimeout(() => maybeNudge(kind === 'post' ? 'savepost' : 'save'), 1500);
+}
+const guestBookCount = () => db ? myBooks().filter(b => !b.demo).length : 0;
 const nudgesSeen = () => { try { return JSON.parse(localStorage.getItem('sm.nudges') || '{}'); } catch (e) { return {}; } };
 function maybeNudge(key, tries = 0) {
-  if (!CLOUD || signedInEmail() || nudgesSeen()[key]) return;
-  if (ui.sheet || document.getElementById('cele-root').innerHTML) { if (tries < 15) setTimeout(() => maybeNudge(key, tries + 1), 1000); return; }
+  const repeat = key.startsWith('save');
+  if (!CLOUD || signedInEmail() || (!repeat && nudgesSeen()[key])) return;
+  if (ui.sheet || document.getElementById('cele-root').innerHTML) { if (tries < (repeat ? 120 : 15)) setTimeout(() => maybeNudge(key, tries + 1), 1000); return; }
+  if (repeat) { openSheet('nudge', { key }); return; }
   try { const n = nudgesSeen(); n[key] = 1; localStorage.setItem('sm.nudges', JSON.stringify(n)); } catch (e) {}
   openSheet('nudge', { key });
 }
@@ -853,6 +910,7 @@ document.addEventListener('error', e => {
    ============================================================ */
 function render() {
   const app = document.getElementById('app');
+  app.classList.toggle('no-nav', !!ui.loading || !db);
   if (ui.loading) { app.innerHTML = `<div class="loading">Opening your shelf…</div>`; return; }
   if (!db) { app.innerHTML = welcomeHTML(); renderSheet(); return; }
   db.log = db.log || [];
@@ -872,7 +930,9 @@ function render() {
     <main class="hb-main">${body}</main>
     ${club || ui.tab !== 'share' ? '<button class="fab fixed" aria-label="Add a book" data-act="add-open">+</button>' : ''}
     <nav class="hb-nav fixed" aria-label="Sections"><div class="inner">
+      <div class="side-logo">${APP.first} <span>${esc(APP.second)}</span></div>
       ${tab('home', '🏠', 'Home')}${tab('shelf', '📚', 'Shelf')}${tab('discover', '🧭', 'Discover')}${tab('share', '✍️', 'Share')}
+      <button class="side-only" data-act="settings"><span class="ic">⚙️</span>Settings</button>
     </div></nav>`;
   renderSheet();
 }
@@ -978,13 +1038,13 @@ function homeHTML() {
     ${!isInstalled() && !installHintDone() && myBooks().some(b => !b.demo) && platform() !== 'desktop' ? `<div class="banner accent"><span class="b-icon">📱</span><div class="grow"><div class="item-title">Put Shelfmates on your home screen</div><div class="sub" style="color:var(--ink)">Opens like an app, one tap away.</div>
       <div class="actions" style="margin-top:.4rem"><button class="btn primary" data-act="install-show">Show me</button></div></div><button class="iconbtn" style="border:none" aria-label="Dismiss" data-act="install-dismiss">✕</button></div>` : ''}
     ${hasDemo() ? `<div class="banner info"><span class="b-icon">🧪</span><div class="grow"><div class="item-title">You're exploring with sample data</div><div class="sub">Priya, Arjun and Meera are pretend. Your own books stay when you remove them.</div></div><button class="btn" data-act="demo-remove">Remove</button></div>` : ''}
-    ${todayCardHTML()}
+    <div class="home-grid"><div class="home-left">${todayCardHTML()}</div><div class="home-right">
     <div class="section-label">Your clubs</div>
     ${clubCards || `<div class="card empty">No clubs yet. Start one and send the link to a few friends.</div>`}
     <div class="actions" style="margin-top:0">
       <button class="btn" style="flex:1" data-act="create-open">＋ Create a club</button>
       ${CLOUD ? '<button class="btn" style="flex:1" data-act="w-join">🔑 Join with code</button>' : ''}
-    </div>`;
+    </div></div></div>`;
 }
 
 /* ----- Shelf ----- */
@@ -1056,7 +1116,7 @@ function feedHTML(people, emptyOthers) {
   return `<div class="section-label" style="margin-top:.2rem">Reading right now</div>
     ${carousel ? `<div class="carousel">${carousel}</div>` : `<div class="card empty">${others.length ? 'Nobody here is mid-book right now.' : emptyOthers}</div>`}
     <div class="section-label">What stayed with us</div>
-    ${posts || '<div class="card empty">When someone finishes a book and shares a thought, it shows up here.</div>'}`;
+    ${posts ? `<div class="feed">${posts}</div>` : '<div class="card empty">When someone finishes a book and shares a thought, it shows up here.</div>'}`;
 }
 function discoverHTML() {
   const clubs = myClubs();
@@ -1161,7 +1221,7 @@ function renderSheet(animate) {
           <p class="sub">Sign in with the same email and password on any other phone or laptop.</p>${subEnd}`;
       } else if (d.signin) {
         inner = `${title('Sign in')}
-          <p class="sub">Use the email and password you created on your other device.</p>
+          <p class="sub">Use the email and password you created on your other device.</p>${switchWarnHTML()}
           <label class="hb-label" for="acc-email">Email</label><input class="hb-input" id="acc-email" type="email" inputmode="email" autocomplete="email">
           <label class="hb-label" for="acc-pw">Password</label><input class="hb-input" id="acc-pw" type="password" autocomplete="current-password">
           <div class="formbtns"><button class="btn" data-act="acc-mode">New here?</button><button class="btn primary" data-act="acc-signin">Sign in</button></div>
@@ -1296,7 +1356,7 @@ function renderSheet(animate) {
       <div class="formbtns"><button class="btn" data-act="close">Cancel</button><button class="btn accent" data-act="w-create-save">Create account</button></div>`;
   }
   if (ui.sheet === 'w-signin') {
-    inner = `${title('Sign in')}
+    inner = `${title('Sign in')}${switchWarnHTML()}
       <label class="hb-label" for="acc-email">Email</label><input class="hb-input" id="acc-email" type="email" inputmode="email" autocomplete="email">
       <label class="hb-label" for="acc-pw">Password</label><input class="hb-input" id="acc-pw" type="password" autocomplete="current-password">
       <div class="formbtns"><button class="btn" data-act="close">Cancel</button><button class="btn primary" data-act="acc-signin">Sign in</button></div>`;
@@ -1304,7 +1364,7 @@ function renderSheet(animate) {
   if (ui.sheet === 'w-join') {
     inner = `${title('Join with code')}<p class="sub">Type the club code a friend sent you.</p>
       ${db ? '' : `<label class="hb-label" for="wj-name">Your name</label><input class="hb-input" id="wj-name" maxlength="40" autocomplete="given-name">`}
-      <label class="hb-label" for="wj-code">Club code</label><input class="hb-input" id="wj-code" autocapitalize="off" autocomplete="off" style="letter-spacing:.2rem;text-transform:lowercase" placeholder="e.g. k7m2qa">
+      <label class="hb-label" for="wj-code">Club code</label><input class="hb-input" id="wj-code" autocapitalize="off" autocomplete="off" style="letter-spacing:.2rem;text-transform:uppercase" placeholder="e.g. K7M2QA">
       <div class="formbtns"><button class="btn" data-act="close">Cancel</button><button class="btn primary" data-act="w-join-save">Join</button></div>`;
   }
 
@@ -1397,8 +1457,8 @@ function renderSheet(animate) {
   /* ---- today, calendar ---- */
   if (ui.sheet === 'nudge') {
     const [ic, h, b] = NUDGE[d.key] || NUDGE.books3;
-    inner = `<div style="text-align:center;padding:.4rem 0"><div style="font-size:2.4rem">${ic}</div><h2 class="sheet-title" style="margin:.4rem 0 .2rem">${h}</h2><p class="sub" style="margin:0">${b}</p><p class="small" style="margin:.4rem 0 0">Just an email and password. Your books stay exactly as they are.</p></div>
-      <div class="formbtns"><button class="btn" data-act="close">Not now</button><button class="btn accent" data-act="settings" data-id="account">Create account</button></div>`;
+    inner = `<div style="text-align:center;padding:.4rem 0"><div style="font-size:2.4rem">${ic}</div><h2 class="sheet-title" style="margin:.4rem 0 .2rem">${h}</h2><p class="sub" style="margin:0">${b}</p><p class="small" style="margin:.4rem 0 0">Just an email and password. Everything you've added stays exactly as it is.</p></div>
+      <div class="formbtns"><button class="btn" data-act="close">${d.key && d.key.startsWith('save') ? 'Later' : 'Not now'}</button><button class="btn accent" data-act="settings" data-id="account">Create account <span style="opacity:.75;font-weight:400">(30 sec)</span></button></div>`;
   }
   if (ui.sheet === 'today') {
     const reading = myBooks().filter(b => b.status === 'reading').sort((a, b) => b.updatedAt - a.updatedAt);
@@ -1508,7 +1568,7 @@ function adminItemHTML(d) {
   if (k === 'clubs') {
     const others = (adm.people || []).filter(p => !r.members.some(m => m.id === p.id));
     form = `<label class="hb-label" for="ai-name">Club name</label><input class="hb-input" id="ai-name" maxlength="40" value="${esc(r.name)}">
-    <label class="hb-label" for="ai-code">Invite code</label><div class="row" style="gap:.4rem"><input class="hb-input" id="ai-code" maxlength="12" value="${esc(r.code)}" style="text-transform:lowercase;letter-spacing:.15rem"><button class="btn" data-act="adm-newcode">New code</button></div>
+    <label class="hb-label" for="ai-code">Invite code</label><div class="row" style="gap:.4rem"><input class="hb-input" id="ai-code" maxlength="12" value="${esc(r.code)}" style="text-transform:uppercase;letter-spacing:.15rem"><button class="btn" data-act="adm-newcode">New code</button></div>
     <div class="section-label">Members · ${r.members.length}</div>
     ${r.members.length ? `<div class="mgroup" style="margin-top:0">${r.members.map(m => `<div class="mrow static"><span class="mt">${esc(m.name)}</span><button class="btn danger" data-act="adm-member" data-club="${r.id}" data-user="${m.id}" data-op="remove">Remove</button></div>`).join('')}</div>` : '<div class="sub">No members.</div>'}
     <div class="row" style="gap:.4rem;margin-top:.5rem"><label class="sr" for="ai-add">Add a member</label><select class="hb-input" id="ai-add"><option value="">Add a person…</option>${others.map(p => `<option value="${p.id}">${esc(p.name)}${p.email ? ' · ' + esc(p.email) : ''}</option>`).join('')}</select><button class="btn" data-act="adm-member-add" data-club="${r.id}">Add</button></div>`;
@@ -1658,7 +1718,7 @@ function addBook({ title, author = '', pages = 0, coverUrl = '', photo = '', sta
   if (onMyShelf(title)) { toast('Already on your shelf'); return null; }
   const b = { id: uid(), userId: ME, title: title.trim(), author, pages: +pages || 0, page: 0, percent: 0, track: false, status, coverUrl, photo, from, genre, updatedAt: Date.now() };
   db.books.push(b); save();
-  if (myBooks().filter(x => !x.demo).length === 3) setTimeout(() => maybeNudge('books3'), 1500);
+  askSave('book');
   return b;
 }
 function updBook(id, patch) {
@@ -1724,7 +1784,7 @@ const actions = {
     await createAccount(email, password);
   },
   async 'w-join-save'() {
-    const code = document.getElementById('wj-code').value.trim().toLowerCase();
+    const code = cleanCode(document.getElementById('wj-code').value);
     if (!code) { toast('Type the club code'); return; }
     if (!db) {
       const name = document.getElementById('wj-name').value.trim();
@@ -1747,7 +1807,8 @@ const actions = {
   async 'acc-signin'() {
     const email = document.getElementById('acc-email').value.trim(), password = document.getElementById('acc-pw').value;
     if (!email || !password) { toast('Enter your email and password'); return; }
-    if (db && myBooks().some(b => !b.demo) && !confirm('Signing in switches this device to that account. Books added here without an account will not move over. Continue?')) return;
+    const n = signedInEmail() ? 0 : guestBookCount();
+    if (n && !confirm(`Your ${n} guest book${n > 1 ? 's' : ''} on this device won't move to that account. Sign in anyway?`)) return;
     const { error } = await sb.auth.signInWithPassword({ email, password });
     if (error) { toast(/invalid/i.test(error.message) ? "That email and password don't match" : error.message); return; }
     try { localStorage.removeItem(STORE_KEY + ':' + ME); } catch (e) {}
@@ -1792,7 +1853,7 @@ const actions = {
   'adm-newcode'() { const el = document.getElementById('ai-code'); if (el) el.value = joinCode(); },
   async 'adm-save'() {
     const { kind: k, item: r } = ui.sheetData, v = id => document.getElementById(id)?.value;
-    const patch = k === 'people' ? { name: v('ai-name') } : k === 'clubs' ? { name: v('ai-name'), code: v('ai-code') }
+    const patch = k === 'people' ? { name: v('ai-name') } : k === 'clubs' ? { name: v('ai-name'), code: cleanCode(v('ai-code')) }
       : k === 'books' ? { title: v('ai-title'), author: v('ai-author'), pages: String(parseInt(v('ai-pages'), 10) || 0), genre: v('ai-genre'), cover_url: v('ai-cover') } : { text: v('ai-text') };
     if (await admRun('admin_update', { p_kind: k, p_id: r.id, p: patch }, 'Saved')) { ui.sheet = 'admin'; ui.sheetData = {}; admLoad(); }
   },
@@ -1942,7 +2003,7 @@ const actions = {
     Object.assign(b, { status: 'finished', page: b.pages || b.page, percent: 100, updatedAt: Date.now() });
     if (!save()) { db.posts.pop(); return; }
     ui.share = { bookId: null, reaction: null, text: '', photo: '' };
-    ui.tab = 'discover'; ui.club = 'all'; render(); scrollTo(0, 0); toast('Shared with your clubs'); setTimeout(() => maybeNudge('post'), 2500);
+    ui.tab = 'discover'; ui.club = 'all'; render(); scrollTo(0, 0); toast('Shared with your clubs'); askSave('post');
   },
 
   /* today + calendar */
