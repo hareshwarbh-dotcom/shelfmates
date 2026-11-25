@@ -1212,11 +1212,11 @@ function welcomeHTML() {
     </div>
     <label class="hb-label" for="ob-name">What should your clubs call you?</label>
     <input class="hb-input" id="ob-name" placeholder="Your first name" autocomplete="given-name" maxlength="40" enterkeyhint="go">
-    <button class="btn primary block" style="margin-top:.7rem" data-act="onboard">${pendingJoin ? 'Join the club' : 'Get started'}</button>
-    <p class="sub" style="text-align:center;margin:.5rem 0 1rem">No sign-up needed. You can add an account later.</p>
+    <button class="btn primary block" style="margin-top:.7rem" data-act="onboard">${pendingJoin ? 'Join the club' : 'Continue as guest'}</button>
+    <p class="sub" style="text-align:center;margin:.5rem 0 1rem">No sign-up needed. Save your shelf with an account anytime.</p>
     <div class="mgroup">
       ${CLOUD ? `<button class="mrow" data-act="w-create"><span class="mi">☁️</span><span class="mt">Create free account<small>Use your books on any phone or laptop</small></span><span class="mc">›</span></button>` : ''}
-      <button class="mrow" data-act="w-explore"><span class="mi">🧪</span><span class="mt">Explore with sample data<small>See how it works before adding your own</small></span><span class="mc">›</span></button>
+      <button class="mrow" data-act="w-explore"><span class="mi">🧪</span><span class="mt">Take a quick tour<small>Peek at a sample club first</small></span><span class="mc">›</span></button>
       ${CLOUD && !pendingJoin ? `<button class="mrow" data-act="w-join"><span class="mi">🔑</span><span class="mt">Join with code<small>A friend gave you a club code</small></span><span class="mc">›</span></button>` : ''}
       ${CLOUD ? `<button class="mrow" data-act="w-signin"><span class="mi">👋</span><span class="mt">Sign in<small>I already have an account</small></span><span class="mc">›</span></button>` : ''}
     </div>
@@ -1916,6 +1916,14 @@ function adminHTML() {
       </div>
       ${adm.fbNew ? `<button class="banner accent" style="width:100%;text-align:left;cursor:pointer;color:var(--ink)" data-act="adm-tab" data-id="feedback"><span class="b-icon">💬</span><span class="sub" style="color:var(--ink)">${adm.fbNew} new feedback ${adm.fbNew === 1 ? 'message' : 'messages'} to read.</span></button>` : ''}
       ${a.bin ? `<button class="banner info" style="width:100%;text-align:left;cursor:pointer;color:var(--ink)" data-act="adm-tab" data-id="bin"><span class="b-icon">🗑️</span><span class="sub" style="color:var(--ink)">${a.bin} ${a.bin === 1 ? 'item' : 'items'} in Recently deleted. They're cleared after 30 days.</span></button>` : ''}
+      ${adm.split ? (() => { const v = adm.split, tot = v.acc + v.gst, pc = tot ? Math.round(v.acc / tot * 100) : 0;
+        return `<div class="section-label">Accounts vs guests</div>
+        <div class="card"><div class="row" style="justify-content:space-between;align-items:baseline"><b style="font-size:1.3rem">${pc}%</b><span class="small">have an account</span></div>
+          <div class="bar" style="margin-top:.4rem"><div style="width:${pc}%"></div></div></div>
+        <div class="card tbl-wrap"><table class="tbl"><thead><tr><th></th><th>Accounts</th><th>Guests</th></tr></thead><tbody>
+          <tr><td>Total</td><td>${v.acc}</td><td>${v.gst}</td></tr>
+          <tr><td>New this week</td><td>${v.accNew}</td><td>${v.gstNew}</td></tr>
+          <tr><td>Active this week</td><td>${v.accAct}</td><td>${v.gstAct}</td></tr></tbody></table></div>`; })() : ''}
       ${adm.topClubs && adm.topClubs.length ? `<div class="section-label">Biggest clubs</div>
       <div class="card tbl-wrap"><table class="tbl"><thead><tr><th>Club</th><th>Members</th><th>Owners</th></tr></thead><tbody>${adm.topClubs.map(c => `<tr><td>${esc(c.name)}</td><td>${c.members.length}</td><td>${esc(c.members.filter(m => m.role === 'owner').map(m => m.name).join(', ') || '—')}</td></tr>`).join('')}</tbody></table></div>` : ''}
       <div class="section-label">Most added books</div>
@@ -1999,6 +2007,12 @@ async function admLoad() {
     if (adm.tab === 'overview') {
       const { data, error } = await sb.rpc('admin_overview'); if (error) throw error; adm.data = data;
       const fc = await sb.from('feedback').select('id', { count: 'exact', head: true }).eq('status', 'new'); adm.fbNew = fc.error ? 0 : (fc.count || 0);
+      const pp = await sb.rpc('admin_list', { p_kind: 'people', p_q: '', p_bin: false });
+      if (!pp.error) {
+        const wk = Date.now() - 7 * 86400000, t = x => x ? Date.parse(x) : 0, acc = pp.data.filter(x => !x.guest), gst = pp.data.filter(x => x.guest);
+        adm.split = { acc: acc.length, gst: gst.length, accNew: acc.filter(x => t(x.created_at) > wk).length, gstNew: gst.filter(x => t(x.created_at) > wk).length,
+          accAct: acc.filter(x => t(x.last_seen) > wk).length, gstAct: gst.filter(x => t(x.last_seen) > wk).length };
+      }
       const cl = await sb.rpc('admin_list', { p_kind: 'clubs', p_q: '', p_bin: false }); adm.topClubs = cl.error ? [] : [...cl.data].sort((a, b) => b.members.length - a.members.length).slice(0, 5);
     }
     else if (adm.tab === 'feedback') { const { data, error } = await sb.from('feedback').select('*').order('created_at', { ascending: false }).limit(200); if (error) throw error; adm.fb = data; adm.fbNew = data.filter(x => x.status === 'new').length; }
