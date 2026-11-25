@@ -280,6 +280,17 @@ body { background: var(--bg); }
 .cele-card .big { font-size: 2.6rem; line-height: 1; }
 .cele-card h2 { font-family: var(--font-display); font-size: 1.35rem; font-weight: 600; margin: .5rem 0 .3rem; }
 .cele-card p { margin: 0; color: var(--muted); line-height: 1.5; }
+.stamps { display: grid; grid-template-columns: repeat(auto-fill, minmax(8.2rem, 1fr)); gap: .5rem; }
+.stamp { display: flex; flex-direction: column; align-items: center; text-align: center; gap: .15rem; padding: .7rem .5rem .8rem; border-radius: var(--radius-lg); }
+.stamp svg { width: 4.2rem; height: 4.2rem; margin-bottom: .2rem; }
+.stamp b { font-size: .82rem; font-weight: 600; line-height: 1.25; }
+.stamp span { font-size: .74rem; line-height: 1.35; }
+.stamp.lock { background: var(--card); border: 1.5px dashed var(--line); }
+.stamp.lock svg { filter: grayscale(1); opacity: .35; }
+.stamp.lock b, .stamp.lock span { color: var(--muted); }
+.stamp-row { display: flex; gap: .35rem; flex-wrap: wrap; margin-top: .3rem; }
+.stamp-row svg { width: 2.7rem; height: 2.7rem; }
+.stamp-big svg { width: 8.5rem; height: 8.5rem; animation: pop .5s cubic-bezier(.2,1.4,.4,1); }
 .cele-card .ccover { width: 4.6rem; margin: .7rem auto 0; }
 @keyframes pop { from { transform: scale(.85); opacity: 0; } }
 .confetti { position: fixed; inset: 0; pointer-events: none; z-index: 1; overflow: hidden; }
@@ -554,6 +565,7 @@ function save() {
   try { localStorage.setItem(cacheKey(), JSON.stringify(db)); }
   catch (e) { if (!CLOUD) { toast('Phone storage is full. Try a smaller photo or remove some photos.'); ok = false; } }
   if (CLOUD && db) { setSyncState('pending'); queueSync(); }
+  clearTimeout(save.st); save.st = setTimeout(checkStamps, 300);
   return ok;
 }
 
@@ -569,7 +581,7 @@ const iso = ts => new Date(ts || Date.now()).toISOString();
 const bookRow = b => ({ id: b.id, user_id: ME, title: b.title, author: b.author || '', pages: b.pages || 0, page: b.page || 0, percent: b.percent || 0, track: !!tracked(b), status: b.status, cover_url: b.coverUrl || '', photo_url: b.photo || '', from_note: b.from || '', genre: b.genre || '', updated_at: iso(b.updatedAt) });
 const postRow = p => ({ id: p.id, user_id: ME, title: p.title, author: p.author || '', pages: p.pages || 0, cover_url: p.coverUrl || '', reaction: p.reaction, text: p.text || '', photo_url: p.photo || '', created_at: iso(p.createdAt) });
 const groupRow = g => ({ id: g.id, name: g.name, code: g.code, created_by: ME, created_at: iso(g.createdAt) });
-const profileRow = () => ({ id: ME, name: db.me.name, show_progress: db.me.showProgress !== false, theme: db.me.theme || 'teal', daily_goal: db.me.goal || null, show_clubs: !!db.me.showClubs, avatar_url: db.me.avatar || '', bio: db.me.bio || '', fav_genres: db.me.genres || [] });
+const profileRow = () => ({ id: ME, name: db.me.name, show_progress: db.me.showProgress !== false, theme: db.me.theme || 'teal', daily_goal: db.me.goal || null, show_clubs: !!db.me.showClubs, avatar_url: db.me.avatar || '', bio: db.me.bio || '', fav_genres: db.me.genres || [], stamps: db.me.stamps || {}, show_stamps: !!db.me.showStamps });
 const logRow = l => ({ id: l.id, user_id: ME, book_id: l.bookId, title: l.title, day: l.day, pages: l.pages, updated_at: iso(l.updatedAt) });
 const rowToBook = r => ({ id: r.id, userId: r.user_id, title: r.title, author: r.author || '', pages: r.pages || 0, page: r.page || 0, percent: r.percent || 0, track: r.track, status: r.status, coverUrl: r.cover_url || '', photo: r.photo_url || '', from: r.from_note || '', genre: r.genre || '', updatedAt: Date.parse(r.updated_at) || Date.now() });
 const rowToPost = r => ({ id: r.id, userId: r.user_id, title: r.title, author: r.author || '', pages: r.pages || 0, coverUrl: r.cover_url || '', reaction: r.reaction, text: r.text || '', photo: r.photo_url || '', createdAt: Date.parse(r.created_at) || Date.now() });
@@ -683,7 +695,7 @@ async function pull() {
   const userIds = [...new Set([ME, ...members.map(m => m.user_id)])];
   const since = dayStr(Date.now() - 400 * 86400000);
   const [profs, books, posts, admin, log] = await Promise.all([
-    sb.from('profiles').select('id,name,show_progress,avatar_url,bio,fav_genres').in('id', userIds).is('deleted_at', null),
+    sb.from('profiles').select('id,name,show_progress,avatar_url,bio,fav_genres,stamps,show_stamps').in('id', userIds).is('deleted_at', null),
     sb.from('books').select('*').in('user_id', userIds).is('deleted_at', null),
     sb.from('posts').select('*').in('user_id', userIds).is('deleted_at', null).order('created_at', { ascending: false }).limit(300),
     sb.rpc('am_i_admin'),
@@ -704,15 +716,15 @@ async function pull() {
 
   db = {
     version: 3,
-    me: { id: ME, name: prof.name, showProgress: prof.show_progress !== false, theme: prof.theme || 'teal', goal: prof.daily_goal || 0, showClubs: !!prof.show_clubs, avatar: prof.avatar_url || '', bio: prof.bio || '', genres: prof.fav_genres || [] },
+    me: { id: ME, name: prof.name, showProgress: prof.show_progress !== false, theme: prof.theme || 'teal', goal: prof.daily_goal || 0, showClubs: !!prof.show_clubs, avatar: prof.avatar_url || '', bio: prof.bio || '', genres: prof.fav_genres || [], stamps: prof.stamps || {}, showStamps: !!prof.show_stamps },
     log: (log.data || []).map(r => ({ id: r.id, bookId: r.book_id, title: r.title, day: r.day, pages: r.pages, updatedAt: Date.parse(r.updated_at) || 0 })),
-    users: [...profs.data.filter(p => p.id !== ME).map(p => ({ id: p.id, name: p.name, showProgress: p.show_progress !== false, avatar: p.avatar_url || '', bio: p.bio || '', genres: p.fav_genres || [] })), ...demo.users],
+    users: [...profs.data.filter(p => p.id !== ME).map(p => ({ id: p.id, name: p.name, showProgress: p.show_progress !== false, avatar: p.avatar_url || '', bio: p.bio || '', genres: p.fav_genres || [], stamps: p.show_stamps ? (p.stamps || {}) : null })), ...demo.users],
     groups: [...groups.map(g => ({ id: g.id, name: g.name, code: g.code, createdBy: g.created_by, createdAt: Date.parse(g.created_at), members: members.filter(m => m.group_id === g.id && (m.user_id === ME || profs.data.some(p => p.id === m.user_id))).map(m => m.user_id) })), ...demo.groups],
     books: [...books.data.map(rowToBook), ...demo.books],
     posts: [...posts.data.map(rowToPost), ...demo.posts]
   };
   // what the cloud has now
-  synced = { 'p:me': JSON.stringify({ id: ME, name: prof.name, show_progress: prof.show_progress !== false, theme: prof.theme || 'teal', daily_goal: prof.daily_goal || null, show_clubs: !!prof.show_clubs, avatar_url: prof.avatar_url || '', bio: prof.bio || '', fav_genres: prof.fav_genres || [] }) };
+  synced = { 'p:me': JSON.stringify(profileRow()) };
   db.log.forEach(l => synced['l:' + l.id] = JSON.stringify(logRow(l)));
   // keep newer local log entries
   ((prev && prev.log) || []).forEach(ll => {
@@ -740,9 +752,15 @@ async function joinByCode(code) {
   await pull();
   ui.clubPage = data; ui.clubTab = 'books'; ui.sheet = null;
   render();
-  const g = db.groups.find(x => x.id === data); if (g) toast('You joined ' + g.name + ' 🎉'); setTimeout(() => maybeNudge('club'), 3000);
+  const g = db.groups.find(x => x.id === data); if (g) toast('You joined ' + g.name + ' 🎉', () => leaveClub(g.id)); setTimeout(() => maybeNudge('club'), 3000);
 }
 
+async function leaveClub(id) {
+  const g = db.groups.find(x => x.id === id); if (!g) return;
+  const { error } = await sb.from('group_members').delete().eq('group_id', id).eq('user_id', ME);
+  if (error) { toast(error.message); return; }
+  db.groups = db.groups.filter(x => x.id !== id); save(); ui.clubPage = null; closeSheet(); recheckStamps(); toast('You left ' + g.name);
+}
 let refreshing = false;
 async function refresh() {
   if (!CLOUD || !authUser || refreshing || !db) return;
@@ -869,7 +887,9 @@ const CELE = {
 };
 const pick = a => a[Math.floor(Math.random() * a.length)];
 let celeTimer;
-function celebrate(kind, b) {
+let celeUndo = null;
+function celebrate(kind, b, undo) {
+  celeUndo = undo || null;
   const [emoji, head, body] = pick(CELE[kind]);
   const t = esc(b.title);
   const root = document.getElementById('cele-root');
@@ -882,12 +902,125 @@ function celebrate(kind, b) {
       <h2>${head.replace('{t}', t)}</h2>
       <p>${body.replace('{t}', t)}</p>
       ${kind === 'finish' ? `<div class="ccover">${fcover(b)}</div>
-        <div class="formbtns"><button class="btn" data-act="cele-close">Later</button><button class="btn accent" data-act="cele-share" data-id="${b.id}">✍️ Share what stayed</button></div>` : '<p class="small" style="margin-top:.8rem">Tap anywhere to close</p>'}
+        <div class="formbtns"><button class="btn" data-act="cele-close">Later</button><button class="btn accent" data-act="cele-share" data-id="${b.id}">✍️ Share what stayed</button></div>
+        ${undo ? '<button class="link" style="margin-top:.5rem" data-act="cele-undo">Oops, not finished yet</button>' : ''}` : undo ? '<button class="link" style="margin-top:.7rem" data-act="cele-undo">Oops, undo</button>' : '<p class="small" style="margin-top:.8rem">Tap anywhere to close</p>'}
     </div></div>`;
   clearTimeout(celeTimer);
-  if (kind === 'start') celeTimer = setTimeout(() => { root.innerHTML = ''; }, 3200);
+  if (kind === 'start') celeTimer = setTimeout(() => { root.innerHTML = ''; celeUndo = null; }, 4500);
 }
-const wantToast = title => toast(pick(CELE.want).replace('{t}', title));
+/* ---------- stamps (badges) ---------- */
+const RAMP = {
+  amber: ['#FAEEDA', '#FAC775', '#854F0B', '#633806'], green: ['#EAF3DE', '#C0DD97', '#3B6D11', '#27500A'],
+  coral: ['#FAECE7', '#F5C4B3', '#993C1D', '#712B13'], purple: ['#EEEDFE', '#CECBF6', '#534AB7', '#3C3489'],
+  teal: ['#E1F5EE', '#9FE1CB', '#0F6E56', '#085041'], pink: ['#FBEAF0', '#F4C0D1', '#993556', '#72243E'],
+  blue: ['#E6F1FB', '#B5D4F4', '#185FA5', '#0C447C'], gray: ['#F1EFE8', '#D3D1C7', '#5F5E5A', '#444441'], red: ['#FCEBEB', '#F7C1C1', '#A32D2D', '#791F1F']
+};
+const STAMPS = [
+  ['page', 'First page', 'Create your account', 'Ollie the owl welcomes you', 'amber',
+    '<path d="M20 27 L21 15 L28 24 Z M44 27 L43 15 L36 24 Z" fill="#854F0B"/><ellipse cx="32" cy="38" rx="14" ry="16" fill="#BA7517"/><ellipse cx="32" cy="43" rx="9" ry="9" fill="#FAEEDA"/><circle cx="26" cy="32" r="6" fill="#fff"/><circle cx="38" cy="32" r="6" fill="#fff"/><circle cx="27" cy="33" r="2.6" fill="#412402"/><circle cx="37" cy="33" r="2.6" fill="#412402"/><path d="M30 37 L34 37 L32 41 Z" fill="#EF9F27"/><path d="M22 47 L32 45 L42 47 L42 53 L32 51 L22 53 Z" fill="#378ADD"/>'],
+  ['book', 'Opened a book', 'Add your first book', 'Wren the bookworm moves in', 'green',
+    '<path d="M12 44 Q32 38 32 42 Q32 38 52 44 L52 52 Q32 46 32 50 Q32 46 12 52 Z" fill="#185FA5"/><circle cx="25" cy="40" r="5" fill="#639922"/><circle cx="24" cy="33" r="5" fill="#639922"/><circle cx="29" cy="27" r="5" fill="#639922"/><circle cx="36" cy="22" r="7.5" fill="#97C459"/><circle cx="33.5" cy="21" r="2.6" fill="#fff" stroke="#173404"/><circle cx="39.5" cy="21" r="2.6" fill="#fff" stroke="#173404"/><circle cx="34" cy="21.5" r="1" fill="#173404"/><circle cx="40" cy="21.5" r="1" fill="#173404"/><path d="M34 25.5 Q36.5 27.5 39 25.5" stroke="#173404" stroke-width="1.2" fill="none" stroke-linecap="round"/>'],
+  ['friend', 'Brought a friend', 'A friend joins your club from your invite', 'Fennec the fox delivers', 'coral',
+    '<path d="M20 26 L18 12 L28 22 Z M44 26 L46 12 L36 22 Z" fill="#D85A30"/><path d="M18 26 Q32 19 46 26 L32 48 Z" fill="#D85A30"/><path d="M21 28 L32 47 L29 33 Z M43 28 L32 47 L35 33 Z" fill="#fff"/><circle cx="26" cy="30" r="2" fill="#4A1B0C"/><circle cx="38" cy="30" r="2" fill="#4A1B0C"/><circle cx="32" cy="45" r="2" fill="#4A1B0C"/><rect x="38" y="40" width="16" height="11" rx="1.5" fill="#fff" stroke="#993C1D" stroke-width="1.2"/><path d="M38 41 L46 47 L54 41" fill="none" stroke="#993C1D" stroke-width="1.2"/>'],
+  ['note', 'Left a margin note', 'Share what stayed with you', 'Inky the cat scribbles', 'purple',
+    '<path d="M17 30 L18 15 L27 23 Z M41 30 L40 15 L31 23 Z" fill="#7F77DD"/><circle cx="29" cy="35" r="13" fill="#7F77DD"/><ellipse cx="24" cy="34" rx="2" ry="3" fill="#26215C"/><ellipse cx="34" cy="34" rx="2" ry="3" fill="#26215C"/><path d="M27.5 39 L30.5 39 L29 41 Z" fill="#ED93B1"/><path d="M18 39 L10 37 M18 41 L10 42 M40 39 L47 37" stroke="#26215C" stroke-linecap="round"/><g transform="rotate(32 48 40)"><rect x="45" y="26" width="6" height="20" rx="1" fill="#EF9F27"/><rect x="45" y="26" width="6" height="4" fill="#ED93B1"/><path d="M45 46 L51 46 L48 52 Z" fill="#FAC775"/></g>'],
+  ['rec', 'Took a recommendation', "Save a book from a friend's shelf", 'Hazel the hedgehog approves', 'teal',
+    '<path d="M22 16 L30 16 L30 30 L26 26 L22 30 Z" fill="#D4537E"/><path d="M12 46 L14 37 L18 41 L19 31 L24 37 L27 28 L31 35 L35 28 L37 37 L42 32 L43 41 L47 38 L48 46 Z" fill="#0F6E56"/><ellipse cx="34" cy="46" rx="17" ry="7" fill="#F1EFE8"/><circle cx="43" cy="44" r="1.8" fill="#04342C"/><circle cx="50" cy="46" r="1.8" fill="#04342C"/>'],
+  ['end', 'The end', 'Finish a book, at your own pace', 'Sunny the snail cheers', 'pink',
+    '<path d="M10 50 Q30 45 50 49 Q53 53 47 53 L13 53 Q9 53 10 50 Z" fill="#ED93B1"/><circle cx="30" cy="40" r="11" fill="#D4537E"/><path d="M30 40 m-3 0 a3 3 0 1 1 3 3 a6 6 0 1 1 6 -6" stroke="#FBEAF0" stroke-width="2" fill="none"/><path d="M46 48 L45 38 M50 48 L52 39" stroke="#993556" stroke-width="1.5"/><circle cx="45" cy="37" r="2" fill="#4B1528"/><circle cx="52" cy="38" r="2" fill="#4B1528"/><path d="M15 50 L15 18" stroke="#444441" stroke-width="1.5"/><path d="M15 18 L27 22 L15 26 Z" fill="#EF9F27"/>'],
+  ['founder', 'Club founder', 'Start a club', 'Bruno the bear throws a party', 'blue',
+    '<circle cx="20" cy="24" r="6" fill="#854F0B"/><circle cx="44" cy="24" r="6" fill="#854F0B"/><circle cx="20" cy="24" r="3" fill="#FAC775"/><circle cx="44" cy="24" r="3" fill="#FAC775"/><circle cx="32" cy="37" r="15" fill="#BA7517"/><ellipse cx="32" cy="43" rx="7" ry="5" fill="#FAEEDA"/><ellipse cx="32" cy="40.5" rx="2.5" ry="1.8" fill="#412402"/><circle cx="26" cy="34" r="1.9" fill="#412402"/><circle cx="38" cy="34" r="1.9" fill="#412402"/><path d="M26 24 L32 8 L38 24 Z" fill="#D4537E"/><circle cx="30" cy="18" r="1.2" fill="#fff"/><circle cx="34" cy="14" r="1.2" fill="#fff"/><circle cx="32" cy="8" r="2.6" fill="#EF9F27"/>'],
+  ['chair', 'Pulled up a chair', "Join someone's club", 'Pip the penguin settles in', 'gray',
+    '<rect x="15" y="20" width="34" height="24" rx="5" fill="#F0997B"/><rect x="12" y="40" width="40" height="12" rx="4" fill="#D85A30"/><ellipse cx="32" cy="36" rx="12" ry="16" fill="#2C2C2A"/><ellipse cx="32" cy="39" rx="8.5" ry="13" fill="#fff"/><circle cx="28.5" cy="30" r="1.8" fill="#2C2C2A"/><circle cx="35.5" cy="30" r="1.8" fill="#2C2C2A"/><path d="M30 33 L34 33 L32 36 Z" fill="#EF9F27"/><ellipse cx="27" cy="52" rx="3.5" ry="1.6" fill="#EF9F27"/><ellipse cx="37" cy="52" rx="3.5" ry="1.6" fill="#EF9F27"/>'],
+  ['home', 'Moved in', 'Put Shelfmates on your home screen', 'Clover the rabbit unpacks', 'red',
+    '<ellipse cx="22" cy="19" rx="4" ry="10" fill="#fff" stroke="#D3D1C7"/><ellipse cx="32" cy="18" rx="4" ry="10" fill="#fff" stroke="#D3D1C7"/><ellipse cx="22" cy="19" rx="2" ry="7" fill="#F4C0D1"/><ellipse cx="32" cy="18" rx="2" ry="7" fill="#F4C0D1"/><circle cx="27" cy="37" r="12" fill="#fff" stroke="#D3D1C7"/><circle cx="23" cy="36" r="1.8" fill="#2C2C2A"/><circle cx="31" cy="36" r="1.8" fill="#2C2C2A"/><path d="M25.8 40 L28.2 40 L27 41.6 Z" fill="#ED93B1"/><circle cx="20" cy="41" r="2" fill="#F4C0D1"/><circle cx="34" cy="41" r="2" fill="#F4C0D1"/><rect x="43" y="44" width="14" height="11" fill="#fff" stroke="#A32D2D"/><path d="M41 45 L50 36 L59 45 Z" fill="#E24B4A"/><rect x="48" y="49" width="4" height="6" fill="#A32D2D"/>'],
+  ['genres', 'Genre hopper', 'Read books from 3 different genres', 'Hops the frog leaps between shelves', 'green',
+    '<rect x="15" y="54" width="34" height="5" rx="1" fill="#7F77DD"/><rect x="16" y="48" width="32" height="6" rx="1" fill="#D85A30"/><rect x="18" y="42" width="28" height="6" rx="1" fill="#378ADD"/><ellipse cx="32" cy="34" rx="13" ry="9" fill="#639922"/><circle cx="25" cy="26" r="5" fill="#639922"/><circle cx="39" cy="26" r="5" fill="#639922"/><circle cx="25" cy="26" r="3" fill="#fff"/><circle cx="39" cy="26" r="3" fill="#fff"/><circle cx="25.5" cy="26.5" r="1.5" fill="#173404"/><circle cx="39.5" cy="26.5" r="1.5" fill="#173404"/><path d="M26 36 Q32 40 38 36" stroke="#173404" stroke-width="1.4" fill="none" stroke-linecap="round"/><circle cx="22" cy="34" r="1.8" fill="#ED93B1"/><circle cx="42" cy="34" r="1.8" fill="#ED93B1"/>'],
+  ['resume', 'Picked up again', 'Resume a book you paused', 'Tilly the turtle takes her time', 'teal',
+    '<ellipse cx="30" cy="44" rx="19" ry="4" fill="#5DCAA5"/><ellipse cx="18" cy="47" rx="3" ry="4" fill="#5DCAA5"/><ellipse cx="40" cy="47" rx="3" ry="4" fill="#5DCAA5"/><path d="M12 43 Q30 14 48 43 Z" fill="#1D9E75"/><path d="M22 42 L26 31 L34 31 L38 42 M26 31 L30 24 L34 31" stroke="#9FE1CB" stroke-width="1.3" fill="none"/><circle cx="51" cy="38" r="6" fill="#5DCAA5"/><circle cx="52.5" cy="36.5" r="1.3" fill="#04342C"/><path d="M50 40.5 Q52 42 54 40.5" stroke="#04342C" fill="none" stroke-linecap="round"/>'],
+  ['feedback', 'Helped build Shelfmates', 'Send us feedback', 'Buzz the bee says thank you', 'amber',
+    '<defs><clipPath id="bzc"><ellipse cx="30" cy="38" rx="13" ry="10"/></clipPath></defs><ellipse cx="25" cy="24" rx="6" ry="9" fill="#E6F1FB" stroke="#85B7EB" transform="rotate(-20 25 24)"/><ellipse cx="35" cy="24" rx="6" ry="9" fill="#E6F1FB" stroke="#85B7EB" transform="rotate(20 35 24)"/><ellipse cx="30" cy="38" rx="13" ry="10" fill="#EF9F27"/><g clip-path="url(#bzc)" fill="#412402"><rect x="23" y="26" width="4" height="24"/><rect x="31" y="26" width="4" height="24"/></g><circle cx="45" cy="36" r="7" fill="#EF9F27"/><circle cx="47" cy="34.5" r="1.6" fill="#412402"/><path d="M44.5 39 Q47 40.5 49.5 39" stroke="#412402" fill="none" stroke-linecap="round"/><path d="M44 30 Q42 24 39 23 M48 30 Q49 24 52 23" stroke="#412402" fill="none"/><rect x="12" y="46" width="12" height="3" rx="1" fill="#5F5E5A" transform="rotate(-35 18 47)"/><rect x="9" y="50" width="4" height="7" rx="1" fill="#854F0B" transform="rotate(-35 11 53)"/>']
+];
+const STAMP = Object.fromEntries(STAMPS.map(s => [s[0], s]));
+const stampSVG = (k, cls = '') => { const s = STAMP[k], r = RAMP[s[4]]; return `<svg class="${cls}" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="30" fill="${r[1]}"/><circle cx="32" cy="32" r="27" fill="none" stroke="${r[2]}" stroke-width="1.5" stroke-dasharray="2 3"/>${s[5]}</svg>`; };
+const earnedKeys = st => STAMPS.map(s => s[0]).filter(k => st && st[k]);
+function stampGridHTML(st) {
+  return `<div class="stamps">${STAMPS.map(([k, t, how, line, ramp]) => { const r = RAMP[ramp], got = st && st[k];
+    return got ? `<div class="stamp" style="background:${r[0]}">${stampSVG(k)}<b style="color:${r[3]}">${esc(t)}</b><span style="color:${r[2]}">${esc(line)}</span></div>`
+      : `<div class="stamp lock">${stampSVG(k)}<b>${esc(t)}</b><span>${esc(how)}</span></div>`; }).join('')}</div>`;
+}
+function stampConditions() {
+  const mine = myBooks().filter(b => !b.demo), groups = db.groups.filter(g => !g.demo);
+  return {
+    page: !!signedInEmail(),
+    book: mine.length > 0,
+    friend: groups.some(g => g.createdBy === ME && g.members.some(m => m !== ME)),
+    note: db.posts.some(p => p.userId === ME && !p.demo),
+    rec: mine.some(b => /^Saved from/.test(b.from || '')),
+    end: mine.some(b => b.status === 'finished'),
+    founder: groups.some(g => g.createdBy === ME),
+    chair: groups.some(g => g.createdBy && g.createdBy !== ME && g.members.includes(ME)),
+    home: isInstalled(),
+    genres: new Set(mine.filter(b => b.genre && (b.status === 'reading' || b.status === 'finished')).map(b => b.genre)).size >= 3
+  };
+}
+const stampQueue = [];
+function earnStamp(k, silent) {
+  if (!db || !STAMP[k]) return;
+  const st = db.me.stamps || (db.me.stamps = {});
+  if (st[k]) return;
+  st[k] = Date.now(); save();
+  if (!silent) { stampQueue.push(k); showStampSoon(); }
+}
+function checkStamps() {
+  if (!db || !db.me) return;
+  const st = db.me.stamps || (db.me.stamps = {});
+  const first = !st._init, c = stampConditions();
+  Object.keys(c).forEach(k => { if (c[k] && !st[k]) earnStamp(k, first); });
+  if (first) { st._init = 1; save(); }
+}
+let stampWait = 0, stampShown = null;
+/* after an undo: take back recent stamps whose reason no longer holds */
+function recheckStamps(extra = []) {
+  if (!db || !db.me.stamps) return;
+  const st = db.me.stamps, c = stampConditions(), now = Date.now(); let changed = false;
+  Object.keys(c).concat(extra).forEach(k => {
+    if (k === 'page' || k === 'home' || !st[k] || now - st[k] > 10 * 60 * 1000) return;
+    if (extra.includes(k) || !c[k]) {
+      delete st[k]; changed = true;
+      const i = stampQueue.indexOf(k); if (i >= 0) stampQueue.splice(i, 1);
+      if (stampShown === k) { document.getElementById('cele-root').innerHTML = ''; stampShown = null; }
+    }
+  });
+  if (changed) save();
+}
+function showStampSoon() {
+  clearTimeout(stampWait);
+  stampWait = setTimeout(() => {
+    if (!stampQueue.length) return;
+    if (ui.sheet || document.getElementById('cele-root').innerHTML) { showStampSoon(); return; }
+    const k = stampQueue.shift(), [, t, , line, ramp] = STAMP[k], r = RAMP[ramp]; stampShown = k;
+    const n = earnedKeys(db.me.stamps).length;
+    document.getElementById('cele-root').innerHTML = `<div class="cele" data-act="cele-close" role="dialog" aria-modal="true" aria-label="New stamp: ${esc(t)}">
+      <div class="cele-card" style="background:${r[0]};border-color:${r[1]}">
+        <div class="stamp-big">${stampSVG(k)}</div>
+        <div class="small" style="color:${r[2]};letter-spacing:.05em;text-transform:uppercase;margin-top:.3rem">New stamp · ${n} of ${STAMPS.length}</div>
+        <h2 style="color:${r[3]}">${esc(t)}</h2>
+        <p style="color:${r[2]}">${esc(line)}.</p>
+        <div class="formbtns"><button class="btn" data-act="cele-close">Lovely</button><button class="btn" style="background:${r[2]};color:#fff;border-color:${r[2]}" data-act="stamps-open">See my stamps</button></div>
+      </div></div>`;
+    if (stampQueue.length) showStampSoon();
+  }, 1600);
+}
+const wantToast = (title, undo) => toast(pick(CELE.want).replace('{t}', title), undo);
+const myCopy = title => myBooks().find(b => norm(b.title) === norm(title));
+function takeBack(b) { db.books = db.books.filter(x => x.id !== b.id); save(); render(); recheckStamps(); }
+function saveBtn(title, act, id, label, style) {
+  const b = myCopy(title);
+  if (!b) return `<button class="btn" style="${style}" data-act="${act}" data-id="${id}">${label}</button>`;
+  if (b.status === 'want') return `<button class="btn" style="${style}" data-act="unsave" data-id="${b.id}" aria-label="Saved to Want to read. Tap to undo">✓ Saved · <u>Undo</u></button>`;
+  return `<button class="btn" style="${style}" disabled>✓ On my shelf</button>`;
+}
 
 /* ---------- covers ---------- */
 function coverHTML(b, w, h) {
@@ -929,6 +1062,7 @@ function render() {
   if (ui.loading) { app.innerHTML = `<div class="loading">Opening your shelf…</div>`; return; }
   if (!db) { app.innerHTML = welcomeHTML(); renderSheet(); return; }
   db.log = db.log || [];
+  if (!render.st) { render.st = 1; setTimeout(checkStamps, 800); }
   if (display.mood === 'match') applyDisplay();
   if (ui.club !== 'all' && !db.groups.find(g => g.id === ui.club)) ui.club = 'all';
   const titles = { home: '', shelf: 'My shelf', discover: 'Discover', share: 'Share' };
@@ -1107,7 +1241,7 @@ function readingCarousel(others) {
       <button class="who" style="all:unset;cursor:pointer;display:flex;align-items:center;gap:.35rem;font-size:.8rem" data-act="member" data-id="${b.userId}">${avatar(u, 'sm')}<b>${esc(u.name)}</b></button>
       ${fcover(b)}
       ${u.showProgress !== false && tracked(b) ? `<div class="bar"><div style="width:${pct(b)}%"></div></div>` : '<div class="small">Reading</div>'}
-      <button class="btn" style="font-size:.78rem" ${saved ? 'disabled' : ''} data-act="save-book" data-id="${b.id}">${saved ? '✓ On my shelf' : '＋ Want to read'}</button>
+      ${saveBtn(b.title, 'save-book', b.id, '＋ Want to read', 'font-size:.78rem')}
     </div>`;
   }).join('');
 }
@@ -1120,7 +1254,7 @@ function postCard(p) {
     ${p.text ? `<p class="thought">${esc(p.text)}</p>` : ''}
     <div class="book-strip">${coverHTML(p, 36, 54)}
       <div class="grow"><div class="item-title" style="font-size:.9rem">${esc(p.title)}</div><div class="meta">${reactionPill(p.reaction)}</div></div>
-      ${isMe ? '' : `<button class="btn" style="font-size:.78rem" ${saved ? 'disabled' : ''} data-act="save-post" data-id="${p.id}">${saved ? '✓ Saved' : '＋ Save'}</button>`}
+      ${isMe ? '' : saveBtn(p.title, 'save-post', p.id, '＋ Save', 'font-size:.78rem')}
     </div>
   </article>`;
 }
@@ -1267,6 +1401,9 @@ function renderSheet(animate) {
         <div class="hb-label">Favourite genres <span class="sub">(optional)</span></div>
         <div class="chips" style="flex-wrap:wrap">${GENRES.map(([v, l]) => `<button class="chip sm ${p.genres.includes(v) ? 'on' : ''}" aria-pressed="${p.genres.includes(v)}" data-act="pf-genre" data-id="${v}">${l}</button>`).join('')}</div>
         <p class="sub">🔒 Only people in your clubs see your profile.</p>
+        <div class="section-label" id="my-stamps">My stamps · ${earnedKeys(db.me.stamps).length} of ${STAMPS.length}</div>
+        ${stampGridHTML(db.me.stamps)}
+        <p class="sub">${db.me.showStamps ? '🏷️ People in your clubs can see the stamps you’ve earned.' : '🔒 Only you see your stamps. You can share them in Preferences.'}</p>
         <div class="formbtns"><button class="btn" data-act="set-page" data-id="">‹ Settings</button><button class="btn primary" data-act="profile-save">Save</button></div>`;
     } else if (page === 'name') {
       inner = `${title('Your name')}<p class="sub">This is how people in your clubs see you.</p>
@@ -1280,6 +1417,7 @@ function renderSheet(animate) {
         <div class="mgroup" style="margin-top:0">
           <label class="mrow static"><span class="mt">Show my progress to my clubs<small>${db.me.showProgress ? 'Others see a progress bar on books you track' : 'Others only see which book you are reading'}</small></span><span class="switch"><input type="checkbox" data-pref="progress" ${db.me.showProgress ? 'checked' : ''}><span></span></span></label>
           <label class="mrow static"><span class="mt">Show which clubs I'm in<small>${db.me.showClubs ? 'People who share a club with you see your other clubs’ names' : 'Off: people only know about the clubs they share with you'}</small></span><span class="switch"><input type="checkbox" data-pref="clubs" ${db.me.showClubs ? 'checked' : ''}><span></span></span></label>
+          <label class="mrow static"><span class="mt">Show my stamps to my clubs<small>${db.me.showStamps ? 'People in your clubs see the stamps you’ve earned' : 'Off: only you see your stamps'}</small></span><span class="switch"><input type="checkbox" data-pref="stamps" ${db.me.showStamps ? 'checked' : ''}><span></span></span></label>
         </div>
         <div class="section-label">Who sees what</div>
         <div class="mgroup" style="margin-top:0">
@@ -1288,6 +1426,7 @@ function renderSheet(animate) {
              ['📊', 'Progress bars', db.me.showProgress ? 'People in your clubs' : 'Nobody (hidden)'],
              ['✍️', 'Thoughts you share', 'People in your clubs'],
              ['👥', 'Which clubs you’re in', db.me.showClubs ? 'Anyone who shares a club with you' : 'Only people in each club'],
+             ['🏷️', 'Your stamps', db.me.showStamps ? 'People in your clubs' : 'Only you'],
              ['🔒', 'Today, calendar, daily goal', 'Only you']]
             .map(([i, t, w]) => `<div class="mrow static"><span class="mi">${i}</span><span class="mt">${t}</span><span class="ms" style="max-width:52%;white-space:normal;text-align:right">${w}</span></div>`).join('')}
         </div>
@@ -1407,13 +1546,14 @@ function renderSheet(animate) {
     const posts = db.posts.filter(p => p.userId === d.id).sort((a, b) => b.createdAt - a.createdAt);
     const tile = b => { const saved = onMyShelf(b.title); return `<div class="shelf-item">${fcover(b)}<span class="item-title clamp2">${esc(b.title)}</span>
       ${b.status === 'reading' && u.showProgress !== false && tracked(b) ? `<div class="bar"><div style="width:${pct(b)}%"></div></div>` : ''}
-      ${isMe ? '' : `<button class="btn" style="font-size:.74rem;padding:.2rem .4rem" ${saved ? 'disabled' : ''} data-act="save-book" data-id="${b.id}">${saved ? '✓ Saved' : '＋ Want'}</button>`}</div>`; };
+      ${isMe ? '' : saveBtn(b.title, 'save-book', b.id, '＋ Want', 'font-size:.74rem;padding:.2rem .4rem')}</div>`; };
     tall = true;
     inner = `<div class="row">${avatar(u, 'big')}<h2 class="sheet-title grow" style="margin:0">${esc(u.name)}${isMe ? ' (you)' : ''}</h2></div>
       ${u.bio ? `<p class="thought" style="margin:.5rem 0 0">${esc(u.bio)}</p>` : ''}
       ${u.genres && u.genres.length ? `<div class="meta" style="margin-top:.3rem">${u.genres.map(g => `<span class="pill later">${esc((GENRES.find(x => x[0] === g) || [g, g])[1])}</span>`).join('')}</div>` : ''}
       ${isMe ? `<p class="sub" style="margin:.4rem 0 0">${db.me.showClubs ? '👥 Your clubs are visible to people you share a club with.' : '👥 Your other clubs are private.'}</p>`
         : d.clubs && d.clubs.length ? `<p class="sub" style="margin:.4rem 0 0">👥 Also in: ${d.clubs.map(esc).join(', ')}</p>` : ''}
+      ${(() => { const ks = earnedKeys(isMe ? db.me.stamps : u.stamps); return ks.length ? `<div class="stamp-row" aria-label="Stamps">${ks.map(k => `<span title="${esc(STAMP[k][1])}" role="img" aria-label="${esc(STAMP[k][1])}">${stampSVG(k)}</span>`).join('')}</div>` : ''; })()}
       <div class="section-label">Reading now</div>
       ${now.length ? `<div class="shelf">${now.map(tile).join('')}</div>` : '<div class="sub">Nothing on the go right now.</div>'}
       <div class="section-label">Finished</div>
@@ -1667,16 +1807,17 @@ async function admRun(fn, args, okMsg) {
 function suggestions() {
   const people = new Set(myClubs().flatMap(g => g.members).filter(id => id !== ME));
   const seen = new Set(), out = [];
-  const push = (x, who) => { if (seen.has(norm(x.title)) || onMyShelf(x.title)) return; seen.add(norm(x.title)); out.push({ title: x.title, author: x.author, pages: x.pages, coverUrl: x.coverUrl, from: 'Saved from ' + who }); };
+  const justAdded = new Set((ui.sheetData.added || []).map(id => norm(db.books.find(x => x.id === id)?.title || '')));
+  const push = (x, who) => { if (seen.has(norm(x.title)) || (onMyShelf(x.title) && !justAdded.has(norm(x.title)))) return; seen.add(norm(x.title)); out.push({ title: x.title, author: x.author, pages: x.pages, coverUrl: x.coverUrl, from: 'Saved from ' + who }); };
   db.books.filter(b => people.has(b.userId) && b.status === 'reading').forEach(b => push(b, userById(b.userId)?.name || 'a friend'));
   db.posts.filter(p => people.has(p.userId) && p.reaction !== 'down').forEach(p => push(p, userById(p.userId)?.name || 'a friend'));
   return out.slice(0, 6);
 }
 function resultRow(r, i, src) {
-  const inS = onMyShelf(r.title);
+  const mine = myCopy(r.title), inS = !!mine;
   return `<div class="result">${coverHTML(r, 36, 54)}
     <div class="grow"><div class="item-title clamp2">${esc(r.title)}</div><div class="meta">${esc(r.author || 'Unknown author')}${r.pages ? ' · ' + r.pages + ' pages' : ''}</div></div>
-    ${inS ? '<span class="pill ok">On shelf</span>' : `<div class="row" style="gap:.3rem">
+    ${inS ? (mine.status === 'want' && ui.sheetData.added && ui.sheetData.added.includes(mine.id) ? `<div class="row" style="gap:.2rem"><span class="pill ok">✓ Added</span><button class="link" data-act="unsave" data-id="${mine.id}">Undo</button></div>` : '<span class="pill ok">On shelf</span>') : `<div class="row" style="gap:.3rem">
       <button class="btn" data-act="add-result" data-src="${src}" data-id="${i}" data-status="want" aria-label="Want to read ${esc(r.title)}">Want</button>
       <button class="btn primary" data-act="add-result" data-src="${src}" data-id="${i}" data-status="reading" aria-label="Start reading ${esc(r.title)}">Start</button></div>`}
   </div>`;
@@ -1770,9 +1911,8 @@ function updBook(id, patch) {
 }
 function saveFromOther(x, userId) {
   const u = userById(userId);
-  if (addBook({ title: x.title, author: x.author, pages: x.pages, coverUrl: x.coverUrl, genre: x.genre || '', status: 'want', from: 'Saved from ' + (u?.name || 'a friend') })) {
-    ui.shelfTab = 'want'; render(); wantToast(x.title);
-  }
+  const b = addBook({ title: x.title, author: x.author, pages: x.pages, coverUrl: x.coverUrl, genre: x.genre || '', status: 'want', from: 'Saved from ' + (u?.name || 'a friend') });
+  if (b) { ui.shelfTab = 'want'; render(); wantToast(x.title, () => takeBack(b)); }
 }
 
 
@@ -1794,6 +1934,7 @@ const actions = {
     if (el.classList.contains('cele') && e.target.closest('.cele-card') && el.querySelector('.formbtns')) return;
     clearTimeout(celeTimer); document.getElementById('cele-root').innerHTML = '';
   },
+  'stamps-open'() { document.getElementById('cele-root').innerHTML = ''; openSheet('settings', { page: 'profile' }); setTimeout(() => document.getElementById('my-stamps')?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 150); },
   'cele-share'(id) { document.getElementById('cele-root').innerHTML = ''; ui.share = { bookId: id, reaction: null, text: '', photo: '' }; ui.sheet = null; ui.clubPage = null; ui.tab = 'share'; render(); scrollTo(0, 0); },
   undo() { const f = toastUndo; toastUndo = null; document.getElementById('toast').classList.add('hide'); if (f) f(); },
   async onboard() {
@@ -1833,7 +1974,7 @@ const actions = {
       const device = (innerWidth >= 900 ? 'laptop' : 'phone') + ' · ' + platform() + (isInstalled() ? ' · app' : '');
       const { error } = await sb.from('feedback').insert({ user_id: ME, name: db?.me?.name || '', email: email || null, message: text.slice(0, 2000), images, page: d.page || '', device });
       if (error) throw error;
-      closeSheet(); toast('Thank you! Feedback sent 💛');
+      closeSheet(); toast('Thank you! Feedback sent 💛'); earnStamp('feedback');
     } catch (er) { d.sending = false; renderSheet(); toast("Couldn't send: " + (er.message || 'try again')); }
   },
   'w-join'() { openSheet('w-join'); },
@@ -1889,7 +2030,7 @@ const actions = {
     if (!n) { toast("Name can't be empty"); return; }
     db.me.name = n; save(); render(); backToMenu(); toast('Saved');
   },
-  'goal-set'(id) { db.me.goal = +id; save(); render(); toast(+id ? `Daily goal: ${id} pages` : 'No daily goal'); },
+  'goal-set'(id) { const prev = db.me.goal || 0; db.me.goal = +id; save(); render(); toast(+id ? `Daily goal: ${id} pages` : 'No daily goal', () => { db.me.goal = prev; save(); render(); }); },
   'goal-custom'() {
     const v = prompt('Pages a day', db.me.goal || '');
     if (v === null) return;
@@ -2010,9 +2151,7 @@ const actions = {
   async 'leave-club'(id) {
     const g = db.groups.find(x => x.id === id);
     if (!confirm(`Leave ${g.name}? You can rejoin with the code.`)) return;
-    const { error } = await sb.from('group_members').delete().eq('group_id', id).eq('user_id', ME);
-    if (error) { toast(error.message); return; }
-    db.groups = db.groups.filter(x => x.id !== id); save(); ui.clubPage = null; closeSheet(); toast('You left ' + g.name);
+    leaveClub(id);
   },
 
   /* books */
@@ -2021,9 +2160,9 @@ const actions = {
     const list = el.dataset.src === 'suggest' ? ui.sheetData.suggest : ui.search.results;
     const r = list && list[+i]; if (!r) return;
     const status = el.dataset.status;
-    if (!addBook({ ...r, status })) return;
-    if (status === 'reading') { ui.sheet = null; if (!ui.clubPage) ui.tab = 'shelf'; render(); scrollTo(0, 0); celebrate('start', r); }
-    else { ui.shelfTab = 'want'; render(); renderResults(); wantToast(r.title); }
+    const b = addBook({ ...r, status }); if (!b) return;
+    if (status === 'reading') { ui.sheet = null; if (!ui.clubPage) ui.tab = 'shelf'; render(); scrollTo(0, 0); celebrate('start', b, () => takeBack(b)); }
+    else { (ui.sheetData.added = ui.sheetData.added || []).push(b.id); ui.shelfTab = 'want'; render(); renderResults(); wantToast(r.title, () => { takeBack(b); renderResults(); }); }
   },
   'manual-open'() { openSheet('manual', { photo: '', title: ui.search.q || '' }); },
   'manual-save'(_, el) {
@@ -2032,7 +2171,7 @@ const actions = {
     const b = addBook({ title, author: document.getElementById('m-author').value.trim(), pages: +document.getElementById('m-pages').value || 0, genre: document.getElementById('m-genre').value, photo: ui.sheetData.photo || '', status: el.dataset.status });
     if (!b) return;
     if (b.status === 'want') ui.shelfTab = 'want';
-    ui.sheet = null; if (!ui.clubPage) ui.tab = 'shelf'; render(); if (b.status === 'reading') celebrate('start', b); else wantToast(b.title);
+    ui.sheet = null; if (!ui.clubPage) ui.tab = 'shelf'; render(); if (b.status === 'reading') celebrate('start', b, () => takeBack(b)); else wantToast(b.title, () => takeBack(b));
   },
   book(id) { openSheet('book', { id }); },
   'track-toggle'(id) {
@@ -2041,17 +2180,32 @@ const actions = {
   },
   finish(id) {
     const b = db.books.find(x => x.id === id);
+    const snap = { status: b.status, page: b.page, percent: b.percent }, logSnap = JSON.parse(JSON.stringify(db.log || []));
     if (b.pages && tracked(b)) logPages(b, b.pages - b.page);
     updBook(id, { status: 'finished', page: b.pages || b.page, percent: 100 });
-    ui.sheet = null; render(); celebrate('finish', b);
+    ui.sheet = null; render();
+    celebrate('finish', b, () => { db.log = logSnap; updBook(id, snap); render(); recheckStamps(); toast('Back to Reading now'); });
   },
   'share-this'(id) { ui.share = { bookId: id, reaction: null, text: '', photo: '' }; ui.sheet = null; ui.tab = 'share'; render(); scrollTo(0, 0); },
   pause(id) {
     updBook(id, { status: 'paused' }); ui.shelfTab = 'paused'; closeSheet();
     toast('Paused. Pick it up whenever.', () => { updBook(id, { status: 'reading' }); render(); });
   },
-  resume(id) { updBook(id, { status: 'reading' }); closeSheet(); },
-  start(id) { updBook(id, { status: 'reading' }); closeSheet(); celebrate('start', db.books.find(x => x.id === id)); },
+  resume(id) {
+    updBook(id, { status: 'reading' }); closeSheet(); earnStamp('resume');
+    toast('Back to reading', () => { updBook(id, { status: 'paused' }); render(); recheckStamps(['resume']); });
+  },
+  start(id) {
+    const b = db.books.find(x => x.id === id), prev = b.status;
+    updBook(id, { status: 'reading' }); closeSheet();
+    celebrate('start', b, () => { updBook(id, { status: prev }); render(); recheckStamps(); });
+  },
+  unsave(id) {
+    const b = db.books.find(x => x.id === id); if (!b || b.status !== 'want') return;
+    takeBack(b); if (ui.sheet === 'add') renderResults();
+    toast('Removed from Want to read', () => { db.books.push(b); save(); render(); if (ui.sheet === 'add') renderResults(); });
+  },
+  'cele-undo'() { const f = celeUndo; celeUndo = null; clearTimeout(celeTimer); document.getElementById('cele-root').innerHTML = ''; if (f) f(); },
   remove(id) {
     const b = db.books.find(x => x.id === id); if (!b) return;
     db.books = db.books.filter(x => x.id !== id); save(); closeSheet();
@@ -2071,13 +2225,18 @@ const actions = {
     const s = ui.share, b = db.books.find(x => x.id === s.bookId);
     if (!b || !s.reaction) return;
     const text = (document.getElementById('thought')?.value || '').trim();
+    const draft = { ...s, text }, bSnap = { status: b.status, page: b.page, percent: b.percent, updatedAt: b.updatedAt }, logSnap = JSON.parse(JSON.stringify(db.log || []));
     if (b.status !== 'finished' && b.pages && tracked(b)) logPages(b, b.pages - b.page);
     const post = { id: uid(), userId: ME, title: b.title, author: b.author, pages: b.pages, coverUrl: b.photo || b.coverUrl, reaction: s.reaction, text, photo: s.photo, createdAt: Date.now() };
     db.posts.push(post);
     Object.assign(b, { status: 'finished', page: b.pages || b.page, percent: 100, updatedAt: Date.now() });
     if (!save()) { db.posts.pop(); return; }
     ui.share = { bookId: null, reaction: null, text: '', photo: '' };
-    ui.tab = 'discover'; ui.club = 'all'; render(); scrollTo(0, 0); toast('Shared with your clubs'); askSave('post');
+    ui.tab = 'discover'; ui.club = 'all'; render(); scrollTo(0, 0); askSave('post');
+    toast('Shared with your clubs', () => {
+      db.posts = db.posts.filter(x => x.id !== post.id); Object.assign(b, bSnap); db.log = logSnap; save();
+      ui.share = draft; ui.tab = 'share'; render(); scrollTo(0, 0); recheckStamps(); toast('Post taken back. Your draft is still here.');
+    });
   },
 
   /* today + calendar */
@@ -2110,7 +2269,7 @@ async function createAccount(email, password) {
   r = await sb.auth.updateUser({ password });
   if (r.error) { toast(r.error.message); return false; }
   authUser = r.data.user || authUser;
-  toast('Account created ☁️ Your books are safe.');
+  toast('Account created ☁️ Your books are safe.'); setTimeout(checkStamps, 500);
   return true;
 }
 
@@ -2187,6 +2346,10 @@ document.addEventListener('change', async e => {
   }
   if (t.dataset && t.dataset.disp === 'texture') { setDisplay({ texture: t.checked }); renderSheet(); }
   if (t.dataset && t.dataset.genreFor) { updBook(t.dataset.genreFor, { genre: t.value }); applyDisplay(); render(); }
+  if (t.dataset && t.dataset.pref === 'stamps') {
+    db.me.showStamps = t.checked; save(); renderSheet();
+    toast(t.checked ? 'Your clubs can see your stamps' : 'Your stamps are private again');
+  }
   if (t.dataset && t.dataset.pref === 'clubs') {
     db.me.showClubs = t.checked; save(); renderSheet();
     toast(t.checked ? 'People in your clubs can see your other clubs' : 'Your clubs are private again');
