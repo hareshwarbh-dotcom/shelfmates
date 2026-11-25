@@ -490,8 +490,8 @@ function genreFrom(subjects, title) {
   return '';
 }
 const SIZES = { small: 13, default: 14, large: 15.5, xl: 17 };
-const DISPLAY_DEFAULT = { mood: 'paper', mode: 'light', texture: true, size: 'default', comfy: false };
-let display = (() => { try { const d = JSON.parse(localStorage.getItem('sm.display') || '{}'); if (!d.mood) { delete d.theme; delete d.accent; } return Object.assign({}, DISPLAY_DEFAULT, d); } catch (e) { return { ...DISPLAY_DEFAULT }; } })();
+const DISPLAY_DEFAULT = { mood: 'paper', mode: 'auto', texture: true, size: 'default', comfy: false };
+let display = (() => { try { const d = JSON.parse(localStorage.getItem('sm.display') || '{}'); if (!d.mood) { delete d.theme; delete d.accent; } if (!d.modeSet) d.mode = 'auto'; return Object.assign({}, DISPLAY_DEFAULT, d); } catch (e) { return { ...DISPLAY_DEFAULT }; } })();
 const mq = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null;
 function activeMood() {
   if (display.mood !== 'match') return MOODS[display.mood] ? display.mood : 'paper';
@@ -509,9 +509,15 @@ function starLayer(n, seed, col, max) {
   }
   return out.join(',');
 }
+/* Auto: light 6 AM – 7 PM, dark the rest of the day */
+const autoDark = () => { const h = new Date().getHours(); return h < 6 || h >= 19; };
+let lastAutoDark = null;
+setInterval(() => { if (display.mode === 'auto' && autoDark() !== lastAutoDark) applyDisplay(); }, 60000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden && display.mode === 'auto' && autoDark() !== lastAutoDark) applyDisplay(); });
 function applyDisplay() {
+  lastAutoDark = autoDark();
   const root = document.documentElement;
-  const dark = display.mode === 'auto' ? !!(mq && mq.matches) : display.mode === 'dark';
+  const dark = display.mode === 'auto' ? autoDark() : display.mode === 'dark';
   const k = activeMood(), v = MOODS[k][dark ? 'd' : 'l'];
   root.dataset.theme = dark ? 'dark' : 'light';
   root.dataset.mood = k;
@@ -534,8 +540,8 @@ function applyDisplay() {
   if (tex) { tex.style.backgroundImage = display.texture ? T[0].join(',') : 'none'; tex.style.backgroundSize = T[1]; }
   if (tw) tw.style.backgroundImage = display.texture && k === 'enchanted' ? starLayer(28, 7, dark ? 'rgba(227,184,90,.9)' : 'rgba(106,75,196,.45)', 1.4) : 'none';
 }
-function setDisplay(patch) { Object.assign(display, patch); try { localStorage.setItem('sm.display', JSON.stringify(display)); } catch (e) {} applyDisplay(); }
-if (mq && mq.addEventListener) mq.addEventListener('change', () => { if (display.mode === 'auto') applyDisplay(); });
+function setDisplay(patch) { if ('mode' in patch) patch.modeSet = patch.mode !== 'auto'; Object.assign(display, patch); try { localStorage.setItem('sm.display', JSON.stringify(display)); } catch (e) {} applyDisplay(); }
+
 
 /* ---------- helpers ---------- */
 const COLORS = ['#2F5D62', '#7A4E2D', '#3B4A7A', '#6B3F5E', '#4F6B3A', '#8A5A1F', '#2C3E50', '#5A4FA0'];
@@ -1613,7 +1619,7 @@ function renderSheet(animate) {
           <span class="sw2" style="display:flex;align-items:center;justify-content:center;font-size:1.2rem;background:var(--soft)">🪄</span>
           <span><b>Match my book</b><small>Changes with the genre of the book you're reading${display.mood === 'match' ? ` · now ${cur.name}` : ''}</small></span></button>
         <div class="mgroup">
-          <div class="mrow static" style="flex-wrap:wrap"><span class="mt" style="width:100%">Light or dark</span>${chipRow('mode', [['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']])}</div>
+          <div class="mrow static" style="flex-wrap:wrap"><span class="mt" style="width:100%">Light or dark<small>Auto: light from 6 AM, dark from 7 PM</small></span>${chipRow('mode', [['auto', '🌗 Auto'], ['light', '☀️ Light'], ['dark', '🌙 Dark']])}</div>
           <label class="mrow static"><span class="mt">Background texture<small>Faint paper grain, vignette or stars behind the page</small></span><span class="switch"><input type="checkbox" data-disp="texture" ${display.texture ? 'checked' : ''}><span></span></span></label>
           <div class="mrow static" style="flex-wrap:wrap"><span class="mt" style="width:100%">Text size</span>${chipRow('size', [['small', 'Small'], ['default', 'Default'], ['large', 'Large'], ['xl', 'Extra large']])}</div>
           <div class="mrow static" style="flex-wrap:wrap"><span class="mt" style="width:100%">Density</span><div class="chips" style="margin:0"><button class="chip sm ${!display.comfy ? 'on' : ''}" data-act="disp" data-k="comfy" data-id="0">Compact</button><button class="chip sm ${display.comfy ? 'on' : ''}" data-act="disp" data-k="comfy" data-id="1">Comfortable</button></div></div>
