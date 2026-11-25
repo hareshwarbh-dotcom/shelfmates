@@ -365,6 +365,10 @@ body { background: var(--bg); }
 /* discover */
 .carousel { display: flex; gap: .7rem; overflow-x: auto; scroll-snap-type: x mandatory; margin: 0 -1rem; padding: 2px 1rem .4rem; scrollbar-width: none; }
 .carousel::-webkit-scrollbar { display: none; }
+a.mrow { text-decoration: none; }
+.cover-btn { all: unset; cursor: pointer; display: block; }
+.cover-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.fb-desc { line-height: 1.6; margin: .3rem 0 0; }
 .ccard { flex: 0 0 8.4rem; scroll-snap-align: start; display: flex; flex-direction: column; gap: .4rem; }
 .ccard .who { display: flex; align-items: center; gap: .35rem; font-size: .8rem; }
 .photo { width: 100%; aspect-ratio: 4/3; max-height: 20rem; object-fit: cover; border-radius: var(--radius-sm); display: block; margin: .5rem 0; }
@@ -441,6 +445,8 @@ const SUPABASE_ANON_KEY = 'sb_publishable_VCJYEhIWT_dDg_THeeZmuw_qm0Gt-Nu';
 const CLOUD = !!(SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase);
 
 const APP = { first: 'Shelfmates', second: '& Me' };
+// Amazon Associates tag (e.g. 'shelfmates-21'). Leave '' until you have one; a "Buy on Amazon" button appears once set.
+const AMAZON_TAG = '';
 const STORE_KEY = 'bookclub.v1';
 let ME = 'me';
 let sb = null, authUser = null, isAdmin = false;
@@ -773,6 +779,21 @@ async function joinByCode(code) {
   const g = db.groups.find(x => x.id === data); if (g) toast('You joined ' + g.name + ' 🎉', () => leaveClub(g.id)); setTimeout(() => maybeNudge('club'), 3000);
 }
 
+/* book description from Open Library, fetched only when someone opens the card */
+const bookInfo = {};
+async function loadBookInfo(x) {
+  const key = norm(x.title); if (bookInfo[key]) return;
+  const done = v => { bookInfo[key] = v; if (ui.sheet === 'fbook') renderSheet(); };
+  try {
+    const sr = await fetch('https://openlibrary.org/search.json?limit=1&fields=key,first_publish_year,number_of_pages_median&title=' + encodeURIComponent(x.title) + (x.author ? '&author=' + encodeURIComponent(x.author) : ''));
+    const hit = (await sr.json()).docs?.[0];
+    if (!hit) return done({ desc: '' });
+    const w = await (await fetch('https://openlibrary.org' + hit.key + '.json')).json();
+    let desc = typeof w.description === 'string' ? w.description : (w.description && w.description.value) || '';
+    desc = desc.replace(/\r/g, '').split(/\n-{3,}|\n\s*\(\[source\]|\[source\]/)[0].replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').trim();
+    done({ desc, year: hit.first_publish_year || '', pages: hit.number_of_pages_median || 0 });
+  } catch (e) { done({ desc: '' }); }
+}
 async function clubRun(club, op, user = null, text = null) {
   if (!CLOUD || !sb) { toast('This needs an internet connection'); return null; }
   const { data, error } = await sb.rpc('club_manage', { p_club: club, p_op: op, p_user: user, p_text: text });
@@ -1269,7 +1290,7 @@ function readingCarousel(others) {
     const u = userById(b.userId) || { name: 'Member' }, saved = onMyShelf(b.title);
     return `<div class="ccard">
       <button class="who" style="all:unset;cursor:pointer;display:flex;align-items:center;gap:.35rem;font-size:.8rem" data-act="member" data-id="${b.userId}">${avatar(u, 'sm')}<b>${esc(u.name)}</b></button>
-      ${fcover(b)}
+      <button class="cover-btn" data-act="fbook" data-k="b" data-id="${b.id}" aria-label="About ${esc(b.title)}">${fcover(b)}</button>
       ${u.showProgress !== false && tracked(b) ? `<div class="bar"><div style="width:${pct(b)}%"></div></div>` : '<div class="small">Reading</div>'}
       ${saveBtn(b.title, 'save-book', b.id, '＋ Want to read', 'font-size:.78rem')}
     </div>`;
@@ -1283,8 +1304,8 @@ function postCard(p, club) {
     ${isMe ? `<button class="iconbtn" style="border:none" aria-label="Delete this post" data-act="delete-post" data-id="${p.id}">🗑️</button>` : modBtn}</div>
     ${p.photo ? `<img class="photo" src="${esc(p.photo)}" alt="Photo shared with ${esc(p.title)}">` : ''}
     ${p.text ? `<p class="thought">${esc(p.text)}</p>` : ''}
-    <div class="book-strip">${coverHTML(p, 36, 54)}
-      <div class="grow"><div class="item-title" style="font-size:.9rem">${esc(p.title)}</div><div class="meta">${reactionPill(p.reaction)}</div></div>
+    <div class="book-strip">${isMe ? coverHTML(p, 36, 54) : `<button class="cover-btn" data-act="fbook" data-k="p" data-id="${p.id}" aria-label="About ${esc(p.title)}">${coverHTML(p, 36, 54)}</button>`}
+      <div class="grow">${isMe ? `<div class="item-title" style="font-size:.9rem">${esc(p.title)}</div>` : `<button class="cover-btn item-title" style="font-size:.9rem;text-align:left" data-act="fbook" data-k="p" data-id="${p.id}">${esc(p.title)} <span style="color:var(--muted);font-weight:400">›</span></button>`}<div class="meta">${reactionPill(p.reaction)}</div></div>
       ${isMe ? '' : saveBtn(p.title, 'save-post', p.id, '＋ Save', 'font-size:.78rem')}
     </div>
   </article>`;
@@ -1591,7 +1612,7 @@ function renderSheet(animate) {
     const books = db.books.filter(b => b.userId === d.id);
     const now = books.filter(b => b.status === 'reading'), done = books.filter(b => b.status === 'finished');
     const posts = db.posts.filter(p => p.userId === d.id).sort((a, b) => b.createdAt - a.createdAt);
-    const tile = b => { const saved = onMyShelf(b.title); return `<div class="shelf-item">${fcover(b)}<span class="item-title clamp2">${esc(b.title)}</span>
+    const tile = b => { const saved = onMyShelf(b.title); return `<div class="shelf-item">${isMe ? fcover(b) : `<button class="cover-btn" data-act="fbook" data-k="b" data-id="${b.id}" aria-label="About ${esc(b.title)}">${fcover(b)}</button>`}<span class="item-title clamp2">${esc(b.title)}</span>
       ${b.status === 'reading' && u.showProgress !== false && tracked(b) ? `<div class="bar"><div style="width:${pct(b)}%"></div></div>` : ''}
       ${isMe ? '' : saveBtn(b.title, 'save-book', b.id, '＋ Want', 'font-size:.74rem;padding:.2rem .4rem')}</div>`; };
     tall = true;
@@ -1677,6 +1698,37 @@ function renderSheet(animate) {
         ${imgs.length < 3 ? `<label class="fb-add"><span>📷</span>Add<input class="file" type="file" accept="image/*" data-fb-photo="1"></label>` : ''}</div>
       ${signedInEmail() ? '' : `<label class="hb-label" for="fb-email">Your email <span class="sub">(optional, only if you'd like a reply)</span></label><input class="hb-input" id="fb-email" type="email" inputmode="email" autocomplete="email" value="${esc(d.email || '')}">`}
       <div class="formbtns"><button class="btn" data-act="close">Cancel</button><button class="btn primary" data-act="fb-send" ${d.sending ? 'disabled' : ''}>${d.sending ? 'Sending…' : 'Send'}</button></div>`;
+  }
+  if (ui.sheet === 'fbook') {
+    const x = (d.k === 'p' ? db.posts : db.books).find(y => y.id === d.id);
+    if (!x) { ui.sheet = null; return renderSheet(); }
+    const key = norm(x.title), clubPeople = new Set(myClubs().flatMap(g => g.members));
+    const holders = db.books.filter(b => norm(b.title) === key && b.userId !== ME && clubPeople.has(b.userId));
+    const line = b => { const u = userById(b.userId) || { name: 'Member' };
+      const st = { reading: 'is reading it' + (u.showProgress !== false && tracked(b) ? ` · ${pct(b)}%` : ''), finished: 'finished it', want: 'wants to read it', paused: 'paused it' }[b.status] || '';
+      return `<button class="mrow" data-act="member" data-id="${b.userId}">${avatar(u)}<span class="mt">${esc(u.name)}<small>${st}</small></span><span class="mc">›</span></button>`; };
+    const thoughts = db.posts.filter(p => norm(p.title) === key && p.userId !== ME && clubPeople.has(p.userId) && postVisible(p, myClubs())).sort((a, b) => b.createdAt - a.createdAt);
+    const info = bookInfo[key], q = encodeURIComponent(x.title + (x.author ? ' ' + x.author : ''));
+    const mine = myCopy(x.title);
+    inner = `<div style="display:grid;grid-template-columns:5.6rem minmax(0,1fr);gap:.8rem;align-items:start">
+        ${fcover(x)}
+        <div><h2 class="sheet-title" style="margin:0 0 .2rem">${esc(x.title)}</h2><div class="sub">${esc(x.author || '')}</div>
+          <div class="small" style="margin-top:.3rem">${[x.pages || (info && info.pages) ? (x.pages || info.pages) + ' pages' : '', info && info.year ? 'First published ' + info.year : ''].filter(Boolean).join(' · ')}</div>
+          <div style="margin-top:.5rem">${mine && mine.status !== 'want' ? '<span class="pill ok">✓ On your shelf</span>' : saveBtn(x.title, d.k === 'p' ? 'save-post' : 'save-book', x.id, '🔖 Want to read', 'font-size:.85rem')}</div></div>
+      </div>
+      <div class="section-label">About the book</div>
+      ${!info ? '<div class="skel" style="height:.8rem;width:95%"></div><div class="skel" style="height:.8rem;width:85%;margin-top:.4rem"></div><div class="skel" style="height:.8rem;width:60%;margin-top:.4rem"></div>'
+        : info.desc ? `<p class="fb-desc">${esc(d.more || info.desc.length <= 420 ? info.desc : info.desc.slice(0, 400).replace(/\s+\S*$/, '') + '…')}</p>${info.desc.length > 420 ? `<button class="link" style="padding-left:0" data-act="fbook-more">${d.more ? 'Show less' : 'Read more'}</button>` : ''}`
+        : '<p class="sub" style="margin:0">No description available for this one.</p>'}
+      ${holders.length ? `<div class="section-label">In your clubs</div><div class="mgroup" style="margin-top:0">${holders.map(line).join('')}</div>` : ''}
+      ${thoughts.length ? `<div class="section-label">What stayed with them</div>${thoughts.map(p => { const u = userById(p.userId) || { name: 'Member' }; return `<div class="card"><div class="row">${avatar(u, 'sm')}<b style="font-size:.88rem">${esc(u.name)}</b> ${reactionPill(p.reaction)}</div>${p.text ? `<p class="thought" style="margin:.4rem 0 0">${esc(p.text)}</p>` : ''}<div class="meta">${timeAgo(p.createdAt)}</div></div>`; }).join('')}` : ''}
+      <div class="section-label">More</div>
+      <div class="mgroup" style="margin-top:0">
+        <a class="mrow" href="https://www.google.com/search?q=${q}%20book" target="_blank" rel="noopener"><span class="mi">🔎</span><span class="mt">More about this book<small>Reviews, ratings and where to buy</small></span><span class="mc">↗</span></a>
+        ${AMAZON_TAG ? `<a class="mrow" href="https://www.amazon.in/s?k=${q}&tag=${encodeURIComponent(AMAZON_TAG)}" target="_blank" rel="noopener sponsored"><span class="mi">🛒</span><span class="mt">Buy on Amazon<small>We may earn a small commission</small></span><span class="mc">↗</span></a>` : ''}
+      </div>
+      ${close()}`;
+    tall = true;
   }
   if (ui.sheet === 'club-edit') {
     const g = db.groups.find(x => x.id === d.id); if (!g) { ui.sheet = null; return renderSheet(); }
@@ -2222,6 +2274,11 @@ const actions = {
     toast('Club created. Invite a few people.');
   },
   club(id) { ui.clubPage = id; ui.clubTab = 'books'; ui.sheet = null; render(); scrollTo(0, 0); },
+  fbook(id, el) {
+    const k = el.dataset.k, x = (k === 'p' ? db.posts : db.books).find(y => y.id === id); if (!x) return;
+    openSheet('fbook', { k, id }); loadBookInfo(x);
+  },
+  'fbook-more'() { ui.sheetData.more = !ui.sheetData.more; renderSheet(); },
   'club-edit'(id) { openSheet('club-edit', { id }); },
   async 'club-edit-save'() {
     const d = ui.sheetData, g = db.groups.find(x => x.id === d.id); if (!g) return;
