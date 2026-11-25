@@ -92,7 +92,8 @@ img { max-width: 100%; }
 .sheet-head { position: sticky; top: -1.1rem; z-index: 5; display: flex; align-items: center; gap: .5rem; margin: -1.1rem -1rem .7rem; padding: .8rem 1rem .7rem; background: var(--bg); border-bottom: 1px solid var(--line); }
 .sheet-head .sh-mid { flex: 1; min-width: 0; }
 .sheet-head .sheet-title { font-size: 1.12rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sheet-head .sh-left { background: none; border: none; color: var(--muted); font: inherit; font-size: .92rem; padding: .4rem .2rem; cursor: pointer; white-space: nowrap; min-width: 0; order: 0; }
+.sheet-head .sh-left { background: none; border: none; color: var(--accent-text); font: inherit; font-size: .95rem; font-weight: 600; padding: .45rem .5rem .45rem .1rem; min-height: 2.6rem; cursor: pointer; white-space: nowrap; min-width: 0; order: 0; border-radius: 10px; }
+.sheet-head .sh-left:hover { background: var(--soft); }
 .sheet-head .sh-left:empty { display: none; }
 .sheet-head .sh-mid { order: 1; }
 .sheet-head .sh-left + .sh-mid { text-align: left; }
@@ -898,6 +899,14 @@ function toast(msg, undo) {
 /* ---------- install on home screen ---------- */
 const isInstalled = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 const platform = () => { const u = navigator.userAgent; if (/iPhone|iPad|iPod/.test(u)) return /CriOS|FxiOS|EdgiOS/.test(u) ? 'ios-other' : 'ios'; if (/Android/.test(u)) return 'android'; return 'desktop'; };
+/* picture guide, loaded only when this page is opened */
+function installGuideImg() {
+  const pf = platform(), f = pf === 'android' ? 'install-android.jpg' : pf.startsWith('ios') ? 'install-iphone.jpg' : '';
+  if (!f || isInstalled()) return '';
+  return `<div class="section-label">Step by step, with pictures</div>
+    <a href="${f}" target="_blank" rel="noopener" aria-label="Open the picture guide full size"><img src="${f}" loading="lazy" alt="${pf === 'android' ? 'Android: tap the menu, tap Install app, tap Install, then open Shelfmates from your Home Screen' : 'iPhone: tap Share in Safari, tap Add to Home Screen, tap Add, then open Shelfmates from your Home Screen'}" style="width:100%;border-radius:var(--radius-lg);border:1px solid var(--line);display:block"></a>
+    <p class="small" style="text-align:center;margin-top:.3rem">Tap the picture to zoom in.</p>`;
+}
 let installPrompt = null;
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; });
 window.addEventListener('appinstalled', () => { try { localStorage.setItem('sm.installHint', 'done'); } catch (er) {} installPrompt = null; if (db) render(); });
@@ -1629,7 +1638,7 @@ function renderSheet(animate) {
               <p class="sub" style="margin:.3rem 0 .8rem">So your books are there in the app too. Takes 30 seconds, just an email and password.</p>
               <button class="btn accent block" data-act="set-page" data-id="account">Create account</button>
               <button class="link" style="display:block;margin:.4rem auto 0" data-act="skip-save">Skip, just show the steps</button></div>`
-          : installStepsHTML()}${subEnd}`;
+          : installStepsHTML() + installGuideImg()}${subEnd}`;
     } else if (page === 'help') {
       inner = `${title('How to use')}
         ${isInstalled() ? '' : `<div class="mgroup"><button class="mrow" data-act="set-page" data-id="install"><span class="mi">📱</span><span class="mt">Put it on your home screen<small>Open it like an app, full screen, with its own icon</small></span><span class="mc">›</span></button></div>`}
@@ -1653,7 +1662,8 @@ function renderSheet(animate) {
       ${PILLARS}
       <div class="banner accent"><span class="b-icon">🌱</span><div class="sub" style="color:var(--ink)">This isn't about how much anyone reads. It's a calm place to read more, find good books through people you know, and enjoy it together.</div></div>
       <p class="sub" style="text-align:center;margin:1rem 0 0">${APP.first} ${esc(APP.second)} · beta</p>
-      <div class="formbtns"><button class="btn accent" data-act="about-invite">💌 Invite a friend</button><button class="btn primary" data-act="close">Done</button></div>`;
+      <button class="btn accent block" style="margin-top:1rem" data-act="about-invite">💌 Invite a friend</button>
+      <div class="formbtns"><button class="btn" data-act="settings">‹ Settings</button><button class="btn primary" data-act="close">Done</button></div>`;
   }
 
   /* ---- welcome flows ---- */
@@ -1909,7 +1919,9 @@ function sheetHeader(sh) {
   const h = [...sh.children].find(c => c.classList.contains('sheet-title'));
   const mid = document.createElement('div'); mid.className = 'sh-mid';
   if (h) { h.style.margin = '0'; mid.appendChild(h); }
-  if (left) { left.className = 'sh-left'; if (left.dataset.act === 'close' && left.textContent.trim() === 'Done') left.textContent = 'Close'; head.appendChild(left); }
+  if (left) { left.className = 'sh-left'; let t = left.textContent.trim(); if (left.dataset.act === 'close' && t === 'Done') t = 'Close';
+    if (/^(set-page|settings|adm-back)$/.test(left.dataset.act || '') && !t.startsWith('‹')) t = '‹ ' + t;
+    left.textContent = t; head.appendChild(left); }
   else head.appendChild(Object.assign(document.createElement('span'), { className: 'sh-left' }));
   head.appendChild(mid);
   right.className = 'sh-right' + (right.dataset.act === 'close' ? ' soft' : '');
