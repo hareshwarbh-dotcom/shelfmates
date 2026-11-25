@@ -380,6 +380,8 @@ a.mrow { text-decoration: none; }
 .cover-btn { all: unset; cursor: pointer; display: block; }
 .cover-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 .fb-desc { line-height: 1.6; margin: .3rem 0 0; }
+.cc-status { height: 1.3rem; display: flex; align-items: center; }
+.ccard > .btn:last-child { margin-top: auto; }
 .ccard { flex: 0 0 8.4rem; scroll-snap-align: start; display: flex; flex-direction: column; gap: .4rem; }
 .ccard .who { display: flex; align-items: center; gap: .35rem; font-size: .8rem; }
 .photo { width: 100%; aspect-ratio: 4/3; max-height: 20rem; object-fit: cover; border-radius: var(--radius-sm); display: block; margin: .5rem 0; }
@@ -615,8 +617,8 @@ const postRow = p => ({ id: p.id, user_id: ME, title: p.title, author: p.author 
 const groupRow = g => ({ id: g.id, name: g.name, code: g.code, created_by: ME, created_at: iso(g.createdAt) });
 const profileRow = () => ({ id: ME, name: db.me.name, show_progress: db.me.showProgress !== false, theme: db.me.theme || 'teal', daily_goal: db.me.goal || null, show_clubs: !!db.me.showClubs, avatar_url: db.me.avatar || '', bio: db.me.bio || '', fav_genres: db.me.genres || [], stamps: db.me.stamps || {}, show_stamps: !!db.me.showStamps });
 const logRow = l => ({ id: l.id, user_id: ME, book_id: l.bookId, title: l.title, day: l.day, pages: l.pages, updated_at: iso(l.updatedAt) });
-const rowToBook = r => ({ id: r.id, userId: r.user_id, title: r.title, author: r.author || '', pages: r.pages || 0, page: r.page || 0, percent: r.percent || 0, track: r.track, status: r.status, coverUrl: r.cover_url || '', photo: r.photo_url || '', from: r.from_note || '', genre: r.genre || '', updatedAt: Date.parse(r.updated_at) || Date.now() });
-const rowToPost = r => ({ id: r.id, userId: r.user_id, title: r.title, author: r.author || '', pages: r.pages || 0, coverUrl: r.cover_url || '', reaction: r.reaction, text: r.text || '', photo: r.photo_url || '', createdAt: Date.parse(r.created_at) || Date.now() });
+const rowToBook = r => ({ cloud: true, id: r.id, userId: r.user_id, title: r.title, author: r.author || '', pages: r.pages || 0, page: r.page || 0, percent: r.percent || 0, track: r.track, status: r.status, coverUrl: r.cover_url || '', photo: r.photo_url || '', from: r.from_note || '', genre: r.genre || '', updatedAt: Date.parse(r.updated_at) || Date.now() });
+const rowToPost = r => ({ cloud: true, id: r.id, userId: r.user_id, title: r.title, author: r.author || '', pages: r.pages || 0, coverUrl: r.cover_url || '', reaction: r.reaction, text: r.text || '', photo: r.photo_url || '', createdAt: Date.parse(r.created_at) || Date.now() });
 
 function queueSync() { clearTimeout(syncTimer); syncTimer = setTimeout(sync, 500); }
 
@@ -657,7 +659,7 @@ async function sync() {
       const row = bookRow(b), j = JSON.stringify(row);
       if (synced['b:' + b.id] === j) continue;
       const { error } = await sb.from('books').upsert(row); if (error) throw error;
-      synced['b:' + b.id] = j;
+      synced['b:' + b.id] = j; b.cloud = true; delete b.pendingNew;
     }
     const bookIds = new Set(mine.map(b => b.id));
     for (const k of Object.keys(synced).filter(k => k.startsWith('b:') && !bookIds.has(k.slice(2)))) {
@@ -686,7 +688,7 @@ async function sync() {
       const row = postRow(p), j = JSON.stringify(row);
       if (synced['o:' + p.id] === j) continue;
       const { error } = await sb.from('posts').upsert(row); if (error) throw error;
-      synced['o:' + p.id] = j;
+      synced['o:' + p.id] = j; p.cloud = true; delete p.pendingNew;
     }
     const postIds = new Set(myPosts.map(p => p.id));
     for (const k of Object.keys(synced).filter(k => k.startsWith('o:') && !postIds.has(k.slice(2)))) {
@@ -773,10 +775,10 @@ async function pull() {
   // re-apply unsynced local edits (newer than the cloud copy)
   localMine.forEach(lb => {
     const cb = db.books.find(b => b.id === lb.id);
-    if (!cb) { if ((lb.photo && lb.photo.startsWith('data:')) || lb.pendingNew) db.books.push(lb); }
+    if (!cb) { if (!lb.cloud || (lb.photo && lb.photo.startsWith('data:')) || lb.pendingNew) db.books.push(lb); }
     else if ((lb.updatedAt || 0) > (cb.updatedAt || 0)) Object.assign(cb, lb);
   });
-  (prev ? (prev.posts || []) : []).filter(p => p.pendingNew && p.userId === ME && !db.posts.some(x => x.id === p.id)).forEach(p => db.posts.push(p));
+  (prev ? (prev.posts || []) : []).filter(p => (p.pendingNew || !p.cloud) && !p.demo && p.userId === ME && !db.posts.some(x => x.id === p.id)).forEach(p => db.posts.push(p));
   localStorage.setItem(cacheKey(), JSON.stringify(db));
   queueSync();
 }
@@ -818,12 +820,12 @@ async function clubRun(club, op, user = null, text = null) {
   if (error) { toast(error.message); return null; }
   return data || {};
 }
-async function clubRefresh() { try { await pull(); } catch (e) {} if (ui.clubPage && !db.groups.find(g => g.id === ui.clubPage)) ui.clubPage = null; render(); }
+async function clubRefresh() { try { await pull(); } catch (e) {} if (ui.clubPage && !db.groups.find(g => g.id === ui.clubPage)) ui.clubPage = null; recheckStamps([], true); render(); }
 async function leaveClub(id) {
   const g = db.groups.find(x => x.id === id); if (!g) return;
   const { error } = await sb.from('group_members').delete().eq('group_id', id).eq('user_id', ME);
   if (error) { toast(error.message); return; }
-  db.groups = db.groups.filter(x => x.id !== id); save(); ui.clubPage = null; closeSheet(); recheckStamps(); toast('You left ' + g.name);
+  db.groups = db.groups.filter(x => x.id !== id); save(); ui.clubPage = null; closeSheet(); recheckStamps([], true); toast('You left ' + g.name);
 }
 let refreshing = false;
 async function refresh() {
@@ -1027,7 +1029,7 @@ const RAMP = {
 const STAMPS = [
   ['page', 'First page', 'Create your account', 'Ollie the owl welcomes you', 'amber',
     '<path d="M20 27 L21 15 L28 24 Z M44 27 L43 15 L36 24 Z" fill="#854F0B"/><ellipse cx="32" cy="38" rx="14" ry="16" fill="#BA7517"/><ellipse cx="32" cy="43" rx="9" ry="9" fill="#FAEEDA"/><circle cx="26" cy="32" r="6" fill="#fff"/><circle cx="38" cy="32" r="6" fill="#fff"/><circle cx="27" cy="33" r="2.6" fill="#412402"/><circle cx="37" cy="33" r="2.6" fill="#412402"/><path d="M30 37 L34 37 L32 41 Z" fill="#EF9F27"/><path d="M22 47 L32 45 L42 47 L42 53 L32 51 L22 53 Z" fill="#378ADD"/>'],
-  ['book', 'Opened a book', 'Add your first book', 'Wren the bookworm moves in', 'green',
+  ['book', 'Opened a book', 'Start reading your first book', 'Wren the bookworm moves in', 'green',
     '<path d="M12 44 Q32 38 32 42 Q32 38 52 44 L52 52 Q32 46 32 50 Q32 46 12 52 Z" fill="#185FA5"/><circle cx="25" cy="40" r="5" fill="#639922"/><circle cx="24" cy="33" r="5" fill="#639922"/><circle cx="29" cy="27" r="5" fill="#639922"/><circle cx="36" cy="22" r="7.5" fill="#97C459"/><circle cx="33.5" cy="21" r="2.6" fill="#fff" stroke="#173404"/><circle cx="39.5" cy="21" r="2.6" fill="#fff" stroke="#173404"/><circle cx="34" cy="21.5" r="1" fill="#173404"/><circle cx="40" cy="21.5" r="1" fill="#173404"/><path d="M34 25.5 Q36.5 27.5 39 25.5" stroke="#173404" stroke-width="1.2" fill="none" stroke-linecap="round"/>'],
   ['friend', 'Brought a friend', 'A friend joins your club from your invite', 'Fennec the fox delivers', 'coral',
     '<path d="M20 26 L18 12 L28 22 Z M44 26 L46 12 L36 22 Z" fill="#D85A30"/><path d="M18 26 Q32 19 46 26 L32 48 Z" fill="#D85A30"/><path d="M21 28 L32 47 L29 33 Z M43 28 L32 47 L35 33 Z" fill="#fff"/><circle cx="26" cy="30" r="2" fill="#4A1B0C"/><circle cx="38" cy="30" r="2" fill="#4A1B0C"/><circle cx="32" cy="45" r="2" fill="#4A1B0C"/><rect x="38" y="40" width="16" height="11" rx="1.5" fill="#fff" stroke="#993C1D" stroke-width="1.2"/><path d="M38 41 L46 47 L54 41" fill="none" stroke="#993C1D" stroke-width="1.2"/>'],
@@ -1062,7 +1064,7 @@ function stampConditions() {
   const mine = myBooks().filter(b => !b.demo), groups = db.groups.filter(g => !g.demo);
   return {
     page: !!signedInEmail(),
-    book: mine.length > 0,
+    book: mine.some(b => b.status !== 'want'),
     friend: groups.some(g => g.createdBy === ME && g.members.some(m => m !== ME)),
     note: db.posts.some(p => p.userId === ME && !p.demo),
     rec: mine.some(b => /^Saved from/.test(b.from || '')),
@@ -1090,11 +1092,11 @@ function checkStamps() {
 }
 let stampWait = 0, stampShown = null;
 /* after an undo: take back recent stamps whose reason no longer holds */
-function recheckStamps(extra = []) {
+function recheckStamps(extra = [], always = false) {
   if (!db || !db.me.stamps) return;
   const st = db.me.stamps, c = stampConditions(), now = Date.now(); let changed = false;
   Object.keys(c).concat(extra).forEach(k => {
-    if (k === 'page' || k === 'home' || !st[k] || now - st[k] > 10 * 60 * 1000) return;
+    if (k === 'page' || k === 'home' || !st[k] || (!always && now - st[k] > 10 * 60 * 1000)) return;
     if (extra.includes(k) || !c[k]) {
       delete st[k]; changed = true;
       const i = stampQueue.indexOf(k); if (i >= 0) stampQueue.splice(i, 1);
@@ -1273,7 +1275,7 @@ function todayCardHTML() {
     ${reading.length > 1 ? `<div class="tpager" aria-hidden="true">${reading.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div>` : ''}
     <button class="btn accent block" style="margin-top:.7rem" data-act="today-open">🔖 Move my bookmark</button>
     <div class="tweek" aria-label="Days you read this week">${dots}</div>
-    <p class="sub" style="text-align:center;margin:.5rem 0 0;font-size:.8rem">${n}${goal ? ` of ${goal}` : ''} ${n === 1 && !goal ? 'page' : 'pages'} today · ${wk} this week · 🔒 only you see this</p>
+    <p class="sub" style="text-align:center;margin:.5rem 0 0;font-size:.8rem">${goal && n >= goal ? `${n} pages today 🎉 goal reached` : `${n}${goal ? ` of ${goal}` : ''} ${n === 1 && !goal ? 'page' : 'pages'} today`} · ${wk} this week · 🔒 only you see this</p>
   </section>`;
 }
 function homeHTML() {
@@ -1313,8 +1315,8 @@ function shelfHTML() {
   const mine = myBooks();
   const by = s => mine.filter(b => b.status === s).sort((a, b) => b.updatedAt - a.updatedAt);
   const reading = by('reading');
-  const shelves = { want: by('want'), paused: by('paused'), finished: by('finished') };
-  if (!ui.shelfTab || !shelves[ui.shelfTab]) ui.shelfTab = shelves.want.length ? 'want' : shelves.paused.length ? 'paused' : 'finished';
+  const shelves = { want: by('want'), paused: by('paused'), finished: by('finished'), aside: by('aside') };
+  if (!ui.shelfTab || !shelves[ui.shelfTab] || (ui.shelfTab === 'aside' && !shelves.aside.length)) ui.shelfTab = shelves.want.length ? 'want' : shelves.paused.length ? 'paused' : 'finished';
   const nowCards = reading.map(b => `<div class="card">
       <div class="now">
         ${editableFcover(b)}
@@ -1329,13 +1331,13 @@ function shelfHTML() {
         <button class="btn primary" style="flex:1" data-act="finish" data-id="${b.id}">✓ I finished it</button>
       </div>
     </div>`).join('');
-  const labels = { want: 'Want to read', paused: 'Paused', finished: 'Finished' };
-  const any = shelves.want.length + shelves.paused.length + shelves.finished.length;
+  const labels = { want: 'Want to read', paused: 'Paused', finished: 'Finished', ...(shelves.aside.length ? { aside: 'Set aside' } : {}) };
+  const any = shelves.want.length + shelves.paused.length + shelves.finished.length + shelves.aside.length;
   const items = shelves[ui.shelfTab].map(b => `<button class="shelf-item" data-act="book" data-id="${b.id}">
       ${fcover(b)}<span class="item-title clamp2">${esc(b.title)}</span>
-      <span class="meta">${esc(b.status === 'want' ? (b.from || b.author || '') : b.status === 'paused' ? (tracked(b) ? pct(b) + '% read' : 'Paused') : (b.author || ''))}</span>
+      <span class="meta">${esc(b.status === 'want' ? (b.from || b.author || '') : b.status === 'paused' || b.status === 'aside' ? (tracked(b) && pct(b) ? pct(b) + '% read' : b.status === 'aside' ? 'Set aside' : 'Paused') : (b.author || ''))}</span>
     </button>`).join('');
-  const hint = { want: 'Save books from Discover, or tap + to add one.', paused: 'Books you set aside wait here.', finished: 'Books you finish land here.' };
+  const hint = { want: 'Save books from Discover, or tap + to add one.', paused: 'Books you pause wait here.', finished: 'Books you finish land here.', aside: 'Started, not for now. No guilt.' };
   return `
     <div class="section-label" style="margin-top:.3rem">Reading now</div>
     ${nowCards || `<div class="card empty">Nothing on the go.<br>Tap <b>+</b> to add the book you're reading.</div>`}
@@ -1352,14 +1354,14 @@ function readingCarousel(others) {
     return `<div class="ccard">
       <button class="who" style="all:unset;cursor:pointer;display:flex;align-items:center;gap:.35rem;font-size:.8rem" data-act="member" data-id="${b.userId}">${avatar(u, 'sm')}<b>${esc(u.name)}</b></button>
       <button class="cover-btn" data-act="fbook" data-k="b" data-id="${b.id}" aria-label="About ${esc(b.title)}">${fcover(b)}</button>
-      ${u.showProgress !== false && tracked(b) ? `<div class="bar"><div style="width:${pct(b)}%"></div></div>` : '<div class="small">Reading</div>'}
+      <div class="cc-status">${u.showProgress !== false && tracked(b) ? `<div class="bar" style="width:100%"><div style="width:${pct(b)}%"></div></div>` : '<span class="small">Reading</span>'}</div>
       ${saveBtn(b.title, 'save-book', b.id, '＋ Want to read', 'font-size:.78rem')}
     </div>`;
   }).join('');
 }
 function postCard(p, club) {
   const u = userById(p.userId) || { name: 'Member' }, isMe = p.userId === ME, saved = onMyShelf(p.title);
-  const modBtn = !isMe && club && canManage(club) ? `<button class="iconbtn" style="border:none" aria-label="Hide this thought from ${esc(club.name)}" title="Hide from this club" data-act="club-hide" data-club="${club.id}" data-id="${p.id}">🙈</button>` : '';
+  const modBtn = !isMe && club && canManage(club) ? `<button class="iconbtn" style="border:none;font-size:1.3rem;letter-spacing:1px" aria-label="Options for this thought" data-act="post-menu" data-club="${club.id}" data-id="${p.id}">⋯</button>` : '';
   return `<article class="card">
     <div class="row"><button style="all:unset;cursor:pointer" data-act="member" data-id="${p.userId}" aria-label="See ${esc(u.name)}'s shelf">${avatar(u)}</button><div class="grow"><div class="item-title">${isMe ? 'You' : esc(u.name)} <span style="font-weight:400;color:var(--muted)">shared a thought</span></div><div class="meta">${timeAgo(p.createdAt)}</div></div>
     ${isMe ? `<button class="iconbtn" style="border:none" aria-label="Delete this post" data-act="delete-post" data-id="${p.id}">🗑️</button>` : modBtn}</div>
@@ -1437,7 +1439,7 @@ function clubPageHTML(g) {
 /* ----- Share ----- */
 function shareHTML() {
   const s = ui.share;
-  const options = myBooks().filter(b => b.status === 'reading' || b.status === 'finished').sort((a, b) => b.updatedAt - a.updatedAt);
+  const options = myBooks().filter(b => ['reading', 'finished', 'aside'].includes(b.status)).sort((a, b) => b.updatedAt - a.updatedAt);
   if (s.bookId && !options.find(b => b.id === s.bookId)) s.bookId = null;
   const canPost = s.bookId && s.reaction;
   return `<p class="sub" style="margin:.2rem 0 .4rem">A line, a quote, a learning. It helps someone find their next book.</p>
@@ -1742,12 +1744,13 @@ function renderSheet(animate) {
       </div>
       <label class="hb-label" for="m-pages">Pages <span class="sub">(optional)</span></label><input class="hb-input" id="m-pages" type="number" inputmode="numeric" min="1" value="${esc(d.pages || '')}">
       <label class="hb-label" for="m-genre">Genre <span class="sub">(optional)</span></label><select class="hb-input" id="m-genre"><option value="">Choose…</option>${GENRES.map(([v, l]) => `<option value="${v}" ${d.genre === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
-      <div class="formbtns"><button class="btn" data-act="manual-save" data-status="want">Want to read</button><button class="btn primary" data-act="manual-save" data-status="reading">Start reading</button></div>`;
+      <div class="formbtns"><button class="btn" data-act="manual-save" data-status="want">Want to read</button><button class="btn primary" data-act="manual-save" data-status="reading">Start reading</button></div>
+      <button class="link" style="display:block;margin:.3rem auto 0" data-act="close">Cancel</button>`;
   }
   if (ui.sheet === 'book') {
     const b = db.books.find(x => x.id === d.id);
     if (!b) { ui.sheet = null; return renderSheet(); }
-    const status = { reading: ['soon', 'Reading now'], paused: ['later', 'Paused'], want: ['info', 'Want to read'], finished: ['ok', 'Finished'] }[b.status];
+    const status = { reading: ['soon', 'Reading now'], paused: ['later', 'Paused'], want: ['info', 'Want to read'], finished: ['ok', 'Finished'], aside: ['later', 'Set aside'] }[b.status];
     const tr = tracked(b);
     inner = `<div style="display:grid;grid-template-columns:5.6rem minmax(0,1fr);gap:.8rem;align-items:start">
         ${editableFcover(b)}
@@ -1763,10 +1766,12 @@ function renderSheet(animate) {
       <div class="actions">
         ${{ reading: `<button class="btn" style="flex:1" data-act="pause" data-id="${b.id}">⏸ Pause</button><button class="btn primary" style="flex:1" data-act="finish" data-id="${b.id}">✓ I finished it</button>`,
             paused: `<button class="btn primary" style="flex:1" data-act="resume" data-id="${b.id}">▶ Resume reading</button>`,
+            aside: `<button class="btn primary" style="flex:1" data-act="resume" data-id="${b.id}">▶ Pick it up again</button>`,
             want: `<button class="btn primary" style="flex:1" data-act="start" data-id="${b.id}">▶ Start reading</button>`,
             finished: `<button class="btn accent" style="flex:1" data-act="share-this" data-id="${b.id}">✍️ Share what stayed with you</button>` }[b.status]}
       </div>
-      <div class="formbtns"><button class="btn danger" data-act="remove" data-id="${b.id}">Not for me</button><button class="btn primary" data-act="close">Done</button></div>`;
+      ${b.status === 'reading' || b.status === 'paused' ? `<button class="link" style="display:block;margin:.2rem auto 0" data-act="aside" data-id="${b.id}">📕 Set aside: started, not finishing for now</button>` : ''}
+      <div class="formbtns"><button class="btn danger" data-act="remove" data-id="${b.id}">🗑 Remove from shelf</button><button class="btn primary" data-act="close">Done</button></div>`;
   }
 
   /* ---- today, calendar ---- */
@@ -1787,7 +1792,7 @@ function renderSheet(animate) {
     const x = (d.k === 'p' ? db.posts : db.books).find(y => y.id === d.id);
     if (!x) { ui.sheet = null; return renderSheet(); }
     const key = norm(x.title), clubPeople = new Set(myClubs().flatMap(g => g.members));
-    const holders = db.books.filter(b => norm(b.title) === key && b.userId !== ME && clubPeople.has(b.userId));
+    const holders = db.books.filter(b => norm(b.title) === key && b.userId !== ME && clubPeople.has(b.userId) && b.status !== 'aside');
     const line = b => { const u = userById(b.userId) || { name: 'Member' };
       const st = { reading: 'is reading it' + (u.showProgress !== false && tracked(b) ? ` · ${pct(b)}%` : ''), finished: 'finished it', want: 'wants to read it', paused: 'paused it' }[b.status] || '';
       return `<button class="mrow" data-act="member" data-id="${b.userId}">${avatar(u)}<span class="mt">${esc(u.name)}<small>${st}</small></span><span class="mc">›</span></button>`; };
@@ -1815,7 +1820,24 @@ function renderSheet(animate) {
       ${close()}`;
     tall = true;
   }
-  if (ui.sheet === 'club-edit') {
+  if (ui.sheet === 'remove-ask') {
+    const b = db.books.find(x => x.id === d.id); if (!b) { ui.sheet = null; return renderSheet(); }
+    inner = `<div style="text-align:center;padding:.4rem 0"><div style="font-size:2.2rem">📕</div><h2 class="sheet-title" style="margin:.4rem 0 .3rem">Set it aside instead?</h2>
+      <p class="sub" style="margin:0">You've read ${d.read ? d.read + (b.pages ? ' pages' : '%') : 'some'} of <b style="color:var(--ink)">${esc(b.title)}</b>. Setting it aside keeps it in your history, out of the way. Pages you read stay in your calendar either way.</p></div>
+      <div class="formbtns"><button class="btn danger" data-act="remove" data-id="${b.id}" data-sure="1">Remove anyway</button><button class="btn primary" data-act="aside" data-id="${b.id}">📕 Set aside</button></div>
+      <button class="link" style="display:block;margin:.3rem auto 0" data-act="close">Cancel</button>`;
+  }
+  if (ui.sheet === 'post-menu') {
+    const g = db.groups.find(x => x.id === d.club), p = db.posts.find(x => x.id === d.id);
+    if (!g || !p) { ui.sheet = null; return renderSheet(); }
+    const u = userById(p.userId) || { name: 'Member' };
+    inner = `${title('Thought by ' + esc(u.name))}
+      <div class="mgroup" style="margin-top:0">
+        <button class="mrow" data-act="club-hide" data-club="${g.id}" data-id="${p.id}"><span class="mi">🙈</span><span class="mt">Hide from ${esc(g.name)}<small>It stays on ${esc(u.name)}'s profile and in other clubs. You can show it again from About.</small></span></button>
+      </div>
+      ${close('Cancel')}`;
+  }
+  if (ui.sheet === 'club-edit') { /* edit sheet */
     const g = db.groups.find(x => x.id === d.id); if (!g) { ui.sheet = null; return renderSheet(); }
     inner = `${title('Edit club')}
       <label class="hb-label" for="ce-name">Club name</label><input class="hb-input" id="ce-name" maxlength="40" value="${esc(d.name ?? g.name)}">
@@ -2455,8 +2477,9 @@ const actions = {
     const res = await clubRun(id, 'newcode'); if (!res) return;
     await clubRefresh(); toast('New code: ' + String(res.code || '').toUpperCase());
   },
+  'post-menu'(id, el) { openSheet('post-menu', { club: el.dataset.club, id }); },
   async 'club-hide'(pid, el) {
-    const cid = el.dataset.club; if (!(await clubRun(cid, 'hide', null, pid))) return;
+    const cid = el.dataset.club; ui.sheet = null; ui.sheetData = {}; if (!(await clubRun(cid, 'hide', null, pid))) { render(); return; }
     await clubRefresh(); toast('Hidden from this club', async () => { if (await clubRun(cid, 'unhide', null, pid)) { await clubRefresh(); } });
   },
   async 'club-unhide'(pid, el) {
@@ -2552,8 +2575,14 @@ const actions = {
     toast('Paused. Pick it up whenever.', () => { updBook(id, { status: 'reading' }); render(); });
   },
   resume(id) {
+    const prev = (db.books.find(x => x.id === id) || {}).status || 'paused';
     updBook(id, { status: 'reading' }); closeSheet(); earnStamp('resume');
-    toast('Back to reading', () => { updBook(id, { status: 'paused' }); render(); recheckStamps(['resume']); });
+    toast('Back to reading', () => { updBook(id, { status: prev }); render(); recheckStamps(['resume']); });
+  },
+  aside(id) {
+    const prev = (db.books.find(x => x.id === id) || {}).status || 'reading';
+    updBook(id, { status: 'aside' }); ui.shelfTab = 'aside'; closeSheet();
+    toast('Set aside. No guilt 📕', () => { updBook(id, { status: prev }); render(); });
   },
   start(id) {
     const b = db.books.find(x => x.id === id), prev = b.status;
@@ -2566,17 +2595,19 @@ const actions = {
     toast('Removed from Want to read', () => { db.books.push(b); save(); render(); if (ui.sheet === 'add') renderResults(); });
   },
   'cele-undo'() { const f = celeUndo; celeUndo = null; clearTimeout(celeTimer); document.getElementById('cele-root').innerHTML = ''; if (f) f(); },
-  remove(id) {
+  remove(id, el) {
     const b = db.books.find(x => x.id === id); if (!b) return;
-    db.books = db.books.filter(x => x.id !== id); save(); closeSheet();
-    toast('Removed from your shelf', () => { db.books.push(b); save(); render(); });
+    const read = (db.log || []).filter(l => l.bookId === id).reduce((n, l) => n + l.pages, 0);
+    if (!el?.dataset?.sure && (b.status === 'reading' || b.status === 'paused') && (read > 0 || b.page > 0 || b.percent > 0)) { openSheet('remove-ask', { id, read: read || b.page || b.percent }); return; }
+    db.books = db.books.filter(x => x.id !== id); save(); closeSheet(); recheckStamps([], true);
+    toast('Removed from your shelf', () => { db.books.push(b); save(); render(); checkStamps(); });
   },
   'save-book'(id) { const b = db.books.find(x => x.id === id); if (b) saveFromOther(b, b.userId); },
   'save-post'(id) { const p = db.posts.find(x => x.id === id); if (p) saveFromOther(p, p.userId); },
   'delete-post'(id) {
     const p = db.posts.find(x => x.id === id); if (!p) return;
-    db.posts = db.posts.filter(x => x.id !== id); save(); render();
-    toast('Post deleted', () => { db.posts.push(p); save(); render(); });
+    db.posts = db.posts.filter(x => x.id !== id); save(); render(); recheckStamps([], true);
+    toast('Post deleted', () => { db.posts.push(p); save(); render(); checkStamps(); });
   },
   'share-book'(id) { ui.share.bookId = id; render(); },
   react(k) { ui.share.text = document.getElementById('thought')?.value ?? ui.share.text; ui.share.reaction = k; render(); },
