@@ -903,9 +903,9 @@ const platform = () => { const u = navigator.userAgent; if (/iPhone|iPad|iPod/.t
 function installGuideImg() {
   const pf = platform(), f = pf === 'android' ? 'install-android.jpg' : pf.startsWith('ios') ? 'install-iphone.jpg' : '';
   if (!f || isInstalled()) return '';
-  return `<div class="section-label">Step by step, with pictures</div>
-    <a href="${f}" target="_blank" rel="noopener" aria-label="Open the picture guide full size"><img src="${f}" loading="lazy" alt="${pf === 'android' ? 'Android: tap the menu, tap Install app, tap Install, then open Shelfmates from your Home Screen' : 'iPhone: tap Share in Safari, tap Add to Home Screen, tap Add, then open Shelfmates from your Home Screen'}" style="width:100%;border-radius:var(--radius-lg);border:1px solid var(--line);display:block"></a>
-    <p class="small" style="text-align:center;margin-top:.3rem">Tap the picture to zoom in.</p>`;
+  return `<div id="guide-pic"><div class="section-label">Step by step, with pictures</div>
+    <a href="${f}" target="_blank" rel="noopener" aria-label="Open the picture guide full size"><img src="${f}" loading="lazy" alt="${pf === 'android' ? 'Android: tap the menu, tap Install app, tap Install, then open Shelfmates from your Home Screen' : 'iPhone: tap Share in Safari, tap Add to Home Screen, tap Add, then open Shelfmates from your Home Screen'}" style="width:100%;border-radius:var(--radius-lg);border:1px solid var(--line);display:block" onerror="this.closest('#guide-pic').remove()"></a>
+    <p class="small" style="text-align:center;margin-top:.3rem">Tap the picture to zoom in.</p></div>`;
 }
 let installPrompt = null;
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; });
@@ -918,7 +918,7 @@ function installStepsHTML() {
   const desktop = `<div class="card"><div class="item-title">💻 Laptop (Chrome or Edge)</div><div class="meta" style="display:block;line-height:1.7">Click the install icon ⊕ at the right end of the address bar → <b>Install</b></div></div>`;
   const now = installPrompt ? `<button class="btn accent block" style="margin:.4rem 0 .6rem" data-act="install-now">📲 Install now</button>` : '';
   if (pf === 'ios') return now + ios;
-  if (pf === 'ios-other') return `<div class="banner info"><span class="b-icon">🧭</span><div class="sub" style="color:var(--ink)">On iPhone, only Safari can add it to your home screen. Copy the link, open it in Safari, then:</div></div>` + ios;
+  if (pf === 'ios-other') return `<div class="banner info"><span class="b-icon">🧭</span><div class="sub" style="color:var(--ink)">On iPhone, only Safari can install it as an app. Copy the link, open it in Safari, then:</div></div>` + ios;
   if (pf === 'android') return now + android;
   return now + desktop + `<p class="sub">On a phone? Open ${esc(location.host)} there and follow the steps for iPhone or Android.</p>` + ios + android;
 }
@@ -1052,7 +1052,7 @@ const STAMPS = [
     '<circle cx="20" cy="24" r="6" fill="#854F0B"/><circle cx="44" cy="24" r="6" fill="#854F0B"/><circle cx="20" cy="24" r="3" fill="#FAC775"/><circle cx="44" cy="24" r="3" fill="#FAC775"/><circle cx="32" cy="37" r="15" fill="#BA7517"/><ellipse cx="32" cy="43" rx="7" ry="5" fill="#FAEEDA"/><ellipse cx="32" cy="40.5" rx="2.5" ry="1.8" fill="#412402"/><circle cx="26" cy="34" r="1.9" fill="#412402"/><circle cx="38" cy="34" r="1.9" fill="#412402"/><path d="M26 24 L32 8 L38 24 Z" fill="#D4537E"/><circle cx="30" cy="18" r="1.2" fill="#fff"/><circle cx="34" cy="14" r="1.2" fill="#fff"/><circle cx="32" cy="8" r="2.6" fill="#EF9F27"/>'],
   ['chair', 'Pulled up a chair', "Join someone's club", 'Pip the penguin settles in', 'gray',
     '<rect x="15" y="20" width="34" height="24" rx="5" fill="#F0997B"/><rect x="12" y="40" width="40" height="12" rx="4" fill="#D85A30"/><ellipse cx="32" cy="36" rx="12" ry="16" fill="#2C2C2A"/><ellipse cx="32" cy="39" rx="8.5" ry="13" fill="#fff"/><circle cx="28.5" cy="30" r="1.8" fill="#2C2C2A"/><circle cx="35.5" cy="30" r="1.8" fill="#2C2C2A"/><path d="M30 33 L34 33 L32 36 Z" fill="#EF9F27"/><ellipse cx="27" cy="52" rx="3.5" ry="1.6" fill="#EF9F27"/><ellipse cx="37" cy="52" rx="3.5" ry="1.6" fill="#EF9F27"/>'],
-  ['home', 'Moved in', 'Put Shelfmates on your home screen', 'Clover the rabbit unpacks', 'red',
+  ['home', 'Moved in', 'Install Shelfmates as an app', 'Clover the rabbit unpacks', 'red',
     '<ellipse cx="22" cy="19" rx="4" ry="10" fill="#fff" stroke="#D3D1C7"/><ellipse cx="32" cy="18" rx="4" ry="10" fill="#fff" stroke="#D3D1C7"/><ellipse cx="22" cy="19" rx="2" ry="7" fill="#F4C0D1"/><ellipse cx="32" cy="18" rx="2" ry="7" fill="#F4C0D1"/><circle cx="27" cy="37" r="12" fill="#fff" stroke="#D3D1C7"/><circle cx="23" cy="36" r="1.8" fill="#2C2C2A"/><circle cx="31" cy="36" r="1.8" fill="#2C2C2A"/><path d="M25.8 40 L28.2 40 L27 41.6 Z" fill="#ED93B1"/><circle cx="20" cy="41" r="2" fill="#F4C0D1"/><circle cx="34" cy="41" r="2" fill="#F4C0D1"/><rect x="43" y="44" width="14" height="11" fill="#fff" stroke="#A32D2D"/><path d="M41 45 L50 36 L59 45 Z" fill="#E24B4A"/><rect x="48" y="49" width="4" height="6" fill="#A32D2D"/>'],
   ['genres', 'Genre hopper', 'Read books from 3 different genres', 'Hops the frog leaps between shelves', 'green',
     '<rect x="15" y="54" width="34" height="5" rx="1" fill="#7F77DD"/><rect x="16" y="48" width="32" height="6" rx="1" fill="#D85A30"/><rect x="18" y="42" width="28" height="6" rx="1" fill="#378ADD"/><ellipse cx="32" cy="34" rx="13" ry="9" fill="#639922"/><circle cx="25" cy="26" r="5" fill="#639922"/><circle cx="39" cy="26" r="5" fill="#639922"/><circle cx="25" cy="26" r="3" fill="#fff"/><circle cx="39" cy="26" r="3" fill="#fff"/><circle cx="25.5" cy="26.5" r="1.5" fill="#173404"/><circle cx="39.5" cy="26.5" r="1.5" fill="#173404"/><path d="M26 36 Q32 40 38 36" stroke="#173404" stroke-width="1.4" fill="none" stroke-linecap="round"/><circle cx="22" cy="34" r="1.8" fill="#ED93B1"/><circle cx="42" cy="34" r="1.8" fill="#ED93B1"/>'],
@@ -1307,7 +1307,7 @@ function homeHTML() {
     </button>`;
   }).join('');
   return `
-    ${!isInstalled() && !installHintDone() && myBooks().some(b => !b.demo) && platform() !== 'desktop' ? `<div class="banner accent"><span class="b-icon">📱</span><div class="grow"><div class="item-title">Put Shelfmates on your home screen</div><div class="sub" style="color:var(--ink)">Opens like an app, one tap away.</div>
+    ${!isInstalled() && !installHintDone() && myBooks().some(b => !b.demo) && platform() !== 'desktop' ? `<div class="banner accent"><span class="b-icon">📱</span><div class="grow"><div class="item-title">Install Shelfmates as an app</div><div class="sub" style="color:var(--ink)">Opens like an app, one tap away.</div>
       <div class="actions" style="margin-top:.4rem"><button class="btn primary" data-act="install-show">Show me</button></div></div><button class="iconbtn" style="border:none" aria-label="Dismiss" data-act="install-dismiss">✕</button></div>` : ''}
     ${hasDemo() ? `<div class="banner info"><span class="b-icon">🧪</span><div class="grow"><div class="item-title">You're exploring with sample data</div><div class="sub">Priya, Arjun and Meera are pretend. Your own books stay when you remove them.</div></div><button class="btn" data-act="demo-remove">Remove</button></div>` : ''}
     <div class="home-grid"><div class="home-left">${todayCardHTML()}</div><div class="home-right">
@@ -1495,7 +1495,7 @@ function renderSheet(animate) {
           ${mrow('set-page', 'prefs', '🔔', 'Preferences', [db.me.showProgress ? 'Progress shared' : 'Progress hidden', db.me.goal ? 'Goal ' + db.me.goal : ''].filter(Boolean).join(' · '))}
           ${mrow('set-page', 'display', '🎨', 'Reading mood &amp; display', (display.mood === 'match' ? 'Match my book' : MOODS[display.mood].name) + ' · ' + { dark: 'Dark', light: 'Light', auto: 'Auto' }[display.mode])}
           ${mrow('set-page', 'data', '💾', 'Data &amp; backup', CLOUD ? (syncState === 'error' ? 'Not synced' : 'Synced') : 'This phone only')}
-          ${standalone ? '' : mrow('set-page', 'install', '📱', 'Put it on your home screen', '')}
+          ${standalone ? '' : mrow('set-page', 'install', '📲', 'Install as app', '')}
           ${mrow('set-page', 'help', '📖', 'How to use', '')}
           ${mrow('about', '', 'ℹ️', 'About ' + APP.first + ' ' + esc(APP.second), '')}
           ${mrow('feedback', '', '💬', 'Send feedback', 'Ideas, bugs, anything')}
@@ -1631,7 +1631,7 @@ function renderSheet(animate) {
         ${CLOUD ? '' : `<div class="mgroup"><button class="mrow danger" data-act="reset"><span class="mi">🗑️</span><span class="mt">Erase everything on this phone</span></button></div>`}
         ${subEnd}`;
     } else if (page === 'install') {
-      inner = `${title('Put it on your home screen')}<p class="sub">It then opens full screen with its own icon, like any other app. No app store needed.</p>
+      inner = `${title('Install as app')}<p class="sub">Opens full screen with its own icon, like any other app. No app store needed.</p>
         ${isInstalled() ? '<div class="banner info"><span class="b-icon">✅</span><div class="sub" style="color:var(--ink)">You are already using the installed app.</div></div>'
           : CLOUD && !email && !d.skipSave && myBooks().some(b => !b.demo) ? `<div class="card" style="text-align:center;padding:1rem">
               <div style="font-size:2rem">💾</div><div class="item-title" style="margin-top:.3rem">Save your shelf first</div>
@@ -1641,7 +1641,7 @@ function renderSheet(animate) {
           : installStepsHTML() + installGuideImg()}${subEnd}`;
     } else if (page === 'help') {
       inner = `${title('How to use')}
-        ${isInstalled() ? '' : `<div class="mgroup"><button class="mrow" data-act="set-page" data-id="install"><span class="mi">📱</span><span class="mt">Put it on your home screen<small>Open it like an app, full screen, with its own icon</small></span><span class="mc">›</span></button></div>`}
+        ${isInstalled() ? '' : `<div class="mgroup"><button class="mrow" data-act="set-page" data-id="install"><span class="mi">📲</span><span class="mt">Install as app<small>Full screen, with its own icon. No app store needed.</small></span><span class="mc">›</span></button></div>`}
         <div class="mgroup">
           ${[['🏠', 'Home', 'Your Today card stacks up the pages you read today. Move your bookmark to update it. Only you see it.'],
              ['📚', 'Shelf', 'Books you are reading, want to read, paused and finished. Tracking progress is optional.'],
