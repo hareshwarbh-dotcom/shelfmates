@@ -82,6 +82,20 @@ img { max-width: 100%; }
 .btn:disabled { opacity: .45; cursor: default; }
 .actions { display: flex; gap: .4rem; margin-top: .6rem; flex-wrap: wrap; }
 .formbtns { display: flex; gap: .5rem; margin-top: 1.1rem; }
+.sheet-head { position: sticky; top: -1.1rem; z-index: 5; display: flex; align-items: center; gap: .5rem; margin: -1.1rem -1rem .7rem; padding: .8rem 1rem .7rem; background: var(--bg); border-bottom: 1px solid var(--line); }
+.sheet-head .sh-mid { flex: 1; min-width: 0; }
+.sheet-head .sheet-title { font-size: 1.12rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sheet-head .sh-left { background: none; border: none; color: var(--muted); font: inherit; font-size: .92rem; padding: .4rem .2rem; cursor: pointer; white-space: nowrap; min-width: 0; order: 0; }
+.sheet-head .sh-left:empty { display: none; }
+.sheet-head .sh-mid { order: 1; }
+.sheet-head .sh-left + .sh-mid { text-align: left; }
+.sheet-head .sh-right { order: 2; border: none; border-radius: 999px; padding: .45rem 1.1rem; min-height: 2.3rem; font: inherit; font-weight: 600; font-size: .92rem; background: var(--accent); color: var(--on-accent); cursor: pointer; white-space: nowrap; }
+.sheet-head .sh-right.soft { background: var(--soft); color: var(--ink); }
+.sheet-head .sh-right:disabled { opacity: .6; }
+.stampbox > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
+.stampbox > summary::-webkit-details-marker { display: none; }
+.stampbox > summary::after { content: '▾'; font-size: .9rem; transition: transform .2s; }
+.stampbox:not([open]) > summary::after { transform: rotate(-90deg); }
 .formbtns .btn { flex: 1; min-height: 2.7rem; }
 .iconbtn { background: none; border: 1px solid var(--line); border-radius: var(--radius-md); width: 2.4rem; height: 2.4rem; font-size: 1.1rem; cursor: pointer; flex-shrink: 0; color: var(--ink); position: relative; display: inline-flex; align-items: center; justify-content: center; }
 .iconbtn::after { content: ''; position: absolute; inset: -4px; }
@@ -1401,8 +1415,8 @@ function renderSheet(animate) {
         <div class="hb-label">Favourite genres <span class="sub">(optional)</span></div>
         <div class="chips" style="flex-wrap:wrap">${GENRES.map(([v, l]) => `<button class="chip sm ${p.genres.includes(v) ? 'on' : ''}" aria-pressed="${p.genres.includes(v)}" data-act="pf-genre" data-id="${v}">${l}</button>`).join('')}</div>
         <p class="sub">🔒 Only people in your clubs see your profile.</p>
-        <div class="section-label" id="my-stamps">My stamps · ${earnedKeys(db.me.stamps).length} of ${STAMPS.length}</div>
-        ${stampGridHTML(db.me.stamps)}
+        <details class="stampbox" id="my-stamps" ${localStorage.getItem('sm.stampsOpen') === '0' ? '' : 'open'}><summary class="section-label">My stamps · ${earnedKeys(db.me.stamps).length} of ${STAMPS.length}</summary>
+        ${stampGridHTML(db.me.stamps)}</details>
         <p class="sub">${db.me.showStamps ? '🏷️ People in your clubs can see the stamps you’ve earned.' : '🔒 Only you see your stamps. You can share them in Preferences.'}</p>
         <div class="formbtns"><button class="btn" data-act="set-page" data-id="">‹ Settings</button><button class="btn primary" data-act="profile-save">Save</button></div>`;
     } else if (page === 'name') {
@@ -1668,8 +1682,32 @@ function renderSheet(animate) {
   if (ui.sheet === 'admin-item') { tall = true; inner = adminItemHTML(d); }
   if (ui.sheet === 'admin-confirm') { inner = adminConfirmHTML(d); }
 
+  const prevScroll = animate ? 0 : (root.querySelector('.sheet')?.scrollTop || 0);
   root.innerHTML = `<div class="overlay ${animate ? 'anim' : ''}" data-act="overlay"><div class="sheet ${tall ? 'tall' : ''}" role="dialog" aria-modal="true">${inner}</div></div>`;
+  sheetHeader(root.querySelector('.sheet'));
+  if (prevScroll) root.querySelector('.sheet').scrollTop = prevScroll;
   if (animate) { const f = root.querySelector('#g-name, #q, #m-title, #wc-name, #wj-code'); if (f) setTimeout(() => f.focus(), 250); }
+}
+/* Save / Done live in a sticky header, top right. Big actions (Join, Start reading…) stay at the bottom. */
+const TOP_ACTS = /^(close|profile-save|name-save|fb-send|adm-save|create-save)$/;
+function sheetHeader(sh) {
+  if (!sh) return;
+  const fbs = sh.querySelectorAll('.formbtns'), last = fbs[fbs.length - 1];
+  if (!last || last.closest('.cele')) return;
+  const btns = [...last.querySelectorAll('button')], right = btns[btns.length - 1];
+  if (!right || !TOP_ACTS.test(right.dataset.act || '') || btns.some(b => b !== right && /primary|accent/.test(b.className) && !b.classList.contains('danger'))) return;
+  const left = btns.find(b => b !== right && !b.classList.contains('danger'));
+  const head = document.createElement('div'); head.className = 'sheet-head';
+  const h = [...sh.children].find(c => c.classList.contains('sheet-title'));
+  const mid = document.createElement('div'); mid.className = 'sh-mid';
+  if (h) { h.style.margin = '0'; mid.appendChild(h); }
+  if (left) { left.className = 'sh-left'; if (left.dataset.act === 'close' && left.textContent.trim() === 'Done') left.textContent = 'Close'; head.appendChild(left); }
+  else head.appendChild(Object.assign(document.createElement('span'), { className: 'sh-left' }));
+  head.appendChild(mid);
+  right.className = 'sh-right' + (right.dataset.act === 'close' ? ' soft' : '');
+  head.appendChild(right);
+  sh.prepend(head);
+  if (!last.querySelector('button')) last.remove();
 }
 function openSheet(name, data = {}) { ui.sheet = name; ui.sheetData = data; renderSheet(true); }
 function closeSheet() { ui.sheet = null; ui.sheetData = {}; render(); }
@@ -1934,7 +1972,7 @@ const actions = {
     if (el.classList.contains('cele') && e.target.closest('.cele-card') && el.querySelector('.formbtns')) return;
     clearTimeout(celeTimer); document.getElementById('cele-root').innerHTML = '';
   },
-  'stamps-open'() { document.getElementById('cele-root').innerHTML = ''; openSheet('settings', { page: 'profile' }); setTimeout(() => document.getElementById('my-stamps')?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 150); },
+  'stamps-open'() { try { localStorage.setItem('sm.stampsOpen', '1'); } catch (e) {} document.getElementById('cele-root').innerHTML = ''; openSheet('settings', { page: 'profile' }); setTimeout(() => document.getElementById('my-stamps')?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 150); },
   'cele-share'(id) { document.getElementById('cele-root').innerHTML = ''; ui.share = { bookId: id, reaction: null, text: '', photo: '' }; ui.sheet = null; ui.clubPage = null; ui.tab = 'share'; render(); scrollTo(0, 0); },
   undo() { const f = toastUndo; toastUndo = null; document.getElementById('toast').classList.add('hide'); if (f) f(); },
   async onboard() {
@@ -2322,6 +2360,7 @@ document.addEventListener('submit', e => {
     document.getElementById('q').blur();
   }
 });
+document.addEventListener('toggle', e => { if (e.target.id === 'my-stamps') try { localStorage.setItem('sm.stampsOpen', e.target.open ? '1' : '0'); } catch (er) {} }, true);
 document.addEventListener('input', e => {
   const t = e.target;
   if (t.dataset && t.dataset.progRange) syncProgress(t.dataset.progRange, t.value, false);
