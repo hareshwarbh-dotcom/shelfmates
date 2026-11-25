@@ -435,26 +435,13 @@ a.mrow { text-decoration: none; }
 .tbl th { text-align: left; font-size: .74rem; font-weight: 600; letter-spacing: .5px; text-transform: uppercase; color: var(--muted); padding: .3rem .4rem .3rem 0; border-bottom: 1px solid var(--line); }
 .tbl td { padding: .5rem .4rem .5rem 0; border-bottom: 1px solid var(--line); vertical-align: top; }
 .loading { display: flex; align-items: center; justify-content: center; min-height: 70vh; color: var(--muted); }
-.splash { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .7rem; background: var(--bg); z-index: 30; }
-.sp-logo { width: 4.6rem; height: 4.6rem; border-radius: 1.1rem; animation: spfloat 1.6s ease-in-out infinite; }
-.sp-name { font-family: 'Fraunces', Georgia, serif; font-size: 1.45rem; font-weight: 600; color: var(--ink); }
-.sp-name span { color: var(--accent); }
-.sp-dots { display: flex; gap: .35rem; margin-top: .2rem; }
-.sp-dots i { width: .5rem; height: .5rem; border-radius: 50%; background: var(--accent); opacity: .25; animation: spdot 1.2s ease-in-out infinite; }
-.sp-dots i:nth-child(2) { animation-delay: .15s; } .sp-dots i:nth-child(3) { animation-delay: .3s; }
-.sp-note { position: absolute; bottom: calc(2rem + env(safe-area-inset-bottom)); font-size: .82rem; color: var(--muted); }
-@keyframes spfloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
-@keyframes spdot { 0%, 100% { opacity: .25; transform: scale(.8); } 50% { opacity: 1; transform: scale(1); } }
-@media (prefers-reduced-motion: reduce) { .sp-logo, .sp-dots i { animation: none; opacity: .7; } }
-.app.fadein-all { animation: fadein .3s ease-out; }
-@keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
 
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
 </head>
 <body>
 <div id="tex" aria-hidden="true"></div><div id="tw" aria-hidden="true"></div>
-<div class="app" id="app"><div class="splash" role="status" aria-label="Opening Shelfmates"><img src="icon-192.png" alt="" class="sp-logo" width="64" height="64"><div class="sp-name">Shelfmates <span>&amp; Me</span></div><div class="sp-dots"><i></i><i></i><i></i></div><div class="sp-note">Opening your shelf…</div></div></div>
+<div class="app" id="app"></div>
 <div id="sheet-root"></div>
 <div id="cele-root"></div>
 <div class="toast fixed hide" id="toast" role="status" aria-live="polite"><span id="toast-msg"></span></div>
@@ -1198,8 +1185,7 @@ document.addEventListener('error', e => {
 function render() {
   const app = document.getElementById('app');
   app.classList.toggle('no-nav', !!ui.loading || !db);
-  if (ui.loading) { if (!app.querySelector('.splash')) app.innerHTML = `<div class="splash" role="status" aria-label="Opening Shelfmates"><img src="icon-192.png" alt="" class="sp-logo" width="64" height="64"><div class="sp-name">Shelfmates <span>&amp; Me</span></div><div class="sp-dots"><i></i><i></i><i></i></div><div class="sp-note">Opening your shelf…</div></div>`; return; }
-  if (app.querySelector('.splash')) { app.classList.add('fadein-all'); setTimeout(() => app.classList.remove('fadein-all'), 400); }
+  if (ui.loading) { app.innerHTML = `<div class="loading">Opening your shelf…</div>`; return; }
   if (!db) { app.innerHTML = welcomeHTML(); renderSheet(); return; }
   db.log = db.log || [];
   if (!render.st) { render.st = 1; setTimeout(checkStamps, 800); }
