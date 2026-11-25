@@ -106,6 +106,21 @@ img { max-width: 100%; }
 .hb-input { width: 100%; min-width: 0; min-height: 2.6rem; border: 1px solid var(--line); background: var(--card); border-radius: var(--radius-md); padding: .5rem .7rem; font-size: max(16px, 1rem); color: var(--ink); }
 .hb-input:focus { outline: none; border-color: var(--accent); }
 textarea.hb-input { resize: none; line-height: 1.5; }
+.fb-foot { text-align: center; margin: 2rem 0 .5rem; }
+.fb-foot button { all: unset; cursor: pointer; font-size: .85rem; color: var(--muted); padding: .4rem .8rem; border-radius: 999px; }
+.fb-foot button:hover, .fb-foot button:focus-visible { background: var(--soft); color: var(--ink); }
+.fb-count { text-align: right; font-size: .75rem; color: var(--muted); margin-top: .2rem; }
+.fb-imgs { display: flex; gap: .5rem; flex-wrap: wrap; margin: .5rem 0; }
+.fb-img { position: relative; width: 4.5rem; height: 4.5rem; border-radius: .6rem; overflow: hidden; border: 1px solid var(--line); background: var(--soft); }
+.fb-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.fb-img button { position: absolute; top: .15rem; right: .15rem; width: 1.4rem; height: 1.4rem; border-radius: 50%; border: none; background: rgba(0,0,0,.6); color: #fff; font-size: .8rem; line-height: 1; cursor: pointer; }
+.fb-add { width: 4.5rem; height: 4.5rem; border-radius: .6rem; border: 1.5px dashed var(--line); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: .7rem; color: var(--muted); cursor: pointer; gap: .1rem; }
+.fb-add span { font-size: 1.2rem; }
+.fb-card { padding: .8rem; }
+.fb-card.done { opacity: .6; }
+.fb-card .fb-msg { white-space: pre-wrap; word-break: break-word; margin: .3rem 0; }
+.fb-card .fb-imgs a { display: block; width: 4.5rem; height: 4.5rem; border-radius: .5rem; overflow: hidden; border: 1px solid var(--line); }
+.fb-card .fb-imgs img { width: 100%; height: 100%; object-fit: cover; }
 
 .mgroup { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-lg); overflow: hidden; margin-top: .7rem; }
 .mrow { display: flex; align-items: center; gap: .7rem; width: 100%; min-height: 3rem; padding: .55rem .85rem; background: none; border: none; border-bottom: 1px solid var(--line); color: var(--ink); text-align: left; cursor: pointer; }
@@ -927,7 +942,7 @@ function render() {
         ${club.demo ? '' : `<button class="btn accent" data-act="invite" data-id="${club.id}">💌 Invite</button>`}` : ui.tab === 'home' ? `<h1 class="hb-logo" style="margin:0"><button data-act="about" aria-label="About ${APP.first} ${esc(APP.second)}" style="all:unset;cursor:pointer">${APP.first} <span>${esc(APP.second)}</span></button></h1>` : `<h1 class="hb-logo">${titles[ui.tab]}</h1>`}
       ${club ? '' : `<button class="iconbtn" aria-label="Settings" data-act="settings">⚙︎`}${CLOUD ? `<span class="syncdot ${dotClass()}" id="syncdot"></span>` : ''}${club ? '' : '</button>'}
     </header>
-    <main class="hb-main">${body}</main>
+    <main class="hb-main">${body}<div class="fb-foot"><button data-act="feedback">💬 Send feedback</button></div></main>
     ${club || ui.tab !== 'share' ? '<button class="fab fixed" aria-label="Add a book" data-act="add-open">+</button>' : ''}
     <nav class="hb-nav fixed" aria-label="Sections"><div class="inner">
       <div class="side-logo">${APP.first} <span>${esc(APP.second)}</span></div>
@@ -1208,6 +1223,7 @@ function renderSheet(animate) {
           ${standalone ? '' : mrow('set-page', 'install', '📱', 'Put it on your home screen', '')}
           ${mrow('set-page', 'help', '📖', 'How to use', '')}
           ${mrow('about', '', 'ℹ️', 'About ' + APP.first + ' ' + esc(APP.second), '')}
+          ${mrow('feedback', '', '💬', 'Send feedback', 'Ideas, bugs, anything')}
         </div>
         ${isAdmin ? `<div class="mgroup">${mrow('admin', '', '🛡️', 'Admin dashboard', 'Only you')}</div>` : ''}
         ${email ? `<div class="mgroup">${mrow('sign-out', '', '🚪', 'Log out', null, 'danger')}</div>` : ''}
@@ -1455,6 +1471,19 @@ function renderSheet(animate) {
   }
 
   /* ---- today, calendar ---- */
+  if (ui.sheet === 'feedback') {
+    const imgs = d.imgs || [], text = d.text || '';
+    inner = `${title('Send feedback')}
+      <p class="sub">Something broken, confusing, or a feature you'd love? Tell us. Screenshots help a lot.</p>
+      <label class="hb-label" for="fb-text">Your feedback</label>
+      <textarea class="hb-input" id="fb-text" rows="6" maxlength="2000" placeholder="What happened, or what would make it better?">${esc(text)}</textarea>
+      <div class="fb-count" id="fb-count">${text.length} / 2000</div>
+      <div class="hb-label" style="margin-top:.4rem">Screenshots or photos <span class="sub">(up to 3)</span></div>
+      <div class="fb-imgs">${imgs.map((u, i) => `<div class="fb-img"><img src="${u}" alt="Attached image ${i + 1}"><button aria-label="Remove image ${i + 1}" data-act="fb-rm" data-id="${i}">✕</button></div>`).join('')}
+        ${imgs.length < 3 ? `<label class="fb-add"><span>📷</span>Add<input class="file" type="file" accept="image/*" data-fb-photo="1"></label>` : ''}</div>
+      ${signedInEmail() ? '' : `<label class="hb-label" for="fb-email">Your email <span class="sub">(optional, only if you'd like a reply)</span></label><input class="hb-input" id="fb-email" type="email" inputmode="email" autocomplete="email" value="${esc(d.email || '')}">`}
+      <div class="formbtns"><button class="btn" data-act="close">Cancel</button><button class="btn primary" data-act="fb-send" ${d.sending ? 'disabled' : ''}>${d.sending ? 'Sending…' : 'Send'}</button></div>`;
+  }
   if (ui.sheet === 'nudge') {
     const [ic, h, b] = NUDGE[d.key] || NUDGE.books3;
     inner = `<div style="text-align:center;padding:.4rem 0"><div style="font-size:2.4rem">${ic}</div><h2 class="sheet-title" style="margin:.4rem 0 .2rem">${h}</h2><p class="sub" style="margin:0">${b}</p><p class="small" style="margin:.4rem 0 0">Just an email and password. Everything you've added stays exactly as it is.</p></div>
@@ -1524,7 +1553,7 @@ function adminRow(kind, r) {
   return `<button class="mrow" data-act="adm-open" data-k="${kind}" data-id="${r.id}"><span class="mi">${KIND[kind][0]}</span><span class="mt">${esc(name)}<small>${sub}</small></span><span class="mc">›</span></button>`;
 }
 function adminHTML() {
-  const tabs = [['overview', 'Overview'], ['people', 'People'], ['clubs', 'Clubs'], ['books', 'Books'], ['posts', 'Thoughts'], ['bin', '🗑️ Recently deleted'], ['log', 'Activity']];
+  const tabs = [['overview', 'Overview'], ['people', 'People'], ['clubs', 'Clubs'], ['books', 'Books'], ['posts', 'Thoughts'], ['feedback', '💬 Feedback' + (adm.fbNew ? ' (' + adm.fbNew + ')' : '')], ['bin', '🗑️ Recently deleted'], ['log', 'Activity']];
   const chips = `<div class="chips">${tabs.map(([k, l]) => `<button class="chip sm ${adm.tab === k ? 'on' : ''}" data-act="adm-tab" data-id="${k}">${l}</button>`).join('')}</div>`;
   let body = '';
   if (adm.error) body = `<div class="banner info"><span class="b-icon">⚠️</span><div class="sub" style="color:var(--ink)">${esc(adm.error)}</div></div>`;
@@ -1539,6 +1568,7 @@ function adminHTML() {
         <div class="stat"><div class="n">${a.books}</div><div class="l">Books</div></div>
         <div class="stat"><div class="n">${a.posts}</div><div class="l">Thoughts</div></div>
       </div>
+      ${adm.fbNew ? `<button class="banner accent" style="width:100%;text-align:left;cursor:pointer;color:var(--ink)" data-act="adm-tab" data-id="feedback"><span class="b-icon">💬</span><span class="sub" style="color:var(--ink)">${adm.fbNew} new feedback ${adm.fbNew === 1 ? 'message' : 'messages'} to read.</span></button>` : ''}
       ${a.bin ? `<button class="banner info" style="width:100%;text-align:left;cursor:pointer;color:var(--ink)" data-act="adm-tab" data-id="bin"><span class="b-icon">🗑️</span><span class="sub" style="color:var(--ink)">${a.bin} ${a.bin === 1 ? 'item' : 'items'} in Recently deleted. They're cleared after 30 days.</span></button>` : ''}
       <div class="section-label">Most added books</div>
       <div class="card tbl-wrap"><table class="tbl"><thead><tr><th>Book</th><th>People</th></tr></thead><tbody>${(a.top_books || []).map(r => `<tr><td>${esc(r.title)}</td><td>${r.n}</td></tr>`).join('') || '<tr><td colspan="2">None yet</td></tr>'}</tbody></table></div>`;
@@ -1551,6 +1581,15 @@ function adminHTML() {
         <span class="mt">${esc(r.name || r.title)}<small>${KIND[r.kind][1]} · deleted ${fmtDate(r.deleted_at)} · ${daysLeft(r.deleted_at)} days left</small></span>
         <span class="row" style="gap:.3rem"><button class="btn" data-act="adm-restore" data-k="${r.kind}" data-id="${r.id}">Restore</button><button class="btn danger" data-act="adm-ask" data-k="${r.kind}" data-id="${r.id}" data-forever="1">Delete</button></span></div>`).join('')}</div>`
         : '<div class="empty">Nothing here. 🎉</div>'}`;
+  } else if (adm.tab === 'feedback') {
+    const f = adm.fb || [];
+    body = f.length ? f.map(x => `<div class="card fb-card ${x.status === 'done' ? 'done' : ''}">
+        <div class="meta">${esc(x.name || 'Someone')}${x.email ? ' · <a href="mailto:' + esc(x.email) + '">' + esc(x.email) + '</a>' : ''} · ${new Date(x.created_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}</div>
+        <div class="fb-msg">${esc(x.message)}</div>
+        ${x.images && x.images.length ? `<div class="fb-imgs">${x.images.map(u => `<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="Screenshot"></a>`).join('')}</div>` : ''}
+        <div class="row" style="justify-content:space-between;gap:.4rem"><span class="small">${esc(x.page || '')}${x.device ? ' · ' + esc(x.device) : ''}</span>
+          <span class="row" style="gap:.3rem"><button class="btn" data-act="adm-fb" data-id="${x.id}" data-s="${x.status === 'done' ? 'new' : 'done'}">${x.status === 'done' ? 'Reopen' : '✓ Done'}</button><button class="btn danger" data-act="adm-fb-del" data-id="${x.id}">Delete</button></span></div>
+      </div>`).join('') : '<div class="empty">No feedback yet.</div>';
   } else if (adm.tab === 'log') {
     body = adm.log && adm.log.length ? `<div class="mgroup" style="margin-top:0">${adm.log.map(l => `<div class="mrow static"><span class="mi">${(KIND[l.kind] || ['🛠️'])[0]}</span><span class="mt">${esc(l.label || '')}<small>${esc(l.action)} · ${new Date(l.at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}${l.admin_name ? ' · ' + esc(l.admin_name) : ''}</small></span></div>`).join('')}</div>` : '<div class="empty">No changes yet.</div>';
   }
@@ -1603,7 +1642,11 @@ function adminConfirmHTML(d) {
 async function admLoad() {
   adm.loading = true; adm.error = ''; if (ui.sheet === 'admin') renderSheet();
   try {
-    if (adm.tab === 'overview') { const { data, error } = await sb.rpc('admin_overview'); if (error) throw error; adm.data = data; }
+    if (adm.tab === 'overview') {
+      const { data, error } = await sb.rpc('admin_overview'); if (error) throw error; adm.data = data;
+      const fc = await sb.from('feedback').select('id', { count: 'exact', head: true }).eq('status', 'new'); adm.fbNew = fc.error ? 0 : (fc.count || 0);
+    }
+    else if (adm.tab === 'feedback') { const { data, error } = await sb.from('feedback').select('*').order('created_at', { ascending: false }).limit(200); if (error) throw error; adm.fb = data; adm.fbNew = data.filter(x => x.status === 'new').length; }
     else if (adm.tab === 'bin') {
       const res = await Promise.all(['people', 'clubs', 'books', 'posts'].map(k => sb.rpc('admin_list', { p_kind: k, p_q: '', p_bin: true }).then(r => { if (r.error) throw r.error; return (r.data || []).map(x => ({ ...x, kind: k })); })));
       adm.bin = res.flat().sort((a, b) => Date.parse(b.deleted_at) - Date.parse(a.deleted_at));
@@ -1660,7 +1703,7 @@ function readSquare(file, size = 400) {
     r.readAsDataURL(file);
   });
 }
-function readPhoto(file) {
+function readPhoto(file, max = 900) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = reject;
@@ -1668,7 +1711,7 @@ function readPhoto(file) {
       const img = new Image();
       img.onerror = reject;
       img.onload = () => {
-        const max = 900, scale = Math.min(1, max / Math.max(img.width, img.height));
+        const scale = Math.min(1, max / Math.max(img.width, img.height));
         const c = document.createElement('canvas');
         c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
         c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
@@ -1773,6 +1816,26 @@ const actions = {
   },
   'w-create'() { openSheet('w-create'); },
   'w-signin'() { openSheet('w-signin'); },
+  feedback() {
+    const page = ui.sheet && ui.sheet !== 'settings' ? ui.sheet : ui.clubPage ? 'club' : ui.tab;
+    openSheet('feedback', { imgs: [], text: '', page });
+  },
+  'fb-rm'(i) { ui.sheetData.imgs.splice(+i, 1); renderSheet(); },
+  async 'fb-send'() {
+    const d = ui.sheetData, text = (d.text || '').trim(), email = signedInEmail() || (d.email || '').trim();
+    if (!text) { toast('Write a few words first'); document.getElementById('fb-text')?.focus(); return; }
+    if (email && !/^\S+@\S+\.\S+$/.test(email)) { toast('That email doesn\'t look right'); return; }
+    if (!CLOUD || !sb || !authUser) { toast("Can't send right now. Check your connection."); return; }
+    d.sending = true; renderSheet();
+    try {
+      const images = [];
+      for (const u of d.imgs || []) images.push(await uploadPhoto(u));
+      const device = (innerWidth >= 900 ? 'laptop' : 'phone') + ' · ' + platform() + (isInstalled() ? ' · app' : '');
+      const { error } = await sb.from('feedback').insert({ user_id: ME, name: db?.me?.name || '', email: email || null, message: text.slice(0, 2000), images, page: d.page || '', device });
+      if (error) throw error;
+      closeSheet(); toast('Thank you! Feedback sent 💛');
+    } catch (er) { d.sending = false; renderSheet(); toast("Couldn't send: " + (er.message || 'try again')); }
+  },
   'w-join'() { openSheet('w-join'); },
   async 'w-create-save'() {
     const name = document.getElementById('wc-name').value.trim();
@@ -1842,6 +1905,17 @@ const actions = {
     openSheet('admin', {});
     sb.rpc('admin_purge_expired').then(() => {});
     admLoad();
+  },
+  async 'adm-fb'(id, el) {
+    const { error } = await sb.from('feedback').update({ status: el.dataset.s }).eq('id', id);
+    if (error) { toast("Couldn't update: " + error.message); return; }
+    admLoad();
+  },
+  async 'adm-fb-del'(id) {
+    if (!confirm('Delete this feedback for good?')) return;
+    const { error } = await sb.from('feedback').delete().eq('id', id);
+    if (error) { toast("Couldn't delete: " + error.message); return; }
+    toast('Feedback deleted'); admLoad();
   },
   'adm-tab'(id) { adm.tab = id; adm.q = ''; adm.list = null; admLoad(); },
   async 'adm-open'(id, el) {
@@ -2094,6 +2168,8 @@ document.addEventListener('input', e => {
   if (t.dataset && t.dataset.progRange) syncProgress(t.dataset.progRange, t.value, false);
   if (t.dataset && t.dataset.progNum && t.value !== '') syncProgress(t.dataset.progNum, t.value, false);
   if (t.id === 'thought') ui.share.text = t.value;
+  if (t.id === 'fb-text') { ui.sheetData.text = t.value; const c = document.getElementById('fb-count'); if (c) c.textContent = t.value.length + ' / 2000'; }
+  if (t.id === 'fb-email') ui.sheetData.email = t.value;
   if (t.id === 'q') queueSearch(t.value.trim());
 });
 document.addEventListener('keydown', e => {
@@ -2129,6 +2205,11 @@ document.addEventListener('change', async e => {
     const dr = ui.sheetData.draft; if (!dr) return;
     ['name', 'bio'].forEach(k => { const el = document.getElementById('pf-' + k); if (el) dr[k] = el.value; });
     try { dr.avatar = await readSquare(t.files[0]); } catch (er) { toast("Couldn't read that photo"); return; }
+    renderSheet(); return;
+  }
+  if (t.dataset.fbPhoto) {
+    const files = [...t.files].slice(0, 3 - (ui.sheetData.imgs || []).length);
+    try { for (const f of files) ui.sheetData.imgs = [...(ui.sheetData.imgs || []), await readPhoto(f, 1400)]; } catch (er) { toast("Couldn't read that image"); }
     renderSheet(); return;
   }
   let url;
