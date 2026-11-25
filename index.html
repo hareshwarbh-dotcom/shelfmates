@@ -258,6 +258,7 @@ body { background: var(--bg); }
 .av { width: 2.2rem; height: 2.2rem; border-radius: 50%; background: var(--soft); color: var(--ink); display: inline-flex; align-items: center; justify-content: center; font-weight: 600; font-size: .85rem; flex-shrink: 0; border: 1px solid var(--line); }
 .av.me { background: var(--accent-soft); color: var(--accent-text); }
 .av.sm { width: 1.5rem; height: 1.5rem; font-size: .68rem; }
+.av.big { width: 3.4rem; height: 3.4rem; font-size: 1.3rem; }
 .code { font-family: var(--font-display); font-size: 2rem; font-weight: 700; letter-spacing: .35rem; text-align: center; padding: .6rem 0; }
 
 /* shelf */
@@ -515,7 +516,7 @@ const iso = ts => new Date(ts || Date.now()).toISOString();
 const bookRow = b => ({ id: b.id, user_id: ME, title: b.title, author: b.author || '', pages: b.pages || 0, page: b.page || 0, percent: b.percent || 0, track: !!tracked(b), status: b.status, cover_url: b.coverUrl || '', photo_url: b.photo || '', from_note: b.from || '', genre: b.genre || '', updated_at: iso(b.updatedAt) });
 const postRow = p => ({ id: p.id, user_id: ME, title: p.title, author: p.author || '', pages: p.pages || 0, cover_url: p.coverUrl || '', reaction: p.reaction, text: p.text || '', photo_url: p.photo || '', created_at: iso(p.createdAt) });
 const groupRow = g => ({ id: g.id, name: g.name, code: g.code, created_by: ME, created_at: iso(g.createdAt) });
-const profileRow = () => ({ id: ME, name: db.me.name, show_progress: db.me.showProgress !== false, theme: db.me.theme || 'teal', daily_goal: db.me.goal || null, show_clubs: !!db.me.showClubs });
+const profileRow = () => ({ id: ME, name: db.me.name, show_progress: db.me.showProgress !== false, theme: db.me.theme || 'teal', daily_goal: db.me.goal || null, show_clubs: !!db.me.showClubs, avatar_url: db.me.avatar || '', bio: db.me.bio || '', fav_genres: db.me.genres || [] });
 const logRow = l => ({ id: l.id, user_id: ME, book_id: l.bookId, title: l.title, day: l.day, pages: l.pages, updated_at: iso(l.updatedAt) });
 const rowToBook = r => ({ id: r.id, userId: r.user_id, title: r.title, author: r.author || '', pages: r.pages || 0, page: r.page || 0, percent: r.percent || 0, track: r.track, status: r.status, coverUrl: r.cover_url || '', photo: r.photo_url || '', from: r.from_note || '', genre: r.genre || '', updatedAt: Date.parse(r.updated_at) || Date.now() });
 const rowToPost = r => ({ id: r.id, userId: r.user_id, title: r.title, author: r.author || '', pages: r.pages || 0, coverUrl: r.cover_url || '', reaction: r.reaction, text: r.text || '', photo: r.photo_url || '', createdAt: Date.parse(r.created_at) || Date.now() });
@@ -536,7 +537,8 @@ async function sync() {
   syncing = true;
   setSyncState('pending');
   try {
-    // profile
+    // profile (upload a new photo first)
+    if (db.me.avatar && db.me.avatar.startsWith('data:')) { db.me.avatar = await uploadPhoto(db.me.avatar); localStorage.setItem(cacheKey(), JSON.stringify(db)); }
     const pr = profileRow(), prJ = JSON.stringify(pr);
     if (synced['p:me'] !== prJ) { const { error } = await sb.from('profiles').upsert(pr); if (error) throw error; synced['p:me'] = prJ; }
 
@@ -628,7 +630,7 @@ async function pull() {
   const userIds = [...new Set([ME, ...members.map(m => m.user_id)])];
   const since = dayStr(Date.now() - 400 * 86400000);
   const [profs, books, posts, admin, log] = await Promise.all([
-    sb.from('profiles').select('id,name,show_progress').in('id', userIds).is('deleted_at', null),
+    sb.from('profiles').select('id,name,show_progress,avatar_url,bio,fav_genres').in('id', userIds).is('deleted_at', null),
     sb.from('books').select('*').in('user_id', userIds).is('deleted_at', null),
     sb.from('posts').select('*').in('user_id', userIds).is('deleted_at', null).order('created_at', { ascending: false }).limit(300),
     sb.rpc('am_i_admin'),
@@ -649,15 +651,15 @@ async function pull() {
 
   db = {
     version: 3,
-    me: { id: ME, name: prof.name, showProgress: prof.show_progress !== false, theme: prof.theme || 'teal', goal: prof.daily_goal || 0, showClubs: !!prof.show_clubs },
+    me: { id: ME, name: prof.name, showProgress: prof.show_progress !== false, theme: prof.theme || 'teal', goal: prof.daily_goal || 0, showClubs: !!prof.show_clubs, avatar: prof.avatar_url || '', bio: prof.bio || '', genres: prof.fav_genres || [] },
     log: (log.data || []).map(r => ({ id: r.id, bookId: r.book_id, title: r.title, day: r.day, pages: r.pages, updatedAt: Date.parse(r.updated_at) || 0 })),
-    users: [...profs.data.filter(p => p.id !== ME).map(p => ({ id: p.id, name: p.name, showProgress: p.show_progress !== false })), ...demo.users],
+    users: [...profs.data.filter(p => p.id !== ME).map(p => ({ id: p.id, name: p.name, showProgress: p.show_progress !== false, avatar: p.avatar_url || '', bio: p.bio || '', genres: p.fav_genres || [] })), ...demo.users],
     groups: [...groups.map(g => ({ id: g.id, name: g.name, code: g.code, createdBy: g.created_by, createdAt: Date.parse(g.created_at), members: members.filter(m => m.group_id === g.id && (m.user_id === ME || profs.data.some(p => p.id === m.user_id))).map(m => m.user_id) })), ...demo.groups],
     books: [...books.data.map(rowToBook), ...demo.books],
     posts: [...posts.data.map(rowToPost), ...demo.posts]
   };
   // what the cloud has now
-  synced = { 'p:me': JSON.stringify({ id: ME, name: prof.name, show_progress: prof.show_progress !== false, theme: prof.theme || 'teal', daily_goal: prof.daily_goal || null, show_clubs: !!prof.show_clubs }) };
+  synced = { 'p:me': JSON.stringify({ id: ME, name: prof.name, show_progress: prof.show_progress !== false, theme: prof.theme || 'teal', daily_goal: prof.daily_goal || null, show_clubs: !!prof.show_clubs, avatar_url: prof.avatar_url || '', bio: prof.bio || '', fav_genres: prof.fav_genres || [] }) };
   db.log.forEach(l => synced['l:' + l.id] = JSON.stringify(logRow(l)));
   // keep newer local log entries
   ((prev && prev.log) || []).forEach(ll => {
@@ -685,7 +687,7 @@ async function joinByCode(code) {
   await pull();
   ui.clubPage = data; ui.clubTab = 'books'; ui.sheet = null;
   render();
-  const g = db.groups.find(x => x.id === data); if (g) toast('You joined ' + g.name + ' 🎉');
+  const g = db.groups.find(x => x.id === data); if (g) toast('You joined ' + g.name + ' 🎉'); setTimeout(() => maybeNudge('club'), 3000);
 }
 
 let refreshing = false;
@@ -769,6 +771,20 @@ function installStepsHTML() {
   return now + desktop + `<p class="sub">On a phone? Open ${esc(location.host)} there and follow the steps for iPhone or Android.</p>` + ios + android;
 }
 
+/* ---------- gentle account nudges (guests only, once each) ---------- */
+const NUDGE = {
+  books3: ['📚', 'Your shelf is growing', 'Save it with an account so you never lose it.'],
+  post: ['✍️', 'Keep your thoughts safe', 'Create an account and use Shelfmates on your laptop too.'],
+  club: ['👥', 'Take your club everywhere', 'Create an account so you can open your club from any device.']
+};
+const nudgesSeen = () => { try { return JSON.parse(localStorage.getItem('sm.nudges') || '{}'); } catch (e) { return {}; } };
+function maybeNudge(key, tries = 0) {
+  if (!CLOUD || signedInEmail() || nudgesSeen()[key]) return;
+  if (ui.sheet || document.getElementById('cele-root').innerHTML) { if (tries < 15) setTimeout(() => maybeNudge(key, tries + 1), 1000); return; }
+  try { const n = nudgesSeen(); n[key] = 1; localStorage.setItem('sm.nudges', JSON.stringify(n)); } catch (e) {}
+  openSheet('nudge', { key });
+}
+
 /* ---------- celebrations ---------- */
 const CELE = {
   start: [['📖', 'A new story begins', '<b>{t}</b> is on your nightstand. Enjoy it, at your own pace.'],
@@ -818,7 +834,7 @@ function editableFcover(b) {
     ${fcover(b)}<span class="cam" aria-hidden="true">📷</span>
   </label>`;
 }
-const avatar = (u, cls = '') => `<span class="av ${cls} ${u && u.id === ME ? 'me' : ''}">${initial(u ? u.name : '?')}</span>`;
+const avatar = (u, cls = '') => u && u.avatar ? `<img class="av ${cls}" src="${esc(u.avatar)}" alt="" style="object-fit:cover;padding:0">` : `<span class="av ${cls} ${u && u.id === ME ? 'me' : ''}">${initial(u ? u.name : '?')}</span>`;
 const reactionPill = k => REACT[k] ? `<span class="pill ${REACT[k].pill}">${REACT[k].emoji} ${REACT[k].label}</span>` : '';
 document.addEventListener('error', e => {
   const t = e.target;
@@ -851,7 +867,7 @@ function render() {
     <header class="hb-header">
       ${club ? `<div class="row grow" style="gap:.4rem;min-width:0"><button class="iconbtn" style="border:none" aria-label="Back" data-act="club-back">‹</button><h1 class="hb-logo" style="font-size:1.3rem">${esc(club.name)}</h1></div>
         ${club.demo ? '' : `<button class="btn accent" data-act="invite" data-id="${club.id}">💌 Invite</button>`}` : ui.tab === 'home' ? `<h1 class="hb-logo" style="margin:0"><button data-act="about" aria-label="About ${APP.first} ${esc(APP.second)}" style="all:unset;cursor:pointer">${APP.first} <span>${esc(APP.second)}</span></button></h1>` : `<h1 class="hb-logo">${titles[ui.tab]}</h1>`}
-      ${club ? '' : `<button class="iconbtn" aria-label="Settings" data-act="settings">⚙︎`}${CLOUD ? `<span class="syncdot ${syncState === 'ok' ? '' : syncState}" id="syncdot"></span>` : ''}${club ? '' : '</button>'}
+      ${club ? '' : `<button class="iconbtn" aria-label="Settings" data-act="settings">⚙︎`}${CLOUD ? `<span class="syncdot ${dotClass()}" id="syncdot"></span>` : ''}${club ? '' : '</button>'}
     </header>
     <main class="hb-main">${body}</main>
     ${club || ui.tab !== 'share' ? '<button class="fab fixed" aria-label="Add a book" data-act="add-open">+</button>' : ''}
@@ -860,10 +876,11 @@ function render() {
     </div></nav>`;
   renderSheet();
 }
+const dotClass = () => syncState !== 'ok' ? syncState : (CLOUD && authUser && !signedInEmail() ? 'pending' : '');
 function setSyncState(s) {
   syncState = s;
   const d = document.getElementById('syncdot');
-  if (d) d.className = 'syncdot ' + (s === 'ok' ? '' : s);
+  if (d) d.className = 'syncdot ' + dotClass();
 }
 
 /* ----- Welcome (new visitors) ----- */
@@ -1121,8 +1138,8 @@ function renderSheet(animate) {
     if (!page) {
       inner = `${title('Settings')}
         <div class="mgroup">
-          ${CLOUD ? mrow('set-page', 'account', '☁️', email ? 'Account &amp; sync' : 'Create account / Sign in', email || 'Use on other devices') : ''}
-          ${mrow('set-page', 'name', '👤', 'Your name', db.me.name)}
+          ${CLOUD ? (email ? mrow('set-page', 'account', '☁️', 'Account &amp; sync', email) : `<button class="mrow" data-act="set-page" data-id="account"><span class="mi">☁️</span><span class="mt">Create account / Sign in<small>Use on other devices</small></span><span class="ms" style="color:var(--warning);font-weight:600">● Not backed up</span><span class="mc">›</span></button>`) : ''}
+          <button class="mrow" data-act="set-page" data-id="profile"><span class="mi" style="width:auto">${avatar(db.me, 'sm')}</span><span class="mt">Your profile<small>${esc(db.me.name)}${db.me.bio ? ' · ' + esc(db.me.bio) : ''}</small></span><span class="mc">›</span></button>
         </div>
         <div class="mgroup">
           ${mrow('set-page', 'prefs', '🔔', 'Preferences', [db.me.showProgress ? 'Progress shared' : 'Progress hidden', db.me.goal ? 'Goal ' + db.me.goal : ''].filter(Boolean).join(' · '))}
@@ -1158,6 +1175,23 @@ function renderSheet(animate) {
           <button class="link" style="display:block;margin:.3rem auto 0" data-act="acc-mode">Already have an account? Sign in</button>
           ${subEnd}`;
       }
+    } else if (page === 'profile') {
+      const p = d.draft || (ui.sheetData.draft = { name: db.me.name, bio: db.me.bio || '', genres: [...(db.me.genres || [])], avatar: db.me.avatar || '' });
+      inner = `${title('Your profile')}
+        <div style="display:flex;flex-direction:column;align-items:center;gap:.5rem;margin:.2rem 0 .4rem">
+          <label class="cover-wrap" style="width:6rem;height:6rem;border-radius:50%">
+            <span class="sr">Choose a profile picture</span><input class="file" type="file" accept="image/*" data-avatar="1">
+            ${p.avatar ? `<img src="${esc(p.avatar)}" alt="" style="width:6rem;height:6rem;border-radius:50%;object-fit:cover;border:1px solid var(--line)">` : `<span class="av me" style="width:6rem;height:6rem;font-size:2.2rem">${initial(p.name)}</span>`}
+            <span class="cam" aria-hidden="true">📷</span>
+          </label>
+          ${p.avatar ? '<button class="link" style="padding:.2rem" data-act="avatar-remove">Remove photo</button>' : '<span class="small">Tap to add a photo</span>'}
+        </div>
+        <label class="hb-label" for="pf-name">Name</label><input class="hb-input" id="pf-name" maxlength="40" value="${esc(p.name)}">
+        <label class="hb-label" for="pf-bio">A line about you <span class="sub">(optional)</span></label><input class="hb-input" id="pf-bio" maxlength="140" placeholder="Mostly thrillers, slowly getting into poetry" value="${esc(p.bio)}">
+        <div class="hb-label">Favourite genres <span class="sub">(optional)</span></div>
+        <div class="chips" style="flex-wrap:wrap">${GENRES.map(([v, l]) => `<button class="chip sm ${p.genres.includes(v) ? 'on' : ''}" aria-pressed="${p.genres.includes(v)}" data-act="pf-genre" data-id="${v}">${l}</button>`).join('')}</div>
+        <p class="sub">🔒 Only people in your clubs see your profile.</p>
+        <div class="formbtns"><button class="btn" data-act="set-page" data-id="">‹ Settings</button><button class="btn primary" data-act="profile-save">Save</button></div>`;
     } else if (page === 'name') {
       inner = `${title('Your name')}<p class="sub">This is how people in your clubs see you.</p>
         <label class="sr" for="s-name">Your name</label><input class="hb-input" id="s-name" maxlength="40" value="${esc(db.me.name)}">
@@ -1173,7 +1207,7 @@ function renderSheet(animate) {
         </div>
         <div class="section-label">Who sees what</div>
         <div class="mgroup" style="margin-top:0">
-          ${[['👤', 'Your name', 'People in your clubs'],
+          ${[['👤', 'Your name, photo, bio and genres', 'People in your clubs'],
              ['📚', 'Books you read and finish', 'People in your clubs'],
              ['📊', 'Progress bars', db.me.showProgress ? 'People in your clubs' : 'Nobody (hidden)'],
              ['✍️', 'Thoughts you share', 'People in your clubs'],
@@ -1220,7 +1254,13 @@ function renderSheet(animate) {
         ${subEnd}`;
     } else if (page === 'install') {
       inner = `${title('Put it on your home screen')}<p class="sub">It then opens full screen with its own icon, like any other app. No app store needed.</p>
-        ${isInstalled() ? '<div class="banner info"><span class="b-icon">✅</span><div class="sub" style="color:var(--ink)">You are already using the installed app.</div></div>' : installStepsHTML()}${subEnd}`;
+        ${isInstalled() ? '<div class="banner info"><span class="b-icon">✅</span><div class="sub" style="color:var(--ink)">You are already using the installed app.</div></div>'
+          : CLOUD && !email && !d.skipSave && myBooks().some(b => !b.demo) ? `<div class="card" style="text-align:center;padding:1rem">
+              <div style="font-size:2rem">💾</div><div class="item-title" style="margin-top:.3rem">Save your shelf first</div>
+              <p class="sub" style="margin:.3rem 0 .8rem">So your books are there in the app too. Takes 30 seconds, just an email and password.</p>
+              <button class="btn accent block" data-act="set-page" data-id="account">Create account</button>
+              <button class="link" style="display:block;margin:.4rem auto 0" data-act="skip-save">Skip, just show the steps</button></div>`
+          : installStepsHTML()}${subEnd}`;
     } else if (page === 'help') {
       inner = `${title('How to use')}
         ${isInstalled() ? '' : `<div class="mgroup"><button class="mrow" data-act="set-page" data-id="install"><span class="mi">📱</span><span class="mt">Put it on your home screen<small>Open it like an app, full screen, with its own icon</small></span><span class="mc">›</span></button></div>`}
@@ -1293,7 +1333,9 @@ function renderSheet(animate) {
       ${b.status === 'reading' && u.showProgress !== false && tracked(b) ? `<div class="bar"><div style="width:${pct(b)}%"></div></div>` : ''}
       ${isMe ? '' : `<button class="btn" style="font-size:.74rem;padding:.2rem .4rem" ${saved ? 'disabled' : ''} data-act="save-book" data-id="${b.id}">${saved ? '✓ Saved' : '＋ Want'}</button>`}</div>`; };
     tall = true;
-    inner = `<div class="row">${avatar(u)}<h2 class="sheet-title grow" style="margin:0">${esc(u.name)}${isMe ? ' (you)' : ''}</h2></div>
+    inner = `<div class="row">${avatar(u, 'big')}<h2 class="sheet-title grow" style="margin:0">${esc(u.name)}${isMe ? ' (you)' : ''}</h2></div>
+      ${u.bio ? `<p class="thought" style="margin:.5rem 0 0">${esc(u.bio)}</p>` : ''}
+      ${u.genres && u.genres.length ? `<div class="meta" style="margin-top:.3rem">${u.genres.map(g => `<span class="pill later">${esc((GENRES.find(x => x[0] === g) || [g, g])[1])}</span>`).join('')}</div>` : ''}
       ${isMe ? `<p class="sub" style="margin:.4rem 0 0">${db.me.showClubs ? '👥 Your clubs are visible to people you share a club with.' : '👥 Your other clubs are private.'}</p>`
         : d.clubs && d.clubs.length ? `<p class="sub" style="margin:.4rem 0 0">👥 Also in: ${d.clubs.map(esc).join(', ')}</p>` : ''}
       <div class="section-label">Reading now</div>
@@ -1353,6 +1395,11 @@ function renderSheet(animate) {
   }
 
   /* ---- today, calendar ---- */
+  if (ui.sheet === 'nudge') {
+    const [ic, h, b] = NUDGE[d.key] || NUDGE.books3;
+    inner = `<div style="text-align:center;padding:.4rem 0"><div style="font-size:2.4rem">${ic}</div><h2 class="sheet-title" style="margin:.4rem 0 .2rem">${h}</h2><p class="sub" style="margin:0">${b}</p><p class="small" style="margin:.4rem 0 0">Just an email and password. Your books stay exactly as they are.</p></div>
+      <div class="formbtns"><button class="btn" data-act="close">Not now</button><button class="btn accent" data-act="settings" data-id="account">Create account</button></div>`;
+  }
   if (ui.sheet === 'today') {
     const reading = myBooks().filter(b => b.status === 'reading').sort((a, b) => b.updatedAt - a.updatedAt);
     inner = `${title('Move my bookmark')}
@@ -1543,6 +1590,16 @@ function resultsHTML() {
 }
 function renderResults() { const el = document.getElementById('results'); if (el) el.innerHTML = resultsHTML(); }
 
+function readSquare(file, size = 400) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader(); r.onerror = reject;
+    r.onload = () => { const img = new Image(); img.onerror = reject; img.onload = () => {
+      const s = Math.min(img.width, img.height), c = document.createElement('canvas'); c.width = c.height = size;
+      c.getContext('2d').drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, size, size);
+      resolve(c.toDataURL('image/jpeg', .8)); }; img.src = r.result; };
+    r.readAsDataURL(file);
+  });
+}
 function readPhoto(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -1601,6 +1658,7 @@ function addBook({ title, author = '', pages = 0, coverUrl = '', photo = '', sta
   if (onMyShelf(title)) { toast('Already on your shelf'); return null; }
   const b = { id: uid(), userId: ME, title: title.trim(), author, pages: +pages || 0, page: 0, percent: 0, track: false, status, coverUrl, photo, from, genre, updatedAt: Date.now() };
   db.books.push(b); save();
+  if (myBooks().filter(x => !x.demo).length === 3) setTimeout(() => maybeNudge('books3'), 1500);
   return b;
 }
 function updBook(id, patch) {
@@ -1806,7 +1864,7 @@ const actions = {
   },
   whatsapp(id) {
     const g = db.groups.find(x => x.id === id);
-    const msg = `Join my reading club "${g.name}" on ${APP.first} ${APP.second} 📚\n${inviteLink(g)}\nOr use code: ${g.code.toUpperCase()}`;
+    const msg = `Join my reading club "${g.name}" on ${APP.first} ${APP.second} 📚\n${inviteLink(g)}\nOr use code: ${g.code.toUpperCase()}\n\n📱 Tip: once it opens, tap Share → Add to Home Screen (iPhone) or ⋮ → Install app (Android).`;
     window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
   },
   async 'copy-link'(id) {
@@ -1884,11 +1942,23 @@ const actions = {
     Object.assign(b, { status: 'finished', page: b.pages || b.page, percent: 100, updatedAt: Date.now() });
     if (!save()) { db.posts.pop(); return; }
     ui.share = { bookId: null, reaction: null, text: '', photo: '' };
-    ui.tab = 'discover'; ui.club = 'all'; render(); scrollTo(0, 0); toast('Shared with your clubs');
+    ui.tab = 'discover'; ui.club = 'all'; render(); scrollTo(0, 0); toast('Shared with your clubs'); setTimeout(() => maybeNudge('post'), 2500);
   },
 
   /* today + calendar */
   'today-open'() { openSheet('today'); },
+  'skip-save'() { ui.sheetData.skipSave = true; renderSheet(); },
+  'pf-genre'(id) {
+    const dr = ui.sheetData.draft; ['name', 'bio'].forEach(k => { const el = document.getElementById('pf-' + k); if (el) dr[k] = el.value; });
+    dr.genres = dr.genres.includes(id) ? dr.genres.filter(x => x !== id) : [...dr.genres, id]; renderSheet();
+  },
+  'avatar-remove'() { const dr = ui.sheetData.draft; ['name', 'bio'].forEach(k => { const el = document.getElementById('pf-' + k); if (el) dr[k] = el.value; }); dr.avatar = ''; renderSheet(); },
+  'profile-save'() {
+    const dr = ui.sheetData.draft, name = document.getElementById('pf-name').value.trim();
+    if (!name) { toast("Name can't be empty"); return; }
+    Object.assign(db.me, { name, bio: document.getElementById('pf-bio').value.trim(), genres: dr.genres, avatar: dr.avatar });
+    save(); render(); backToMenu(); toast('Profile saved');
+  },
   'install-show'() { try { localStorage.setItem('sm.installHint', 'done'); } catch (e) {} openSheet('settings', { page: 'install' }); },
   'install-dismiss'() { try { localStorage.setItem('sm.installHint', 'done'); } catch (e) {} render(); },
   async 'install-now'() { if (!installPrompt) return; installPrompt.prompt(); const r = await installPrompt.userChoice; installPrompt = null; if (r && r.outcome === 'accepted') toast('Installed 📲'); renderSheet(); },
@@ -1994,6 +2064,12 @@ document.addEventListener('change', async e => {
     render();
   }
   if (!(t instanceof HTMLInputElement) || t.type !== 'file' || !t.files?.[0]) return;
+  if (t.dataset.avatar) {
+    const dr = ui.sheetData.draft; if (!dr) return;
+    ['name', 'bio'].forEach(k => { const el = document.getElementById('pf-' + k); if (el) dr[k] = el.value; });
+    try { dr.avatar = await readSquare(t.files[0]); } catch (er) { toast("Couldn't read that photo"); return; }
+    renderSheet(); return;
+  }
   let url;
   try { url = await readPhoto(t.files[0]); } catch (err) { toast("Couldn't read that photo"); return; }
   if (t.dataset.photoFor) {
