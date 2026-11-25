@@ -76,7 +76,7 @@ img { max-width: 100%; }
 
 .btn { border: 1px solid var(--line); background: var(--card); border-radius: var(--radius-md); padding: .4rem .8rem; min-height: 2.3rem; font-size: .88rem; font-weight: 500; cursor: pointer; color: var(--ink); display: inline-flex; align-items: center; justify-content: center; gap: .35rem; }
 .btn.primary { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
-.btn.accent { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn.accent { background: var(--accent); color: var(--on-accent, #fff); border-color: var(--accent); }
 .btn.danger { color: var(--red); }
 .btn.block { width: 100%; min-height: 2.8rem; }
 .btn:disabled { opacity: .45; cursor: default; }
@@ -156,12 +156,24 @@ textarea.hb-input { resize: none; line-height: 1.5; }
 .hb-nav button .ic { font-size: 1.2rem; filter: grayscale(1); opacity: .55; }
 .hb-nav button.on { color: var(--ink); font-weight: 600; }
 .hb-nav button.on .ic { filter: none; opacity: 1; }
-.fab { width: 3.2rem; height: 3.2rem; border-radius: 50%; background: var(--accent); color: #fff; font-size: 1.6rem; border: none; box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 40%, transparent); cursor: pointer; }
+.fab { width: 3.2rem; height: 3.2rem; border-radius: 50%; background: var(--accent); color: var(--on-accent, #fff); font-size: 1.6rem; border: none; box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 40%, transparent); cursor: pointer; }
 .fab.fixed { position: fixed; bottom: calc(4.2rem + env(safe-area-inset-bottom)); right: max(1rem, calc(50% - 264px)); z-index: 11; }
 
 html.comfy .card { padding: .85rem 1rem; margin-bottom: .7rem; }
 html.comfy .btn, html.comfy .chip { min-height: 2.75rem; }
 
+#tex, #tw { position: fixed; inset: 0; z-index: -1; pointer-events: none; }
+#tw { animation: twinkle 3.2s ease-in-out infinite alternate; }
+@keyframes twinkle { from { opacity: .25; } to { opacity: 1; } }
+body { background: var(--bg); }
+.fcover .gen b, .item-title.clamp2, .tslide .item-title { font-family: var(--font-display); font-weight: 600; }
+.moodcard { border: 1px solid var(--line); border-radius: var(--radius-lg); padding: .55rem .6rem; text-align: left; cursor: pointer; display: flex; gap: .55rem; align-items: center; color: var(--ink); }
+.moodcard.on { outline: 2px solid var(--ink); outline-offset: -1px; }
+.moodcard .sw2 { width: 2.2rem; height: 2.8rem; border-radius: 4px; flex-shrink: 0; position: relative; overflow: hidden; border: 1px solid rgba(0,0,0,.08); }
+.moodcard .sw2 i { position: absolute; left: 0; right: 0; bottom: 0; height: 35%; }
+.moodcard b { display: block; font-size: .88rem; font-weight: 600; }
+.moodcard small { display: block; font-size: .72rem; color: var(--muted); }
+.moodgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
 /* ============================================================
    Shelfmates additions, built from the same tokens
    ============================================================ */
@@ -302,8 +314,8 @@ html.comfy .btn, html.comfy .chip { min-height: 2.75rem; }
 .cal button small { font-size: .58rem; font-weight: 600; line-height: 1; }
 .cal .l1 { background: color-mix(in srgb, var(--accent) 18%, var(--card)); }
 .cal .l2 { background: color-mix(in srgb, var(--accent) 38%, var(--card)); }
-.cal .l3 { background: color-mix(in srgb, var(--accent) 62%, var(--card)); color: #fff; }
-.cal .l4 { background: var(--accent); color: #fff; }
+.cal .l3 { background: color-mix(in srgb, var(--accent) 62%, var(--card)); color: var(--on-accent, #fff); }
+.cal .l4 { background: var(--accent); color: var(--on-accent, #fff); }
 .cal .sel { outline: 2px solid var(--ink); outline-offset: -2px; }
 .cal .today { font-weight: 800; }
 .cal button:disabled { opacity: .35; cursor: default; }
@@ -332,6 +344,7 @@ html.comfy .btn, html.comfy .chip { min-height: 2.75rem; }
 </style>
 </head>
 <body>
+<div id="tex" aria-hidden="true"></div><div id="tw" aria-hidden="true"></div>
 <div class="app" id="app"></div>
 <div id="sheet-root"></div>
 <div id="cele-root"></div>
@@ -357,24 +370,72 @@ let pendingJoin = new URLSearchParams(location.search).get('join');
 let syncState = 'ok';   // ok | pending | error
 
 /* ---------- display settings (per device) ---------- */
-const ACCENTS = { blue: '#2f6fdb', saffron: '#e8891c', teal: '#1f8a84', indigo: '#5b5bd6', rose: '#d14b72', green: '#3f8f5b' };
+/* reading moods: each sets the whole look, with a light and a dark version */
+const MOODS = {
+  paper:     { name: 'Paper & Ink', for: 'Fiction, literary', l: ['#f7f1e5', '#fffaf0', '#efe6d4', '#e3d8c3', '#2b2620', '#7a6f60', '#2f4a8a'], d: ['#1a1712', '#24201a', '#302a22', '#3a332a', '#efe6d6', '#a89c88', '#8fa8e0'] },
+  classic:   { name: 'Classic', for: 'The original Shelfmates look', whiteText: true, l: ['#faf7f2', '#ffffff', '#f1eee8', '#e8e2d7', '#1c1f2a', '#6b6f7a', '#2f6fdb'], d: ['#121419', '#1c1f27', '#262a34', '#2c303b', '#ecedf0', '#9a9ea9', '#2f6fdb'] },
+  sepia:     { name: 'Sepia', for: 'Classics, poetry, long evenings', l: ['#f1e7d3', '#f8efdc', '#e8dcc3', '#dccfb3', '#3b2f20', '#7d6a4f', '#8a5a2b'], d: ['#1e1810', '#2a2216', '#352b1d', '#3f3423', '#f0e3cc', '#b09a78', '#d9a066'] },
+  noir:      { name: 'Noir', for: 'Thriller, mystery, crime', l: ['#f2efee', '#ffffff', '#ebe5e3', '#ddd5d2', '#1b1718', '#6e6466', '#b3202a'], d: ['#0d0d0f', '#17171a', '#232327', '#2a2a2f', '#eeeaea', '#9a9396', '#e04a52'] },
+  enchanted: { name: 'Enchanted', for: 'Fantasy', l: ['#f3f0fa', '#ffffff', '#e9e4f5', '#ddd6ee', '#1f1a33', '#6c6585', '#6a4bc4'], d: ['#14112a', '#1e1a3a', '#2a2550', '#332d5c', '#ece8fb', '#a49fc4', '#e3b85a'] }
+};
+const GENRE_MOOD = { thriller: 'noir', fantasy: 'enchanted', classic: 'sepia', fiction: 'paper', nonfiction: 'paper' };
+const GENRES = [['fiction', 'Fiction'], ['thriller', 'Thriller / mystery'], ['fantasy', 'Fantasy'], ['nonfiction', 'Non-fiction'], ['classic', 'Classics / poetry']];
+function genreFrom(subjects, title) {
+  const t = (subjects || []).join(' ').toLowerCase() + ' ' + String(title || '').toLowerCase();
+  if (/thriller|mystery|crime|detective|suspense|horror|murder|noir/.test(t)) return 'thriller';
+  if (/fantasy|magic|wizard|dragon|sorcer/.test(t)) return 'fantasy';
+  if (/poetry|poems|classic literature|classics/.test(t)) return 'classic';
+  if (/self-help|business|psychology|biography|autobiography|history|science|economics|finance|philosophy|personal development|habits/.test(t)) return 'nonfiction';
+  if (/fiction|novel|stories/.test(t)) return 'fiction';
+  return '';
+}
 const SIZES = { small: 13, default: 14, large: 15.5, xl: 17 };
-const DISPLAY_DEFAULT = { theme: 'dark', accent: 'blue', size: 'default', comfy: false };
-let display = (() => { try { return Object.assign({}, DISPLAY_DEFAULT, JSON.parse(localStorage.getItem('sm.display') || '{}')); } catch (e) { return { ...DISPLAY_DEFAULT }; } })();
-const mq = window.matchMedia ? matchMedia('(prefers-color-scheme: light)') : null;
+const DISPLAY_DEFAULT = { mood: 'paper', mode: 'light', texture: true, size: 'default', comfy: false };
+let display = (() => { try { const d = JSON.parse(localStorage.getItem('sm.display') || '{}'); if (!d.mood) { delete d.theme; delete d.accent; } return Object.assign({}, DISPLAY_DEFAULT, d); } catch (e) { return { ...DISPLAY_DEFAULT }; } })();
+const mq = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null;
+function activeMood() {
+  if (display.mood !== 'match') return MOODS[display.mood] ? display.mood : 'paper';
+  const b = (typeof db !== 'undefined' && db) ? db.books.filter(x => x.userId === ME && x.status === 'reading').sort((a, c) => c.updatedAt - a.updatedAt)[0] : null;
+  return (b && GENRE_MOOD[b.genre]) || 'paper';
+}
+const grainURL = a => `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 ${a} 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")`;
+function starLayer(n, seed, col, max) {
+  let s = seed; const out = [];
+  for (let i = 0; i < n; i++) {
+    s = (s * 9301 + 49297) % 233280; const x = s / 233280 * 100;
+    s = (s * 9301 + 49297) % 233280; const y = s / 233280 * 100;
+    s = (s * 9301 + 49297) % 233280; const r = .6 + s / 233280 * max;
+    out.push(`radial-gradient(circle at ${x.toFixed(1)}% ${y.toFixed(1)}%, ${col} ${r.toFixed(1)}px, transparent ${(r + .8).toFixed(1)}px)`);
+  }
+  return out.join(',');
+}
 function applyDisplay() {
   const root = document.documentElement;
-  const theme = display.theme === 'auto' ? (mq && mq.matches ? 'light' : 'dark') : display.theme;
-  root.dataset.theme = theme;
-  root.style.setProperty('--accent', ACCENTS[display.accent] || ACCENTS.blue);
+  const dark = display.mode === 'auto' ? !!(mq && mq.matches) : display.mode === 'dark';
+  const k = activeMood(), v = MOODS[k][dark ? 'd' : 'l'];
+  root.dataset.theme = dark ? 'dark' : 'light';
+  root.dataset.mood = k;
+  ['--bg', '--card', '--soft', '--line', '--ink', '--muted', '--accent'].forEach((x, i) => root.style.setProperty(x, v[i]));
+  root.style.setProperty('--on-ink', v[0]);
+  root.style.setProperty('--on-accent', dark && !MOODS[k].whiteText ? v[0] : '#ffffff');
   root.style.fontSize = (SIZES[display.size] || 14) + 'px';
   root.classList.toggle('comfy', !!display.comfy);
-  const meta = document.querySelector('meta[name=theme-color]');
-  if (meta) meta.content = theme === 'light' ? '#faf7f2' : '#121419';
+  const meta = document.querySelector('meta[name=theme-color]'); if (meta) meta.content = v[0];
+  // faint page texture (cards stay plain)
+  const ink = p => `color-mix(in srgb, ${v[4]} ${p}%, transparent)`, acc = p => `color-mix(in srgb, ${v[6]} ${p}%, transparent)`;
+  const T = {
+    paper: [[grainURL(dark ? .16 : .12), `repeating-linear-gradient(0deg, ${acc(dark ? 10 : 9)} 0 1px, transparent 1px 26px)`], '160px 160px, auto'],
+    sepia: [[grainURL(dark ? .2 : .16), `radial-gradient(ellipse at 50% 45%, transparent 50%, ${dark ? 'rgba(0,0,0,.5)' : 'rgba(90,60,20,.18)'} 100%)`], '160px 160px, auto'],
+    classic: [['none'], 'auto'],
+    noir: [[`radial-gradient(ellipse at 50% 35%, transparent 45%, ${dark ? 'rgba(0,0,0,.6)' : 'rgba(40,20,22,.14)'} 100%)`], 'auto'],
+    enchanted: [[`radial-gradient(ellipse at 80% 0%, ${acc(dark ? 22 : 14)}, transparent 55%)`], 'auto']
+  }[k];
+  const tex = document.getElementById('tex'), tw = document.getElementById('tw');
+  if (tex) { tex.style.backgroundImage = display.texture ? T[0].join(',') : 'none'; tex.style.backgroundSize = T[1]; }
+  if (tw) tw.style.backgroundImage = display.texture && k === 'enchanted' ? starLayer(28, 7, dark ? 'rgba(227,184,90,.9)' : 'rgba(106,75,196,.45)', 1.4) : 'none';
 }
 function setDisplay(patch) { Object.assign(display, patch); try { localStorage.setItem('sm.display', JSON.stringify(display)); } catch (e) {} applyDisplay(); }
-if (mq && mq.addEventListener) mq.addEventListener('change', () => { if (display.theme === 'auto') applyDisplay(); });
-applyDisplay();
+if (mq && mq.addEventListener) mq.addEventListener('change', () => { if (display.mode === 'auto') applyDisplay(); });
 
 /* ---------- helpers ---------- */
 const COLORS = ['#2F5D62', '#7A4E2D', '#3B4A7A', '#6B3F5E', '#4F6B3A', '#8A5A1F', '#2C3E50', '#5A4FA0'];
@@ -451,12 +512,12 @@ function save() {
 let synced = {};            // 'b:<id>' -> JSON of what Supabase has
 let syncTimer, syncing = false, syncAgain = false, syncErrShown = false;
 const iso = ts => new Date(ts || Date.now()).toISOString();
-const bookRow = b => ({ id: b.id, user_id: ME, title: b.title, author: b.author || '', pages: b.pages || 0, page: b.page || 0, percent: b.percent || 0, track: !!tracked(b), status: b.status, cover_url: b.coverUrl || '', photo_url: b.photo || '', from_note: b.from || '', updated_at: iso(b.updatedAt) });
+const bookRow = b => ({ id: b.id, user_id: ME, title: b.title, author: b.author || '', pages: b.pages || 0, page: b.page || 0, percent: b.percent || 0, track: !!tracked(b), status: b.status, cover_url: b.coverUrl || '', photo_url: b.photo || '', from_note: b.from || '', genre: b.genre || '', updated_at: iso(b.updatedAt) });
 const postRow = p => ({ id: p.id, user_id: ME, title: p.title, author: p.author || '', pages: p.pages || 0, cover_url: p.coverUrl || '', reaction: p.reaction, text: p.text || '', photo_url: p.photo || '', created_at: iso(p.createdAt) });
 const groupRow = g => ({ id: g.id, name: g.name, code: g.code, created_by: ME, created_at: iso(g.createdAt) });
 const profileRow = () => ({ id: ME, name: db.me.name, show_progress: db.me.showProgress !== false, theme: db.me.theme || 'teal', daily_goal: db.me.goal || null, show_clubs: !!db.me.showClubs });
 const logRow = l => ({ id: l.id, user_id: ME, book_id: l.bookId, title: l.title, day: l.day, pages: l.pages, updated_at: iso(l.updatedAt) });
-const rowToBook = r => ({ id: r.id, userId: r.user_id, title: r.title, author: r.author || '', pages: r.pages || 0, page: r.page || 0, percent: r.percent || 0, track: r.track, status: r.status, coverUrl: r.cover_url || '', photo: r.photo_url || '', from: r.from_note || '', updatedAt: Date.parse(r.updated_at) || Date.now() });
+const rowToBook = r => ({ id: r.id, userId: r.user_id, title: r.title, author: r.author || '', pages: r.pages || 0, page: r.page || 0, percent: r.percent || 0, track: r.track, status: r.status, coverUrl: r.cover_url || '', photo: r.photo_url || '', from: r.from_note || '', genre: r.genre || '', updatedAt: Date.parse(r.updated_at) || Date.now() });
 const rowToPost = r => ({ id: r.id, userId: r.user_id, title: r.title, author: r.author || '', pages: r.pages || 0, coverUrl: r.cover_url || '', reaction: r.reaction, text: r.text || '', photo: r.photo_url || '', createdAt: Date.parse(r.created_at) || Date.now() });
 
 function queueSync() { clearTimeout(syncTimer); syncTimer = setTimeout(sync, 500); }
@@ -558,7 +619,7 @@ async function pull() {
   let groups = [], members = [];
   if (gids.length) {
     const [g, m] = await Promise.all([
-      sb.from('groups').select('*').in('id', gids),
+      sb.from('groups').select('*').in('id', gids).is('deleted_at', null),
       sb.from('group_members').select('group_id,user_id').in('group_id', gids)
     ]);
     if (g.error) throw g.error; if (m.error) throw m.error;
@@ -567,9 +628,9 @@ async function pull() {
   const userIds = [...new Set([ME, ...members.map(m => m.user_id)])];
   const since = dayStr(Date.now() - 400 * 86400000);
   const [profs, books, posts, admin, log] = await Promise.all([
-    sb.from('profiles').select('id,name,show_progress').in('id', userIds),
-    sb.from('books').select('*').in('user_id', userIds),
-    sb.from('posts').select('*').in('user_id', userIds).order('created_at', { ascending: false }).limit(300),
+    sb.from('profiles').select('id,name,show_progress').in('id', userIds).is('deleted_at', null),
+    sb.from('books').select('*').in('user_id', userIds).is('deleted_at', null),
+    sb.from('posts').select('*').in('user_id', userIds).is('deleted_at', null).order('created_at', { ascending: false }).limit(300),
     sb.rpc('am_i_admin'),
     sb.from('reading_log').select('*').eq('user_id', ME).gte('day', since)
   ]);
@@ -591,7 +652,7 @@ async function pull() {
     me: { id: ME, name: prof.name, showProgress: prof.show_progress !== false, theme: prof.theme || 'teal', goal: prof.daily_goal || 0, showClubs: !!prof.show_clubs },
     log: (log.data || []).map(r => ({ id: r.id, bookId: r.book_id, title: r.title, day: r.day, pages: r.pages, updatedAt: Date.parse(r.updated_at) || 0 })),
     users: [...profs.data.filter(p => p.id !== ME).map(p => ({ id: p.id, name: p.name, showProgress: p.show_progress !== false })), ...demo.users],
-    groups: [...groups.map(g => ({ id: g.id, name: g.name, code: g.code, createdBy: g.created_by, createdAt: Date.parse(g.created_at), members: members.filter(m => m.group_id === g.id).map(m => m.user_id) })), ...demo.groups],
+    groups: [...groups.map(g => ({ id: g.id, name: g.name, code: g.code, createdBy: g.created_by, createdAt: Date.parse(g.created_at), members: members.filter(m => m.group_id === g.id && (m.user_id === ME || profs.data.some(p => p.id === m.user_id))).map(m => m.user_id) })), ...demo.groups],
     books: [...books.data.map(rowToBook), ...demo.books],
     posts: [...posts.data.map(rowToPost), ...demo.posts]
   };
@@ -689,6 +750,25 @@ function toast(msg, undo) {
   toastTimer = setTimeout(() => { el.classList.add('hide'); toastUndo = null; }, undo ? 6000 : 2600);
 }
 
+/* ---------- install on home screen ---------- */
+const isInstalled = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const platform = () => { const u = navigator.userAgent; if (/iPhone|iPad|iPod/.test(u)) return /CriOS|FxiOS|EdgiOS/.test(u) ? 'ios-other' : 'ios'; if (/Android/.test(u)) return 'android'; return 'desktop'; };
+let installPrompt = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; });
+window.addEventListener('appinstalled', () => { try { localStorage.setItem('sm.installHint', 'done'); } catch (er) {} installPrompt = null; if (db) render(); });
+const installHintDone = () => { try { return localStorage.getItem('sm.installHint') === 'done'; } catch (e) { return true; } };
+function installStepsHTML() {
+  const pf = platform();
+  const ios = `<div class="card"><div class="item-title">📱 iPhone</div><div class="meta" style="display:block;line-height:1.7">1. Open this page in <b>Safari</b><br>2. Tap the <b>Share</b> button ⬆️ at the bottom<br>3. Scroll down, tap <b>Add to Home Screen</b> → <b>Add</b></div></div>`;
+  const android = `<div class="card"><div class="item-title">🤖 Android</div><div class="meta" style="display:block;line-height:1.7">1. Open this page in <b>Chrome</b><br>2. Tap <b>⋮</b> at the top right<br>3. Tap <b>Install app</b> (or <b>Add to Home screen</b>) → <b>Install</b></div></div>`;
+  const desktop = `<div class="card"><div class="item-title">💻 Laptop (Chrome or Edge)</div><div class="meta" style="display:block;line-height:1.7">Click the install icon ⊕ at the right end of the address bar → <b>Install</b></div></div>`;
+  const now = installPrompt ? `<button class="btn accent block" style="margin:.4rem 0 .6rem" data-act="install-now">📲 Install now</button>` : '';
+  if (pf === 'ios') return now + ios;
+  if (pf === 'ios-other') return `<div class="banner info"><span class="b-icon">🧭</span><div class="sub" style="color:var(--ink)">On iPhone, only Safari can add it to your home screen. Copy the link, open it in Safari, then:</div></div>` + ios;
+  if (pf === 'android') return now + android;
+  return now + desktop + `<p class="sub">On a phone? Open ${esc(location.host)} there and follow the steps for iPhone or Android.</p>` + ios + android;
+}
+
 /* ---------- celebrations ---------- */
 const CELE = {
   start: [['📖', 'A new story begins', '<b>{t}</b> is on your nightstand. Enjoy it, at your own pace.'],
@@ -760,6 +840,7 @@ function render() {
   if (ui.loading) { app.innerHTML = `<div class="loading">Opening your shelf…</div>`; return; }
   if (!db) { app.innerHTML = welcomeHTML(); renderSheet(); return; }
   db.log = db.log || [];
+  if (display.mood === 'match') applyDisplay();
   if (ui.club !== 'all' && !db.groups.find(g => g.id === ui.club)) ui.club = 'all';
   const titles = { home: '', shelf: 'My shelf', discover: 'Discover', share: 'Share' };
   const club = ui.clubPage ? db.groups.find(g => g.id === ui.clubPage) : null;
@@ -877,6 +958,8 @@ function homeHTML() {
     </button>`;
   }).join('');
   return `
+    ${!isInstalled() && !installHintDone() && myBooks().some(b => !b.demo) && platform() !== 'desktop' ? `<div class="banner accent"><span class="b-icon">📱</span><div class="grow"><div class="item-title">Put Shelfmates on your home screen</div><div class="sub" style="color:var(--ink)">Opens like an app, one tap away.</div>
+      <div class="actions" style="margin-top:.4rem"><button class="btn primary" data-act="install-show">Show me</button></div></div><button class="iconbtn" style="border:none" aria-label="Dismiss" data-act="install-dismiss">✕</button></div>` : ''}
     ${hasDemo() ? `<div class="banner info"><span class="b-icon">🧪</span><div class="grow"><div class="item-title">You're exploring with sample data</div><div class="sub">Priya, Arjun and Meera are pretend. Your own books stay when you remove them.</div></div><button class="btn" data-act="demo-remove">Remove</button></div>` : ''}
     ${todayCardHTML()}
     <div class="section-label">Your clubs</div>
@@ -1043,13 +1126,13 @@ function renderSheet(animate) {
         </div>
         <div class="mgroup">
           ${mrow('set-page', 'prefs', '🔔', 'Preferences', [db.me.showProgress ? 'Progress shared' : 'Progress hidden', db.me.goal ? 'Goal ' + db.me.goal : ''].filter(Boolean).join(' · '))}
-          ${mrow('set-page', 'display', '🎨', 'Display &amp; theme', { dark: 'Dark', light: 'Light', auto: 'Auto' }[display.theme] + ' · ' + display.accent[0].toUpperCase() + display.accent.slice(1))}
+          ${mrow('set-page', 'display', '🎨', 'Reading mood &amp; display', (display.mood === 'match' ? 'Match my book' : MOODS[display.mood].name) + ' · ' + { dark: 'Dark', light: 'Light', auto: 'Auto' }[display.mode])}
           ${mrow('set-page', 'data', '💾', 'Data &amp; backup', CLOUD ? (syncState === 'error' ? 'Not synced' : 'Synced') : 'This phone only')}
-          ${standalone ? '' : mrow('set-page', 'install', '📱', 'Install as an app', '')}
+          ${standalone ? '' : mrow('set-page', 'install', '📱', 'Put it on your home screen', '')}
           ${mrow('set-page', 'help', '📖', 'How to use', '')}
           ${mrow('about', '', 'ℹ️', 'About ' + APP.first + ' ' + esc(APP.second), '')}
         </div>
-        ${isAdmin ? `<div class="mgroup">${mrow('admin', '', '📊', 'Owner dashboard', 'Only you')}</div>` : ''}
+        ${isAdmin ? `<div class="mgroup">${mrow('admin', '', '🛡️', 'Admin dashboard', 'Only you')}</div>` : ''}
         ${email ? `<div class="mgroup">${mrow('sign-out', '', '🚪', 'Log out', null, 'danger')}</div>` : ''}
         <p class="sub" style="text-align:center;margin:1rem 0 0">${APP.first} ${esc(APP.second)} · beta</p>
         ${close()}`;
@@ -1107,16 +1190,24 @@ function renderSheet(animate) {
         <p class="sub" style="margin-top:.6rem">These follow you on every device.</p>${subEnd}`;
     } else if (page === 'display') {
       const chipRow = (key, opts) => `<div class="chips" style="margin:0">${opts.map(([v, l]) => `<button class="chip sm ${display[key] === v ? 'on' : ''}" data-act="disp" data-k="${key}" data-id="${v}">${l}</button>`).join('')}</div>`;
-      inner = `${title('Display &amp; theme')}
+      const dk = document.documentElement.dataset.theme === 'dark' ? 'd' : 'l';
+      const card = (k, m) => `<button class="moodcard ${display.mood === k ? 'on' : ''}" style="background:${m[dk][1]}" aria-pressed="${display.mood === k}" data-act="disp" data-k="mood" data-id="${k}">
+        <span class="sw2" style="background:${m[dk][0]}"><i style="background:${m[dk][6]}"></i></span><span style="min-width:0"><b style="color:${m[dk][4]}">${m.name}</b><small style="color:${m[dk][5]}">${m.for}</small></span></button>`;
+      const cur = MOODS[activeMood()];
+      inner = `${title('Reading mood &amp; display')}
+        <div class="section-label" style="margin-top:.2rem">Reading mood</div>
+        <div class="moodgrid">${Object.entries(MOODS).map(([k, m]) => card(k, m)).join('')}</div>
+        <button class="moodcard ${display.mood === 'match' ? 'on' : ''}" style="width:100%;margin-top:.5rem;background:var(--card)" aria-pressed="${display.mood === 'match'}" data-act="disp" data-k="mood" data-id="match">
+          <span class="sw2" style="display:flex;align-items:center;justify-content:center;font-size:1.2rem;background:var(--soft)">🪄</span>
+          <span><b>Match my book</b><small>Changes with the genre of the book you're reading${display.mood === 'match' ? ` · now ${cur.name}` : ''}</small></span></button>
         <div class="mgroup">
-          <div class="mrow static" style="flex-wrap:wrap"><span class="mt" style="width:100%">Theme</span>${chipRow('theme', [['dark', 'Dark'], ['light', 'Light'], ['auto', 'Auto']])}</div>
-          <div class="mrow static" style="flex-wrap:wrap"><span class="mt" style="width:100%">Accent colour</span>
-            <div class="swatches">${Object.entries(ACCENTS).map(([k, v]) => `<button class="swatch ${display.accent === k ? 'on' : ''}" style="background:${v}" aria-label="${k}" aria-pressed="${display.accent === k}" data-act="disp" data-k="accent" data-id="${k}"></button>`).join('')}</div></div>
+          <div class="mrow static" style="flex-wrap:wrap"><span class="mt" style="width:100%">Light or dark</span>${chipRow('mode', [['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']])}</div>
+          <label class="mrow static"><span class="mt">Background texture<small>Faint paper grain, vignette or stars behind the page</small></span><span class="switch"><input type="checkbox" data-disp="texture" ${display.texture ? 'checked' : ''}><span></span></span></label>
           <div class="mrow static" style="flex-wrap:wrap"><span class="mt" style="width:100%">Text size</span>${chipRow('size', [['small', 'Small'], ['default', 'Default'], ['large', 'Large'], ['xl', 'Extra large']])}</div>
           <div class="mrow static" style="flex-wrap:wrap"><span class="mt" style="width:100%">Density</span><div class="chips" style="margin:0"><button class="chip sm ${!display.comfy ? 'on' : ''}" data-act="disp" data-k="comfy" data-id="0">Compact</button><button class="chip sm ${display.comfy ? 'on' : ''}" data-act="disp" data-k="comfy" data-id="1">Comfortable</button></div></div>
         </div>
         <div class="actions"><button class="btn" data-act="disp-reset">Reset display</button></div>
-        <p class="sub">These apply to this device only.</p>${subEnd}`;
+        <p class="sub">Auto follows your phone's light or dark setting. These apply to this device only.</p>${subEnd}`;
     } else if (page === 'data') {
       inner = `${title('Data &amp; backup')}
         <div class="card"><div class="row"><span style="font-size:1.2rem">${CLOUD ? '☁️' : '📱'}</span><div class="grow"><div class="item-title">${CLOUD ? (email ? 'Synced to your account' : 'Saved to the cloud') : 'Stored on this phone only'}</div>
@@ -1128,11 +1219,11 @@ function renderSheet(animate) {
         ${CLOUD ? '' : `<div class="mgroup"><button class="mrow danger" data-act="reset"><span class="mi">🗑️</span><span class="mt">Erase everything on this phone</span></button></div>`}
         ${subEnd}`;
     } else if (page === 'install') {
-      inner = `${title('Install as an app')}<p class="sub">Add it to your home screen so it opens like a normal app, full screen.</p>
-        <div class="card"><div class="item-title">iPhone (Safari)</div><div class="meta">Tap Share ⬆️ at the bottom → <b>Add to Home Screen</b></div></div>
-        <div class="card"><div class="item-title">Android (Chrome)</div><div class="meta">Tap ⋮ at the top right → <b>Install app</b> or <b>Add to Home screen</b></div></div>${subEnd}`;
+      inner = `${title('Put it on your home screen')}<p class="sub">It then opens full screen with its own icon, like any other app. No app store needed.</p>
+        ${isInstalled() ? '<div class="banner info"><span class="b-icon">✅</span><div class="sub" style="color:var(--ink)">You are already using the installed app.</div></div>' : installStepsHTML()}${subEnd}`;
     } else if (page === 'help') {
       inner = `${title('How to use')}
+        ${isInstalled() ? '' : `<div class="mgroup"><button class="mrow" data-act="set-page" data-id="install"><span class="mi">📱</span><span class="mt">Put it on your home screen<small>Open it like an app, full screen, with its own icon</small></span><span class="mc">›</span></button></div>`}
         <div class="mgroup">
           ${[['🏠', 'Home', 'Your Today card stacks up the pages you read today. Move your bookmark to update it. Only you see it.'],
              ['📚', 'Shelf', 'Books you are reading, want to read, paused and finished. Tracking progress is optional.'],
@@ -1233,6 +1324,7 @@ function renderSheet(animate) {
           <label class="hb-label" for="m-author">Author <span class="sub">(optional)</span></label><input class="hb-input" id="m-author" maxlength="80" value="${esc(d.author || '')}"></div>
       </div>
       <label class="hb-label" for="m-pages">Pages <span class="sub">(optional)</span></label><input class="hb-input" id="m-pages" type="number" inputmode="numeric" min="1" value="${esc(d.pages || '')}">
+      <label class="hb-label" for="m-genre">Genre <span class="sub">(optional)</span></label><select class="hb-input" id="m-genre"><option value="">Choose…</option>${GENRES.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select>
       <div class="formbtns"><button class="btn" data-act="manual-save" data-status="want">Want to read</button><button class="btn primary" data-act="manual-save" data-status="reading">Start reading</button></div>`;
   }
   if (ui.sheet === 'book') {
@@ -1249,6 +1341,8 @@ function renderSheet(animate) {
         ${tr ? `<div class="mrow static" style="display:block">${progControl(b, 's')}</div>
           <div class="mrow static"><label class="mt" for="p-total">Total pages<small>Leave blank to track in %</small></label><input class="num" id="p-total" type="number" inputmode="numeric" min="1" value="${b.pages || ''}" data-pages-for="${b.id}"></div>` : ''}
       </div>`}
+      <div class="mgroup"><div class="mrow static"><label class="mt" for="b-genre">Genre<small>Used by “Match my book”</small></label>
+        <select class="hb-input" id="b-genre" style="width:auto;min-height:2.2rem" data-genre-for="${b.id}"><option value="">Not set</option>${GENRES.map(([v, l]) => `<option value="${v}" ${b.genre === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div>
       <div class="actions">
         ${{ reading: `<button class="btn" style="flex:1" data-act="pause" data-id="${b.id}">⏸ Pause</button><button class="btn primary" style="flex:1" data-act="finish" data-id="${b.id}">✓ I finished it</button>`,
             paused: `<button class="btn primary" style="flex:1" data-act="resume" data-id="${b.id}">▶ Resume reading</button>`,
@@ -1294,26 +1388,9 @@ function renderSheet(animate) {
   }
 
   /* ---- owner dashboard ---- */
-  if (ui.sheet === 'admin') {
-    tall = true;
-    const a = d.data, fmt = t => t ? new Date(t).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '';
-    inner = `${title('Owner dashboard')}${d.error ? `<p class="sub">${esc(d.error)}</p>` : !a ? '<p class="sub">Loading…</p>' : `
-      <div class="stats">
-        <div class="stat hl"><div class="n">${a.users}</div><div class="l">People</div></div>
-        <div class="stat"><div class="n">${a.email_users}</div><div class="l">With an account</div></div>
-        <div class="stat"><div class="n">${a.active_7d}</div><div class="l">Active, 7 days</div></div>
-        <div class="stat"><div class="n">${a.groups}</div><div class="l">Clubs</div></div>
-        <div class="stat"><div class="n">${a.books}</div><div class="l">Books added</div></div>
-        <div class="stat"><div class="n">${a.posts}</div><div class="l">Thoughts shared</div></div>
-      </div>
-      <div class="section-label">Most added books</div>
-      <div class="card tbl-wrap"><table class="tbl"><thead><tr><th>Book</th><th>People</th></tr></thead><tbody>${(a.top_books || []).map(r => `<tr><td>${esc(r.title)}</td><td>${r.n}</td></tr>`).join('') || '<tr><td colspan="2">None yet</td></tr>'}</tbody></table></div>
-      <div class="section-label">Newest people</div>
-      <div class="card tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Joined</th><th>Books</th></tr></thead><tbody>${(a.recent_users || []).map(r => `<tr><td>${esc(r.name)}</td><td>${r.email ? esc(r.email) : '—'}</td><td>${fmt(r.created_at)}</td><td>${r.books}</td></tr>`).join('')}</tbody></table></div>
-      <div class="section-label">Clubs</div>
-      <div class="card tbl-wrap"><table class="tbl"><thead><tr><th>Club</th><th>Members</th><th>Created</th></tr></thead><tbody>${(a.groups_list || []).map(r => `<tr><td>${esc(r.name)}</td><td>${r.members}</td><td>${fmt(r.created_at)}</td></tr>`).join('') || '<tr><td colspan="3">None yet</td></tr>'}</tbody></table></div>`}
-      <div class="formbtns"><button class="btn" data-act="settings">‹ Settings</button><button class="btn primary" data-act="close">Done</button></div>`;
-  }
+  if (ui.sheet === 'admin') { tall = true; inner = adminHTML(); }
+  if (ui.sheet === 'admin-item') { tall = true; inner = adminItemHTML(d); }
+  if (ui.sheet === 'admin-confirm') { inner = adminConfirmHTML(d); }
 
   root.innerHTML = `<div class="overlay ${animate ? 'anim' : ''}" data-act="overlay"><div class="sheet ${tall ? 'tall' : ''}" role="dialog" aria-modal="true">${inner}</div></div>`;
   if (animate) { const f = root.querySelector('#g-name, #q, #m-title, #wc-name, #wj-code'); if (f) setTimeout(() => f.focus(), 250); }
@@ -1321,6 +1398,120 @@ function renderSheet(animate) {
 function openSheet(name, data = {}) { ui.sheet = name; ui.sheetData = data; renderSheet(true); }
 function closeSheet() { ui.sheet = null; ui.sheetData = {}; render(); }
 const inviteLink = g => location.origin + location.pathname + '?join=' + g.code;
+
+/* ============================================================
+   Admin dashboard (only for people on the admins list)
+   ============================================================ */
+const KIND = { people: ['👤', 'Person'], clubs: ['👥', 'Club'], books: ['📚', 'Book'], posts: ['✍️', 'Thought'] };
+const adm = { tab: 'overview', q: '', data: null, list: null, bin: null, log: null, people: null, loading: false, error: '' };
+const fmtDate = t => t ? new Date(t).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' }) : '';
+const daysLeft = t => Math.max(0, 30 - Math.floor((Date.now() - Date.parse(t)) / 86400000));
+function adminRow(kind, r) {
+  const sub = {
+    people: () => `${r.email ? esc(r.email) : 'No account yet'} · 📚 ${r.books} · 👥 ${r.clubs.length}`,
+    clubs: () => `${r.members.length} ${r.members.length === 1 ? 'member' : 'members'} · code ${esc((r.code || '').toUpperCase())}${r.created_by_name ? ' · by ' + esc(r.created_by_name) : ''}`,
+    books: () => `${esc(r.author || 'Unknown author')} · ${esc(r.owner || '?')} · ${esc(r.status)}${r.genre ? ' · ' + esc(r.genre) : ''}`,
+    posts: () => `${esc(r.owner || '?')} · ${fmtDate(r.created_at)} · ${REACT[r.reaction] ? REACT[r.reaction].emoji : ''} ${esc((r.text || '').slice(0, 60))}`
+  }[kind]();
+  const name = kind === 'people' || kind === 'clubs' ? r.name : r.title;
+  return `<button class="mrow" data-act="adm-open" data-k="${kind}" data-id="${r.id}"><span class="mi">${KIND[kind][0]}</span><span class="mt">${esc(name)}<small>${sub}</small></span><span class="mc">›</span></button>`;
+}
+function adminHTML() {
+  const tabs = [['overview', 'Overview'], ['people', 'People'], ['clubs', 'Clubs'], ['books', 'Books'], ['posts', 'Thoughts'], ['bin', '🗑️ Recently deleted'], ['log', 'Activity']];
+  const chips = `<div class="chips">${tabs.map(([k, l]) => `<button class="chip sm ${adm.tab === k ? 'on' : ''}" data-act="adm-tab" data-id="${k}">${l}</button>`).join('')}</div>`;
+  let body = '';
+  if (adm.error) body = `<div class="banner info"><span class="b-icon">⚠️</span><div class="sub" style="color:var(--ink)">${esc(adm.error)}</div></div>`;
+  else if (adm.loading) body = '<div class="empty">Loading…</div>';
+  else if (adm.tab === 'overview' && adm.data) {
+    const a = adm.data;
+    body = `<div class="stats">
+        <div class="stat hl"><div class="n">${a.users}</div><div class="l">People</div></div>
+        <div class="stat"><div class="n">${a.email_users}</div><div class="l">With an account</div></div>
+        <div class="stat"><div class="n">${a.active_7d}</div><div class="l">Active, 7 days</div></div>
+        <div class="stat"><div class="n">${a.groups}</div><div class="l">Clubs</div></div>
+        <div class="stat"><div class="n">${a.books}</div><div class="l">Books</div></div>
+        <div class="stat"><div class="n">${a.posts}</div><div class="l">Thoughts</div></div>
+      </div>
+      ${a.bin ? `<button class="banner info" style="width:100%;text-align:left;cursor:pointer;color:var(--ink)" data-act="adm-tab" data-id="bin"><span class="b-icon">🗑️</span><span class="sub" style="color:var(--ink)">${a.bin} ${a.bin === 1 ? 'item' : 'items'} in Recently deleted. They're cleared after 30 days.</span></button>` : ''}
+      <div class="section-label">Most added books</div>
+      <div class="card tbl-wrap"><table class="tbl"><thead><tr><th>Book</th><th>People</th></tr></thead><tbody>${(a.top_books || []).map(r => `<tr><td>${esc(r.title)}</td><td>${r.n}</td></tr>`).join('') || '<tr><td colspan="2">None yet</td></tr>'}</tbody></table></div>`;
+  } else if (['people', 'clubs', 'books', 'posts'].includes(adm.tab)) {
+    body = `<form data-form="adm-search" class="row" style="gap:.4rem;margin-bottom:.4rem"><label class="sr" for="adm-q">Search</label><input class="hb-input" id="adm-q" type="search" placeholder="Search ${adm.tab === 'posts' ? 'thoughts' : adm.tab}" value="${esc(adm.q)}"><button class="btn" type="submit">Search</button></form>
+      ${adm.list && adm.list.length ? `<div class="mgroup" style="margin-top:0">${adm.list.map(r => adminRow(adm.tab, r)).join('')}</div>` : '<div class="empty">Nothing found.</div>'}`;
+  } else if (adm.tab === 'bin') {
+    body = `<p class="sub" style="margin-top:0">Deleted things wait here for 30 days, then disappear for good. People in clubs can't see them.</p>
+      ${adm.bin && adm.bin.length ? `<div class="mgroup" style="margin-top:0">${adm.bin.map(r => `<div class="mrow static"><span class="mi">${KIND[r.kind][0]}</span>
+        <span class="mt">${esc(r.name || r.title)}<small>${KIND[r.kind][1]} · deleted ${fmtDate(r.deleted_at)} · ${daysLeft(r.deleted_at)} days left</small></span>
+        <span class="row" style="gap:.3rem"><button class="btn" data-act="adm-restore" data-k="${r.kind}" data-id="${r.id}">Restore</button><button class="btn danger" data-act="adm-ask" data-k="${r.kind}" data-id="${r.id}" data-forever="1">Delete</button></span></div>`).join('')}</div>`
+        : '<div class="empty">Nothing here. 🎉</div>'}`;
+  } else if (adm.tab === 'log') {
+    body = adm.log && adm.log.length ? `<div class="mgroup" style="margin-top:0">${adm.log.map(l => `<div class="mrow static"><span class="mi">${(KIND[l.kind] || ['🛠️'])[0]}</span><span class="mt">${esc(l.label || '')}<small>${esc(l.action)} · ${new Date(l.at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}${l.admin_name ? ' · ' + esc(l.admin_name) : ''}</small></span></div>`).join('')}</div>` : '<div class="empty">No changes yet.</div>';
+  }
+  return `<h2 class="sheet-title">🛡️ Admin dashboard</h2>${chips}${body}
+    <div class="formbtns"><button class="btn" data-act="settings">‹ Settings</button><button class="btn primary" data-act="close">Done</button></div>`;
+}
+function adminItemHTML(d) {
+  const r = d.item, k = d.kind;
+  if (!r) return '<div class="empty">Not found.</div>';
+  let form = '';
+  if (k === 'people') form = `<label class="hb-label" for="ai-name">Name</label><input class="hb-input" id="ai-name" maxlength="40" value="${esc(r.name)}">
+    <div class="meta" style="margin-top:.4rem">${r.email ? esc(r.email) : 'No account (anonymous)'} · joined ${fmtDate(r.created_at)} · 📚 ${r.books} books</div>
+    <div class="section-label">Clubs</div>
+    ${r.clubs.length ? `<div class="mgroup" style="margin-top:0">${r.clubs.map(c => `<div class="mrow static"><span class="mt">${esc(c.name)}</span><button class="btn danger" data-act="adm-member" data-club="${c.id}" data-user="${r.id}" data-op="remove">Remove</button></div>`).join('')}</div>` : '<div class="sub">Not in any club.</div>'}`;
+  if (k === 'clubs') {
+    const others = (adm.people || []).filter(p => !r.members.some(m => m.id === p.id));
+    form = `<label class="hb-label" for="ai-name">Club name</label><input class="hb-input" id="ai-name" maxlength="40" value="${esc(r.name)}">
+    <label class="hb-label" for="ai-code">Invite code</label><div class="row" style="gap:.4rem"><input class="hb-input" id="ai-code" maxlength="12" value="${esc(r.code)}" style="text-transform:lowercase;letter-spacing:.15rem"><button class="btn" data-act="adm-newcode">New code</button></div>
+    <div class="section-label">Members · ${r.members.length}</div>
+    ${r.members.length ? `<div class="mgroup" style="margin-top:0">${r.members.map(m => `<div class="mrow static"><span class="mt">${esc(m.name)}</span><button class="btn danger" data-act="adm-member" data-club="${r.id}" data-user="${m.id}" data-op="remove">Remove</button></div>`).join('')}</div>` : '<div class="sub">No members.</div>'}
+    <div class="row" style="gap:.4rem;margin-top:.5rem"><label class="sr" for="ai-add">Add a member</label><select class="hb-input" id="ai-add"><option value="">Add a person…</option>${others.map(p => `<option value="${p.id}">${esc(p.name)}${p.email ? ' · ' + esc(p.email) : ''}</option>`).join('')}</select><button class="btn" data-act="adm-member-add" data-club="${r.id}">Add</button></div>`;
+  }
+  if (k === 'books') form = `<label class="hb-label" for="ai-title">Title</label><input class="hb-input" id="ai-title" value="${esc(r.title)}">
+    <label class="hb-label" for="ai-author">Author</label><input class="hb-input" id="ai-author" value="${esc(r.author || '')}">
+    <div class="row" style="gap:.5rem"><div class="grow"><label class="hb-label" for="ai-pages">Pages</label><input class="hb-input" id="ai-pages" type="number" min="0" value="${r.pages || 0}"></div>
+      <div class="grow"><label class="hb-label" for="ai-genre">Genre</label><select class="hb-input" id="ai-genre"><option value="">Not set</option>${GENRES.map(([v, l]) => `<option value="${v}" ${r.genre === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div>
+    <label class="hb-label" for="ai-cover">Cover image link</label><input class="hb-input" id="ai-cover" value="${esc(r.cover_url || '')}">
+    <div class="meta" style="margin-top:.4rem">On ${esc(r.owner || '?')}'s shelf · ${esc(r.status)}</div>`;
+  if (k === 'posts') form = `<div class="item-title">${esc(r.title)} ${reactionPill(r.reaction)}</div><div class="meta">${esc(r.owner || '?')} · ${fmtDate(r.created_at)}</div>
+    <label class="hb-label" for="ai-text">What stayed with them</label><textarea class="hb-input" id="ai-text" rows="4">${esc(r.text || '')}</textarea>`;
+  return `<h2 class="sheet-title">${KIND[k][0]} ${esc(k === 'people' || k === 'clubs' ? r.name : r.title)}</h2>${form}
+    <div class="formbtns"><button class="btn" data-act="adm-back">‹ Back</button><button class="btn primary" data-act="adm-save">Save changes</button></div>
+    <div class="mgroup"><button class="mrow danger" data-act="adm-ask" data-k="${k}" data-id="${r.id}"><span class="mi">🗑️</span><span class="mt">Delete ${KIND[k][1].toLowerCase()}</span></button></div>`;
+}
+function adminConfirmHTML(d) {
+  const r = d.item, k = d.kind, name = k === 'people' || k === 'clubs' ? r.name : r.title, im = d.impact || {};
+  const typed = k === 'people' || k === 'clubs';
+  const what = d.forever
+    ? { people: `This permanently deletes <b>${esc(name)}</b>, their login, books, thoughts and club memberships. It can't be undone.`,
+        clubs: `This permanently deletes the club <b>${esc(name)}</b>. Members keep their own books and thoughts. It can't be undone.`,
+        books: `This permanently deletes <b>${esc(name)}</b>. It can't be undone.`, posts: `This permanently deletes this thought. It can't be undone.` }[k]
+    : { people: `<b>${esc(name)}</b> will be hidden from everyone, along with ${im.books ?? '?'} books and ${im.posts ?? '?'} thoughts. They're in ${im.clubs ?? '?'} ${im.clubs === 1 ? 'club' : 'clubs'}${im.clubs_owned ? ` and started ${im.clubs_owned}` : ''}.`,
+        clubs: `<b>${esc(name)}</b> will be hidden. ${im.members ?? '?'} ${im.members === 1 ? 'member loses' : 'members lose'} access. Their own books and thoughts stay.`,
+        books: `<b>${esc(name)}</b> will be removed from ${esc(r.owner || 'their')}'s shelf.`, posts: `This thought by ${esc(r.owner || '?')} will be hidden.` }[k];
+  return `<h2 class="sheet-title">${d.forever ? 'Delete forever?' : 'Delete ' + KIND[k][1].toLowerCase() + '?'}</h2>
+    <div class="banner ${d.forever ? '' : 'info'}" style="${d.forever ? 'background:var(--red-soft)' : ''}"><span class="b-icon">${d.forever ? '⚠️' : '🗑️'}</span><div class="sub" style="color:var(--ink)">${what}${d.forever ? '' : ' You can restore it from Recently deleted for 30 days.'}</div></div>
+    ${typed ? `<label class="hb-label" for="ac-type">Type <b>${esc(name)}</b> to confirm</label><input class="hb-input" id="ac-type" autocomplete="off">` : ''}
+    <div class="formbtns"><button class="btn" data-act="adm-back">Cancel</button><button class="btn danger" style="border-color:var(--red)" data-act="adm-delete">${d.forever ? 'Delete forever' : 'Delete'}</button></div>`;
+}
+async function admLoad() {
+  adm.loading = true; adm.error = ''; if (ui.sheet === 'admin') renderSheet();
+  try {
+    if (adm.tab === 'overview') { const { data, error } = await sb.rpc('admin_overview'); if (error) throw error; adm.data = data; }
+    else if (adm.tab === 'bin') {
+      const res = await Promise.all(['people', 'clubs', 'books', 'posts'].map(k => sb.rpc('admin_list', { p_kind: k, p_q: '', p_bin: true }).then(r => { if (r.error) throw r.error; return (r.data || []).map(x => ({ ...x, kind: k })); })));
+      adm.bin = res.flat().sort((a, b) => Date.parse(b.deleted_at) - Date.parse(a.deleted_at));
+    } else if (adm.tab === 'log') { const { data, error } = await sb.rpc('admin_list', { p_kind: 'log' }); if (error) throw error; adm.log = data; }
+    else { const { data, error } = await sb.rpc('admin_list', { p_kind: adm.tab, p_q: adm.q, p_bin: false }); if (error) throw error; adm.list = data; }
+  } catch (e) { adm.error = "Couldn't load: " + (e.message || e) + (/function|schema/i.test(e.message || '') ? ' (run supabase-update-3.sql)' : ''); }
+  adm.loading = false; if (ui.sheet === 'admin') renderSheet();
+}
+async function admRun(fn, args, okMsg) {
+  const { error } = await sb.rpc(fn, args);
+  if (error) { toast(error.message); return false; }
+  if (okMsg) toast(okMsg);
+  refresh();
+  return true;
+}
 
 /* ---------- add-book results ---------- */
 function suggestions() {
@@ -1384,7 +1575,7 @@ function queueSearch(q) {
 async function searchBooks(q) {
   const seq = ++searchSeq;
   try {
-    const url = 'https://openlibrary.org/search.json?limit=15&fields=title,author_name,number_of_pages_median,cover_i&q=' + encodeURIComponent(q);
+    const url = 'https://openlibrary.org/search.json?limit=15&fields=title,author_name,number_of_pages_median,cover_i,subject&q=' + encodeURIComponent(q);
     const res = await fetch(url);
     if (!res.ok) throw new Error('bad');
     const data = await res.json();
@@ -1393,6 +1584,7 @@ async function searchBooks(q) {
       title: d.title,
       author: (d.author_name || []).slice(0, 2).join(', '),
       pages: d.number_of_pages_median || 0,
+      genre: genreFrom(d.subject, d.title),
       coverUrl: d.cover_i ? `https://covers.openlibrary.org/b/id/${d.cover_i}-M.jpg` : ''
     }));
     ui.search.error = ui.search.results.length ? '' : 'No matches. Try fewer words, or add it yourself.';
@@ -1405,9 +1597,9 @@ async function searchBooks(q) {
 }
 
 /* ---------- data actions ---------- */
-function addBook({ title, author = '', pages = 0, coverUrl = '', photo = '', status = 'want', from = '' }) {
+function addBook({ title, author = '', pages = 0, coverUrl = '', photo = '', status = 'want', from = '', genre = '' }) {
   if (onMyShelf(title)) { toast('Already on your shelf'); return null; }
-  const b = { id: uid(), userId: ME, title: title.trim(), author, pages: +pages || 0, page: 0, percent: 0, track: false, status, coverUrl, photo, from, updatedAt: Date.now() };
+  const b = { id: uid(), userId: ME, title: title.trim(), author, pages: +pages || 0, page: 0, percent: 0, track: false, status, coverUrl, photo, from, genre, updatedAt: Date.now() };
   db.books.push(b); save();
   return b;
 }
@@ -1417,7 +1609,7 @@ function updBook(id, patch) {
 }
 function saveFromOther(x, userId) {
   const u = userById(userId);
-  if (addBook({ title: x.title, author: x.author, pages: x.pages, coverUrl: x.coverUrl, status: 'want', from: 'Saved from ' + (u?.name || 'a friend') })) {
+  if (addBook({ title: x.title, author: x.author, pages: x.pages, coverUrl: x.coverUrl, genre: x.genre || '', status: 'want', from: 'Saved from ' + (u?.name || 'a friend') })) {
     ui.shelfTab = 'want'; render(); wantToast(x.title);
   }
 }
@@ -1529,10 +1721,49 @@ const actions = {
   'disp-reset'() { setDisplay({ ...DISPLAY_DEFAULT }); render(); toast('Display reset'); },
   async admin() {
     openSheet('admin', {});
-    const { data, error } = await sb.rpc('admin_overview');
-    if (ui.sheet !== 'admin') return;
-    ui.sheetData = error ? { error: "Couldn't load: " + error.message } : { data }; renderSheet();
+    sb.rpc('admin_purge_expired').then(() => {});
+    admLoad();
   },
+  'adm-tab'(id) { adm.tab = id; adm.q = ''; adm.list = null; admLoad(); },
+  async 'adm-open'(id, el) {
+    const k = el.dataset.k, item = (adm.list || []).find(x => x.id === id);
+    if (k === 'clubs' && !adm.people) { const { data } = await sb.rpc('admin_list', { p_kind: 'people', p_q: '', p_bin: false }); adm.people = data || []; }
+    openSheet('admin-item', { kind: k, item });
+  },
+  'adm-back'() { ui.sheet = 'admin'; ui.sheetData = {}; renderSheet(); },
+  'adm-newcode'() { const el = document.getElementById('ai-code'); if (el) el.value = joinCode(); },
+  async 'adm-save'() {
+    const { kind: k, item: r } = ui.sheetData, v = id => document.getElementById(id)?.value;
+    const patch = k === 'people' ? { name: v('ai-name') } : k === 'clubs' ? { name: v('ai-name'), code: v('ai-code') }
+      : k === 'books' ? { title: v('ai-title'), author: v('ai-author'), pages: String(parseInt(v('ai-pages'), 10) || 0), genre: v('ai-genre'), cover_url: v('ai-cover') } : { text: v('ai-text') };
+    if (await admRun('admin_update', { p_kind: k, p_id: r.id, p: patch }, 'Saved')) { ui.sheet = 'admin'; ui.sheetData = {}; admLoad(); }
+  },
+  async 'adm-member'(_, el) {
+    const op = el.dataset.op;
+    if (op === 'remove' && !confirm('Remove this person from the club? They can rejoin with the code.')) return;
+    if (await admRun('admin_member', { p_club: el.dataset.club, p_user: el.dataset.user, p_op: op }, op === 'add' ? 'Added to club' : 'Removed from club')) { adm.people = null; ui.sheet = 'admin'; ui.sheetData = {}; admLoad(); }
+  },
+  async 'adm-member-add'(_, el) {
+    const u = document.getElementById('ai-add').value; if (!u) { toast('Pick a person to add'); return; }
+    el.dataset.user = u; el.dataset.op = 'add'; actions['adm-member'](null, el);
+  },
+  async 'adm-ask'(id, el) {
+    const k = el.dataset.k, forever = !!el.dataset.forever;
+    const item = forever ? (adm.bin || []).find(x => x.id === id && x.kind === k) : ui.sheetData.item;
+    let impact = {};
+    if (!forever && (k === 'people' || k === 'clubs')) { const { data } = await sb.rpc('admin_impact', { p_kind: k, p_id: id }); impact = data || {}; }
+    openSheet('admin-confirm', { kind: k, item, impact, forever, back: ui.sheet });
+  },
+  async 'adm-delete'() {
+    const { kind: k, item: r, forever } = ui.sheetData, name = k === 'people' || k === 'clubs' ? r.name : r.title;
+    if ((k === 'people' || k === 'clubs') && (document.getElementById('ac-type').value.trim() !== String(name).trim())) { toast('Type the name exactly to confirm'); return; }
+    const ok = await admRun(forever ? 'admin_purge' : 'admin_delete', { p_kind: k, p_id: r.id });
+    if (!ok) return;
+    ui.sheet = 'admin'; ui.sheetData = {}; admLoad();
+    if (forever) toast('Deleted forever');
+    else toast('Moved to Recently deleted', async () => { await admRun('admin_restore', { p_kind: k, p_id: r.id }, 'Restored'); admLoad(); });
+  },
+  async 'adm-restore'(id, el) { if (await admRun('admin_restore', { p_kind: el.dataset.k, p_id: id }, 'Restored')) admLoad(); },
   'demo-remove'() {
     const backup = JSON.parse(JSON.stringify(db));
     removeSamples(); save(); if (ui.sheet === 'settings') renderSheet(); render();
@@ -1605,7 +1836,7 @@ const actions = {
   'manual-save'(_, el) {
     const title = document.getElementById('m-title').value.trim();
     if (!title) { toast('Add a title'); return; }
-    const b = addBook({ title, author: document.getElementById('m-author').value.trim(), pages: +document.getElementById('m-pages').value || 0, photo: ui.sheetData.photo || '', status: el.dataset.status });
+    const b = addBook({ title, author: document.getElementById('m-author').value.trim(), pages: +document.getElementById('m-pages').value || 0, genre: document.getElementById('m-genre').value, photo: ui.sheetData.photo || '', status: el.dataset.status });
     if (!b) return;
     if (b.status === 'want') ui.shelfTab = 'want';
     ui.sheet = null; if (!ui.clubPage) ui.tab = 'shelf'; render(); if (b.status === 'reading') celebrate('start', b); else wantToast(b.title);
@@ -1658,6 +1889,9 @@ const actions = {
 
   /* today + calendar */
   'today-open'() { openSheet('today'); },
+  'install-show'() { try { localStorage.setItem('sm.installHint', 'done'); } catch (e) {} openSheet('settings', { page: 'install' }); },
+  'install-dismiss'() { try { localStorage.setItem('sm.installHint', 'done'); } catch (e) {} render(); },
+  async 'install-now'() { if (!installPrompt) return; installPrompt.prompt(); const r = await installPrompt.userChoice; installPrompt = null; if (r && r.outcome === 'accepted') toast('Installed 📲'); renderSheet(); },
   calendar() { openSheet('calendar', { month: dayStr().slice(0, 7), sel: dayStr() }); },
   'cal-month'(m) { ui.sheetData.month = m; renderSheet(); },
   'cal-day'(ds) { ui.sheetData.sel = ds; renderSheet(); },
@@ -1715,6 +1949,7 @@ document.addEventListener('scroll', e => {
   el.parentElement.querySelectorAll('.tpager i').forEach((d, k) => d.classList.toggle('on', k === i));
 }, true);
 document.addEventListener('submit', e => {
+  if (e.target.dataset.form === 'adm-search') { e.preventDefault(); adm.q = document.getElementById('adm-q').value.trim(); admLoad(); return; }
   if (e.target.dataset.form === 'search') {
     e.preventDefault();
     const q = document.getElementById('q').value.trim();
@@ -1743,6 +1978,8 @@ document.addEventListener('change', async e => {
     db.me.showProgress = t.checked; save(); render();
     toast(t.checked ? 'Your clubs can see your progress' : 'Progress hidden. Clubs only see the book.');
   }
+  if (t.dataset && t.dataset.disp === 'texture') { setDisplay({ texture: t.checked }); renderSheet(); }
+  if (t.dataset && t.dataset.genreFor) { updBook(t.dataset.genreFor, { genre: t.value }); applyDisplay(); render(); }
   if (t.dataset && t.dataset.pref === 'clubs') {
     db.me.showClubs = t.checked; save(); renderSheet();
     toast(t.checked ? 'People in your clubs can see your other clubs' : 'Your clubs are private again');
@@ -1776,6 +2013,7 @@ document.addEventListener('change', async e => {
 /* ============================================================
    Start
    ============================================================ */
+applyDisplay();
 (async function init() {
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
   if (!CLOUD) { db = load(); render(); return; }
