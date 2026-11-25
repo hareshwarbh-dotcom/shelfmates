@@ -697,14 +697,15 @@ async function pull() {
   const mem = await sb.from('group_members').select('group_id').eq('user_id', ME);
   if (mem.error) throw mem.error;
   const gids = mem.data.map(r => r.group_id);
-  let groups = [], members = [];
+  let groups = [], members = [], hiddenRows = [];
   if (gids.length) {
-    const [g, m] = await Promise.all([
+    const [g, m, h] = await Promise.all([
       sb.from('groups').select('*').in('id', gids).is('deleted_at', null),
-      sb.from('group_members').select('group_id,user_id').in('group_id', gids)
+      sb.from('group_members').select('group_id,user_id,role,joined_at').in('group_id', gids),
+      sb.from('club_hidden').select('group_id,post_id').in('group_id', gids)
     ]);
     if (g.error) throw g.error; if (m.error) throw m.error;
-    groups = g.data; members = m.data;
+    groups = g.data; members = m.data; hiddenRows = h.error ? [] : h.data;
   }
   const userIds = [...new Set([ME, ...members.map(m => m.user_id)])];
   const since = dayStr(Date.now() - 400 * 86400000);
@@ -733,7 +734,10 @@ async function pull() {
     me: { id: ME, name: prof.name, showProgress: prof.show_progress !== false, theme: prof.theme || 'teal', goal: prof.daily_goal || 0, showClubs: !!prof.show_clubs, avatar: prof.avatar_url || '', bio: prof.bio || '', genres: prof.fav_genres || [], stamps: prof.stamps || {}, showStamps: !!prof.show_stamps },
     log: (log.data || []).map(r => ({ id: r.id, bookId: r.book_id, title: r.title, day: r.day, pages: r.pages, updatedAt: Date.parse(r.updated_at) || 0 })),
     users: [...profs.data.filter(p => p.id !== ME).map(p => ({ id: p.id, name: p.name, showProgress: p.show_progress !== false, avatar: p.avatar_url || '', bio: p.bio || '', genres: p.fav_genres || [], stamps: p.show_stamps ? (p.stamps || {}) : null })), ...demo.users],
-    groups: [...groups.map(g => ({ id: g.id, name: g.name, code: g.code, createdBy: g.created_by, createdAt: Date.parse(g.created_at), members: members.filter(m => m.group_id === g.id && (m.user_id === ME || profs.data.some(p => p.id === m.user_id))).map(m => m.user_id) })), ...demo.groups],
+    groups: [...groups.map(g => { const gm = members.filter(m => m.group_id === g.id && (m.user_id === ME || profs.data.some(p => p.id === m.user_id)));
+      return { id: g.id, name: g.name, code: g.code, about: g.about || '', createdBy: g.created_by, createdAt: Date.parse(g.created_at),
+        members: gm.map(m => m.user_id), roles: Object.fromEntries(gm.map(m => [m.user_id, m.role || 'member'])),
+        hidden: hiddenRows.filter(x => x.group_id === g.id).map(x => x.post_id) }; }), ...demo.groups],
     books: [...books.data.map(rowToBook), ...demo.books],
     posts: [...posts.data.map(rowToPost), ...demo.posts]
   };
@@ -769,6 +773,13 @@ async function joinByCode(code) {
   const g = db.groups.find(x => x.id === data); if (g) toast('You joined ' + g.name + ' 🎉', () => leaveClub(g.id)); setTimeout(() => maybeNudge('club'), 3000);
 }
 
+async function clubRun(club, op, user = null, text = null) {
+  if (!CLOUD || !sb) { toast('This needs an internet connection'); return null; }
+  const { data, error } = await sb.rpc('club_manage', { p_club: club, p_op: op, p_user: user, p_text: text });
+  if (error) { toast(error.message); return null; }
+  return data || {};
+}
+async function clubRefresh() { try { await pull(); } catch (e) {} if (ui.clubPage && !db.groups.find(g => g.id === ui.clubPage)) ui.clubPage = null; render(); }
 async function leaveClub(id) {
   const g = db.groups.find(x => x.id === id); if (!g) return;
   const { error } = await sb.from('group_members').delete().eq('group_id', id).eq('user_id', ME);
@@ -815,6 +826,11 @@ const userById = id => id === ME ? db.me : db.users.find(u => u.id === id);
 const myBooks = () => db.books.filter(b => b.userId === ME);
 const onMyShelf = title => myBooks().some(b => norm(b.title) === norm(title));
 const hasDemo = () => db.groups.some(g => g.demo) || db.users.some(u => u.demo);
+const roleOf = (g, id) => (g.roles && g.roles[id]) || (g.createdBy === id ? 'owner' : 'member');
+const isOwner = g => CLOUD && !g.demo && roleOf(g, ME) === 'owner';
+const canManage = g => CLOUD && !g.demo && ['owner', 'mod'].includes(roleOf(g, ME));
+const ROLE_PILL = { owner: '<span class="pill soon">👑 Owner</span>', mod: '<span class="pill info">🛡️ Moderator</span>', member: '' };
+const postVisible = (p, clubs) => p.userId === ME || clubs.some(c => c.members.includes(p.userId) && !(c.hidden || []).includes(p.id));
 const myClubs = () => db.groups.filter(g => g.members.includes(ME)).sort((a, b) => (a.demo ? 1 : 0) - (b.demo ? 1 : 0) || b.createdAt - a.createdAt);
 const signedInEmail = () => authUser && !authUser.is_anonymous ? authUser.email : '';
 
@@ -1259,11 +1275,12 @@ function readingCarousel(others) {
     </div>`;
   }).join('');
 }
-function postCard(p) {
+function postCard(p, club) {
   const u = userById(p.userId) || { name: 'Member' }, isMe = p.userId === ME, saved = onMyShelf(p.title);
+  const modBtn = !isMe && club && canManage(club) ? `<button class="iconbtn" style="border:none" aria-label="Hide this thought from ${esc(club.name)}" title="Hide from this club" data-act="club-hide" data-club="${club.id}" data-id="${p.id}">🙈</button>` : '';
   return `<article class="card">
     <div class="row"><button style="all:unset;cursor:pointer" data-act="member" data-id="${p.userId}" aria-label="See ${esc(u.name)}'s shelf">${avatar(u)}</button><div class="grow"><div class="item-title">${isMe ? 'You' : esc(u.name)} <span style="font-weight:400;color:var(--muted)">finished a book</span></div><div class="meta">${timeAgo(p.createdAt)}</div></div>
-    ${isMe ? `<button class="iconbtn" style="border:none" aria-label="Delete this post" data-act="delete-post" data-id="${p.id}">🗑️</button>` : ''}</div>
+    ${isMe ? `<button class="iconbtn" style="border:none" aria-label="Delete this post" data-act="delete-post" data-id="${p.id}">🗑️</button>` : modBtn}</div>
     ${p.photo ? `<img class="photo" src="${esc(p.photo)}" alt="Photo shared with ${esc(p.title)}">` : ''}
     ${p.text ? `<p class="thought">${esc(p.text)}</p>` : ''}
     <div class="book-strip">${coverHTML(p, 36, 54)}
@@ -1272,10 +1289,11 @@ function postCard(p) {
     </div>
   </article>`;
 }
-function feedHTML(people, emptyOthers) {
+function feedHTML(people, emptyOthers, clubs = []) {
   const others = [...people].filter(id => id !== ME);
   const carousel = readingCarousel(others);
-  const posts = db.posts.filter(p => people.has(p.userId)).sort((a, b) => b.createdAt - a.createdAt).map(postCard).join('');
+  const one = clubs.length === 1 ? clubs[0] : null;
+  const posts = db.posts.filter(p => people.has(p.userId) && (!clubs.length || postVisible(p, clubs))).sort((a, b) => b.createdAt - a.createdAt).map(p => postCard(p, one)).join('');
   return `<div class="section-label" style="margin-top:.2rem">Reading right now</div>
     ${carousel ? `<div class="carousel">${carousel}</div>` : `<div class="card empty">${others.length ? 'Nobody here is mid-book right now.' : emptyOthers}</div>`}
     <div class="section-label">What stayed with us</div>
@@ -1287,7 +1305,7 @@ function discoverHTML() {
     <button class="btn accent" data-act="create-open">＋ Create a club</button> ${CLOUD ? '<button class="btn" data-act="w-join">🔑 Join with code</button>' : ''}</div>`;
   const inScope = ui.club === 'all' ? clubs : clubs.filter(g => g.id === ui.club);
   const chips = `<div class="chips"><button class="chip ${ui.club === 'all' ? 'on' : ''}" data-act="club-filter" data-id="all">All clubs</button>${clubs.map(g => `<button class="chip ${ui.club === g.id ? 'on' : ''}" data-act="club-filter" data-id="${g.id}">${esc(g.name)}</button>`).join('')}</div>`;
-  return chips + feedHTML(new Set(inScope.flatMap(g => g.members)), "It's just you so far. Open a club on Home and tap Invite.");
+  return chips + feedHTML(new Set(inScope.flatMap(g => g.members)), "It's just you so far. Open a club on Home and tap Invite.", inScope);
 }
 
 /* ----- Club page ----- */
@@ -1295,26 +1313,41 @@ function clubPageHTML(g) {
   const t = ui.clubTab || 'books';
   const chips = `<div class="chips">${[['books', '📖 Books'], ['members', `👥 Members · ${g.members.length}`], ['about', 'ℹ️ About']].map(([k, l]) => `<button class="chip ${t === k ? 'on' : ''}" data-act="club-tab" data-id="${k}">${l}</button>`).join('')}</div>`;
   let body = '';
-  if (t === 'books') body = feedHTML(new Set(g.members), g.demo ? '' : 'Just you so far. Tap <b>Invite</b> at the top to bring people in.');
+  if (t === 'books') body = feedHTML(new Set(g.members), g.demo ? '' : 'Just you so far. Tap <b>Invite</b> at the top to bring people in.', [g]);
   if (t === 'members') {
     const ids = [ME, ...g.members.filter(id => id !== ME)].filter(id => g.members.includes(id));
     body = `<div class="mgroup" style="margin-top:.2rem">${ids.map(id => {
       const u = userById(id) || { id, name: 'Member' };
       const now = db.books.filter(b => b.userId === id && b.status === 'reading');
       const done = db.books.filter(b => b.userId === id && b.status === 'finished').length;
-      return `<button class="mrow" data-act="member" data-id="${id}">${avatar(u)}<span class="mt">${esc(u.name)}${id === ME ? ' (you)' : ''}${id === g.createdBy ? ' <span class="pill info">Started the club</span>' : ''}
+      return `<button class="mrow" data-act="member" data-id="${id}">${avatar(u)}<span class="mt">${esc(u.name)}${id === ME ? ' (you)' : ''}${ROLE_PILL[roleOf(g, id)] ? ' ' + ROLE_PILL[roleOf(g, id)] : ''}
         <small>${now.length ? '📖 ' + now.map(b => esc(b.title)).join(', ') : 'Not reading anything right now'}${done ? ` · ${done} finished` : ''}</small></span><span class="mc">›</span></button>`;
     }).join('')}</div>
+    ${canManage(g) ? `<p class="sub" style="margin:.5rem 0 0">Tap someone to ${isOwner(g) ? 'change their role or remove them' : 'remove them if needed'}.</p>` : ''}
     ${g.demo ? '' : '<button class="btn block" style="margin-top:.7rem" data-act="invite" data-id="' + g.id + '">💌 Invite people</button>'}`;
   }
   if (t === 'about') {
     const by = userById(g.createdBy);
-    body = `<div class="mgroup" style="margin-top:.2rem">
+    const named = role => g.members.filter(id => roleOf(g, id) === role).map(id => id === ME ? 'You' : esc((userById(id) || { name: 'Member' }).name));
+    const owners = named('owner'), mods = named('mod');
+    const hiddenPosts = (g.hidden || []).map(pid => db.posts.find(p => p.id === pid)).filter(Boolean);
+    body = `${g.about ? `<div class="card"><p class="thought" style="margin:0">${esc(g.about)}</p></div>` : ''}
+      <div class="mgroup" style="margin-top:.2rem">
+        ${owners.length ? `<div class="mrow static"><span class="mi">👑</span><span class="mt">${owners.length > 1 ? 'Owners' : 'Owner'}<small>${owners.join(', ')}</small></span></div>` : ''}
+        ${mods.length ? `<div class="mrow static"><span class="mi">🛡️</span><span class="mt">${mods.length > 1 ? 'Moderators' : 'Moderator'}<small>${mods.join(', ')}</small></span></div>` : ''}
         <div class="mrow static"><span class="mi">📅</span><span class="mt">Started<small>${g.createdAt ? new Date(g.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}${by ? ' by ' + esc(by.id === ME ? 'you' : by.name) : ''}</small></span></div>
         <div class="mrow static"><span class="mi">👥</span><span class="mt">${g.members.length} ${g.members.length === 1 ? 'member' : 'members'}<small>Everyone reads their own books, at their own pace.</small></span></div>
         ${g.demo ? '<div class="mrow static"><span class="mi">🧪</span><span class="mt">Sample club<small>Pretend people so you can see how it works.</small></span></div>' : ''}
       </div>
-      ${!g.demo && CLOUD ? `<div class="mgroup"><button class="mrow danger" data-act="leave-club" data-id="${g.id}"><span class="mi">🚪</span><span class="mt">Leave club</span></button></div>` : ''}`;
+      ${isOwner(g) ? `<div class="section-label">Manage club</div><div class="mgroup" style="margin-top:0">
+        <button class="mrow" data-act="club-edit" data-id="${g.id}"><span class="mi">✏️</span><span class="mt">Edit name &amp; description</span><span class="mc">›</span></button>
+        <button class="mrow" data-act="club-newcode" data-id="${g.id}"><span class="mi">🔑</span><span class="mt">Get a new invite code<small>Current code ${esc((g.code || '').toUpperCase())}. The old code and link stop working.</small></span></button>
+      </div>` : ''}
+      ${canManage(g) ? `<div class="section-label">Hidden thoughts · ${hiddenPosts.length}</div>
+        ${hiddenPosts.length ? `<div class="mgroup" style="margin-top:0">${hiddenPosts.map(p => `<div class="mrow static"><span class="mi">🙈</span><span class="mt">${esc(p.title)}<small>${esc((userById(p.userId) || { name: 'Member' }).name)} · ${esc((p.text || '').slice(0, 60))}</small></span><button class="btn" data-act="club-unhide" data-club="${g.id}" data-id="${p.id}">Show again</button></div>`).join('')}</div>`
+          : '<p class="sub" style="margin:0">Nothing hidden. Tap 🙈 on a thought in this club to hide it here. It stays on that person’s own profile.</p>'}` : ''}
+      ${!g.demo && CLOUD ? `<div class="mgroup"><button class="mrow danger" data-act="leave-club" data-id="${g.id}"><span class="mi">🚪</span><span class="mt">Leave club</span></button>
+        ${isOwner(g) ? `<button class="mrow danger" data-act="club-delete" data-id="${g.id}"><span class="mi">🗑️</span><span class="mt">Delete club<small>For everyone. You can undo for a few seconds.</small></span></button>` : ''}</div>` : ''}`;
   }
   return chips + body;
 }
@@ -1572,6 +1605,13 @@ function renderSheet(animate) {
       ${now.length ? `<div class="shelf">${now.map(tile).join('')}</div>` : '<div class="sub">Nothing on the go right now.</div>'}
       <div class="section-label">Finished</div>
       ${done.length ? `<div class="shelf">${done.map(tile).join('')}</div>` : '<div class="sub">No finished books yet.</div>'}
+      ${(() => { const g = ui.clubPage && db.groups.find(x => x.id === ui.clubPage); if (!g || isMe || !g.members.includes(d.id) || !canManage(g)) return '';
+        const theirs = roleOf(g, d.id);
+        if (!isOwner(g) && theirs !== 'member') return '';
+        return `<div class="section-label">In ${esc(g.name)}</div>
+          ${isOwner(g) ? `<div class="chips" style="margin:0 0 .5rem">${[['owner', '👑 Owner'], ['mod', '🛡️ Moderator'], ['member', 'Member']].map(([k, l]) => `<button class="chip sm ${theirs === k ? 'on' : ''}" aria-pressed="${theirs === k}" data-act="club-role" data-club="${g.id}" data-user="${d.id}" data-id="${k}">${l}</button>`).join('')}</div>
+          <p class="sub" style="margin:0 0 .5rem">Owners can manage everything. Moderators can remove members and hide thoughts.</p>` : ''}
+          <button class="btn danger block" data-act="club-remove" data-club="${g.id}" data-user="${d.id}">Remove from ${esc(g.name)}</button>`; })()}
       <div class="section-label">What stayed with ${isMe ? 'you' : 'them'}</div>
       ${posts.length ? posts.map(p => `<div class="card"><div class="item-title" style="font-size:.9rem">${esc(p.title)} ${reactionPill(p.reaction)}</div>${p.text ? `<p class="thought" style="margin:.3rem 0 0">${esc(p.text)}</p>` : ''}<div class="meta">${timeAgo(p.createdAt)}</div></div>`).join('') : '<div class="sub">Nothing shared yet.</div>'}
       ${close()}`;
@@ -1638,6 +1678,15 @@ function renderSheet(animate) {
       ${signedInEmail() ? '' : `<label class="hb-label" for="fb-email">Your email <span class="sub">(optional, only if you'd like a reply)</span></label><input class="hb-input" id="fb-email" type="email" inputmode="email" autocomplete="email" value="${esc(d.email || '')}">`}
       <div class="formbtns"><button class="btn" data-act="close">Cancel</button><button class="btn primary" data-act="fb-send" ${d.sending ? 'disabled' : ''}>${d.sending ? 'Sending…' : 'Send'}</button></div>`;
   }
+  if (ui.sheet === 'club-edit') {
+    const g = db.groups.find(x => x.id === d.id); if (!g) { ui.sheet = null; return renderSheet(); }
+    inner = `${title('Edit club')}
+      <label class="hb-label" for="ce-name">Club name</label><input class="hb-input" id="ce-name" maxlength="40" value="${esc(d.name ?? g.name)}">
+      <label class="hb-label" for="ce-about">Description <span class="sub">(optional)</span></label>
+      <textarea class="hb-input" id="ce-about" rows="4" maxlength="300" placeholder="Who we are, what we like to read">${esc(d.about ?? g.about ?? '')}</textarea>
+      <div class="fb-count" id="ce-count">${(d.about ?? g.about ?? '').length} / 300</div>
+      <div class="formbtns"><button class="btn" data-act="close">Cancel</button><button class="btn primary" data-act="club-edit-save" ${d.saving ? 'disabled' : ''}>${d.saving ? 'Saving…' : 'Save'}</button></div>`;
+  }
   if (ui.sheet === 'nudge') {
     const [ic, h, b] = NUDGE[d.key] || NUDGE.books3;
     inner = `<div style="text-align:center;padding:.4rem 0"><div style="font-size:2.4rem">${ic}</div><h2 class="sheet-title" style="margin:.4rem 0 .2rem">${h}</h2><p class="sub" style="margin:0">${b}</p><p class="small" style="margin:.4rem 0 0">Just an email and password. Everything you've added stays exactly as it is.</p></div>
@@ -1689,7 +1738,7 @@ function renderSheet(animate) {
   if (animate) { const f = root.querySelector('#g-name, #q, #m-title, #wc-name, #wj-code'); if (f) setTimeout(() => f.focus(), 250); }
 }
 /* Save / Done live in a sticky header, top right. Big actions (Join, Start reading…) stay at the bottom. */
-const TOP_ACTS = /^(close|profile-save|name-save|fb-send|adm-save|create-save)$/;
+const TOP_ACTS = /^(close|profile-save|name-save|fb-send|adm-save|create-save|club-edit-save)$/;
 function sheetHeader(sh) {
   if (!sh) return;
   const fbs = sh.querySelectorAll('.formbtns'), last = fbs[fbs.length - 1];
@@ -1722,10 +1771,10 @@ const fmtDate = t => t ? new Date(t).toLocaleDateString('en-IN', { day: 'numeric
 const daysLeft = t => Math.max(0, 30 - Math.floor((Date.now() - Date.parse(t)) / 86400000));
 function adminRow(kind, r) {
   const sub = {
-    people: () => `${r.email ? esc(r.email) : 'No account yet'} · 📚 ${r.books} · 👥 ${r.clubs.length}`,
-    clubs: () => `${r.members.length} ${r.members.length === 1 ? 'member' : 'members'} · code ${esc((r.code || '').toUpperCase())}${r.created_by_name ? ' · by ' + esc(r.created_by_name) : ''}`,
+    people: () => `${r.email ? esc(r.email) : 'Guest'}${r.last_seen ? ' · seen ' + fmtDate(r.last_seen) : ''} · 📚 ${r.books} · ✍️ ${r.posts ?? 0} · 👥 ${r.clubs.length}`,
+    clubs: () => { const own = r.members.filter(m => m.role === 'owner').map(m => m.name); return `${r.members.length} ${r.members.length === 1 ? 'member' : 'members'}${own.length ? ' · 👑 ' + esc(own.join(', ')) : ' · ⚠️ no owner'} · 📖 ${r.reading_now ?? 0} reading · ✍️ ${r.posts ?? 0}`; },
     books: () => `${esc(r.author || 'Unknown author')} · ${esc(r.owner || '?')} · ${esc(r.status)}${r.genre ? ' · ' + esc(r.genre) : ''}`,
-    posts: () => `${esc(r.owner || '?')} · ${fmtDate(r.created_at)} · ${REACT[r.reaction] ? REACT[r.reaction].emoji : ''} ${esc((r.text || '').slice(0, 60))}`
+    posts: () => `${esc(r.owner || '?')} · ${fmtDate(r.created_at)}${r.hidden_in && r.hidden_in.length ? ' · 🙈 hidden in ' + esc(r.hidden_in.join(', ')) : ''} · ${REACT[r.reaction] ? REACT[r.reaction].emoji : ''} ${esc((r.text || '').slice(0, 60))}`
   }[kind]();
   const name = kind === 'people' || kind === 'clubs' ? r.name : r.title;
   return `<button class="mrow" data-act="adm-open" data-k="${kind}" data-id="${r.id}"><span class="mi">${KIND[kind][0]}</span><span class="mt">${esc(name)}<small>${sub}</small></span><span class="mc">›</span></button>`;
@@ -1748,6 +1797,8 @@ function adminHTML() {
       </div>
       ${adm.fbNew ? `<button class="banner accent" style="width:100%;text-align:left;cursor:pointer;color:var(--ink)" data-act="adm-tab" data-id="feedback"><span class="b-icon">💬</span><span class="sub" style="color:var(--ink)">${adm.fbNew} new feedback ${adm.fbNew === 1 ? 'message' : 'messages'} to read.</span></button>` : ''}
       ${a.bin ? `<button class="banner info" style="width:100%;text-align:left;cursor:pointer;color:var(--ink)" data-act="adm-tab" data-id="bin"><span class="b-icon">🗑️</span><span class="sub" style="color:var(--ink)">${a.bin} ${a.bin === 1 ? 'item' : 'items'} in Recently deleted. They're cleared after 30 days.</span></button>` : ''}
+      ${adm.topClubs && adm.topClubs.length ? `<div class="section-label">Biggest clubs</div>
+      <div class="card tbl-wrap"><table class="tbl"><thead><tr><th>Club</th><th>Members</th><th>Owners</th></tr></thead><tbody>${adm.topClubs.map(c => `<tr><td>${esc(c.name)}</td><td>${c.members.length}</td><td>${esc(c.members.filter(m => m.role === 'owner').map(m => m.name).join(', ') || '—')}</td></tr>`).join('')}</tbody></table></div>` : ''}
       <div class="section-label">Most added books</div>
       <div class="card tbl-wrap"><table class="tbl"><thead><tr><th>Book</th><th>People</th></tr></thead><tbody>${(a.top_books || []).map(r => `<tr><td>${esc(r.title)}</td><td>${r.n}</td></tr>`).join('') || '<tr><td colspan="2">None yet</td></tr>'}</tbody></table></div>`;
   } else if (['people', 'clubs', 'books', 'posts'].includes(adm.tab)) {
@@ -1779,15 +1830,21 @@ function adminItemHTML(d) {
   if (!r) return '<div class="empty">Not found.</div>';
   let form = '';
   if (k === 'people') form = `<label class="hb-label" for="ai-name">Name</label><input class="hb-input" id="ai-name" maxlength="40" value="${esc(r.name)}">
-    <div class="meta" style="margin-top:.4rem">${r.email ? esc(r.email) : 'No account (anonymous)'} · joined ${fmtDate(r.created_at)} · 📚 ${r.books} books</div>
+    <div class="meta" style="margin-top:.4rem">${r.email ? esc(r.email) : 'Guest (no account yet)'} · joined ${fmtDate(r.created_at)}${r.last_seen ? ' · last active ' + fmtDate(r.last_seen) : ''}</div>
+    <div class="stats" style="margin-top:.6rem"><div class="stat"><div class="n">${r.books}</div><div class="l">Books</div></div><div class="stat"><div class="n">${r.finished ?? 0}</div><div class="l">Finished</div></div><div class="stat"><div class="n">${r.posts ?? 0}</div><div class="l">Thoughts</div></div><div class="stat"><div class="n">${r.clubs.length}</div><div class="l">Clubs</div></div></div>
     <div class="section-label">Clubs</div>
-    ${r.clubs.length ? `<div class="mgroup" style="margin-top:0">${r.clubs.map(c => `<div class="mrow static"><span class="mt">${esc(c.name)}</span><button class="btn danger" data-act="adm-member" data-club="${c.id}" data-user="${r.id}" data-op="remove">Remove</button></div>`).join('')}</div>` : '<div class="sub">Not in any club.</div>'}`;
+    ${r.clubs.length ? `<div class="mgroup" style="margin-top:0">${r.clubs.map(c => `<div class="mrow static"><span class="mt">${esc(c.name)} ${ROLE_PILL[c.role] || ''}</span><button class="btn danger" data-act="adm-member" data-club="${c.id}" data-user="${r.id}" data-op="remove">Remove</button></div>`).join('')}</div>` : '<div class="sub">Not in any club.</div>'}`;
   if (k === 'clubs') {
     const others = (adm.people || []).filter(p => !r.members.some(m => m.id === p.id));
     form = `<label class="hb-label" for="ai-name">Club name</label><input class="hb-input" id="ai-name" maxlength="40" value="${esc(r.name)}">
+    <label class="hb-label" for="ai-about">Description</label><textarea class="hb-input" id="ai-about" rows="2" maxlength="300">${esc(r.about || '')}</textarea>
+    <div class="meta" style="margin-top:.4rem">Started ${fmtDate(r.created_at)}${r.created_by_name ? ' by ' + esc(r.created_by_name) : ''}${r.last_post ? ' · last thought ' + fmtDate(r.last_post) : ''}</div>
+    <div class="stats" style="margin-top:.6rem"><div class="stat"><div class="n">${r.members.length}</div><div class="l">Members</div></div><div class="stat"><div class="n">${r.reading_now ?? 0}</div><div class="l">Reading now</div></div><div class="stat"><div class="n">${r.posts ?? 0}</div><div class="l">Thoughts</div></div><div class="stat"><div class="n">${r.hidden ?? 0}</div><div class="l">Hidden</div></div></div>
     <label class="hb-label" for="ai-code">Invite code</label><div class="row" style="gap:.4rem"><input class="hb-input" id="ai-code" maxlength="12" value="${esc(r.code)}" style="text-transform:uppercase;letter-spacing:.15rem"><button class="btn" data-act="adm-newcode">New code</button></div>
     <div class="section-label">Members · ${r.members.length}</div>
-    ${r.members.length ? `<div class="mgroup" style="margin-top:0">${r.members.map(m => `<div class="mrow static"><span class="mt">${esc(m.name)}</span><button class="btn danger" data-act="adm-member" data-club="${r.id}" data-user="${m.id}" data-op="remove">Remove</button></div>`).join('')}</div>` : '<div class="sub">No members.</div>'}
+    ${r.members.length ? `<div class="mgroup" style="margin-top:0">${r.members.map(m => `<div class="mrow static"><span class="mt">${esc(m.name)}<small>joined ${fmtDate(m.joined_at)}</small></span>
+      <label class="sr" for="ar-${m.id}">Role of ${esc(m.name)}</label><select class="hb-input" id="ar-${m.id}" style="width:auto;min-height:2.2rem" data-adm-role="1" data-club="${r.id}" data-user="${m.id}">${[['owner', '👑 Owner'], ['mod', '🛡️ Mod'], ['member', 'Member']].map(([k, l]) => `<option value="${k}" ${m.role === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
+      <button class="btn danger" data-act="adm-member" data-club="${r.id}" data-user="${m.id}" data-op="remove">Remove</button></div>`).join('')}</div>` : '<div class="sub">No members.</div>'}
     <div class="row" style="gap:.4rem;margin-top:.5rem"><label class="sr" for="ai-add">Add a member</label><select class="hb-input" id="ai-add"><option value="">Add a person…</option>${others.map(p => `<option value="${p.id}">${esc(p.name)}${p.email ? ' · ' + esc(p.email) : ''}</option>`).join('')}</select><button class="btn" data-act="adm-member-add" data-club="${r.id}">Add</button></div>`;
   }
   if (k === 'books') form = `<label class="hb-label" for="ai-title">Title</label><input class="hb-input" id="ai-title" value="${esc(r.title)}">
@@ -1823,6 +1880,7 @@ async function admLoad() {
     if (adm.tab === 'overview') {
       const { data, error } = await sb.rpc('admin_overview'); if (error) throw error; adm.data = data;
       const fc = await sb.from('feedback').select('id', { count: 'exact', head: true }).eq('status', 'new'); adm.fbNew = fc.error ? 0 : (fc.count || 0);
+      const cl = await sb.rpc('admin_list', { p_kind: 'clubs', p_q: '', p_bin: false }); adm.topClubs = cl.error ? [] : [...cl.data].sort((a, b) => b.members.length - a.members.length).slice(0, 5);
     }
     else if (adm.tab === 'feedback') { const { data, error } = await sb.from('feedback').select('*').order('created_at', { ascending: false }).limit(200); if (error) throw error; adm.fb = data; adm.fbNew = data.filter(x => x.status === 'new').length; }
     else if (adm.tab === 'bin') {
@@ -2106,7 +2164,7 @@ const actions = {
   'adm-newcode'() { const el = document.getElementById('ai-code'); if (el) el.value = joinCode(); },
   async 'adm-save'() {
     const { kind: k, item: r } = ui.sheetData, v = id => document.getElementById(id)?.value;
-    const patch = k === 'people' ? { name: v('ai-name') } : k === 'clubs' ? { name: v('ai-name'), code: cleanCode(v('ai-code')) }
+    const patch = k === 'people' ? { name: v('ai-name') } : k === 'clubs' ? { name: v('ai-name'), code: cleanCode(v('ai-code')), about: v('ai-about') || '' }
       : k === 'books' ? { title: v('ai-title'), author: v('ai-author'), pages: String(parseInt(v('ai-pages'), 10) || 0), genre: v('ai-genre'), cover_url: v('ai-cover') } : { text: v('ai-text') };
     if (await admRun('admin_update', { p_kind: k, p_id: r.id, p: patch }, 'Saved')) { ui.sheet = 'admin'; ui.sheetData = {}; admLoad(); }
   },
@@ -2164,6 +2222,52 @@ const actions = {
     toast('Club created. Invite a few people.');
   },
   club(id) { ui.clubPage = id; ui.clubTab = 'books'; ui.sheet = null; render(); scrollTo(0, 0); },
+  'club-edit'(id) { openSheet('club-edit', { id }); },
+  async 'club-edit-save'() {
+    const d = ui.sheetData, g = db.groups.find(x => x.id === d.id); if (!g) return;
+    const name = (document.getElementById('ce-name').value || '').trim(), about = (document.getElementById('ce-about').value || '').trim();
+    if (!name) { toast('Give the club a name'); return; }
+    d.saving = true; renderSheet();
+    const ok = (name === g.name || await clubRun(g.id, 'rename', null, name)) && (about === (g.about || '') || await clubRun(g.id, 'about', null, about));
+    if (!ok) { d.saving = false; renderSheet(); return; }
+    await clubRefresh(); closeSheet(); toast('Club updated');
+  },
+  async 'club-newcode'(id) {
+    const g = db.groups.find(x => x.id === id); if (!g) return;
+    if (!confirm(`Make a new invite code for ${g.name}? The old code and link will stop working. People already in the club stay.`)) return;
+    const res = await clubRun(id, 'newcode'); if (!res) return;
+    await clubRefresh(); toast('New code: ' + String(res.code || '').toUpperCase());
+  },
+  async 'club-hide'(pid, el) {
+    const cid = el.dataset.club; if (!(await clubRun(cid, 'hide', null, pid))) return;
+    await clubRefresh(); toast('Hidden from this club', async () => { if (await clubRun(cid, 'unhide', null, pid)) { await clubRefresh(); } });
+  },
+  async 'club-unhide'(pid, el) {
+    const cid = el.dataset.club; if (!(await clubRun(cid, 'unhide', null, pid))) return;
+    await clubRefresh(); toast('Showing again', async () => { if (await clubRun(cid, 'hide', null, pid)) await clubRefresh(); });
+  },
+  async 'club-role'(role, el) {
+    const g = db.groups.find(x => x.id === el.dataset.club), uidT = el.dataset.user, prev = roleOf(g, uidT), who = (userById(uidT) || { name: 'them' }).name;
+    if (prev === role) return;
+    if (role === 'owner' && !confirm(`Make ${who} an owner of ${g.name}? Owners can do everything you can, including changing your role.`)) return;
+    if (!(await clubRun(g.id, 'role', uidT, role))) return;
+    await clubRefresh();
+    toast(`${who} is now ${role === 'owner' ? 'an owner' : role === 'mod' ? 'a moderator' : 'a member'}`, async () => { if (await clubRun(g.id, 'role', uidT, prev)) await clubRefresh(); });
+  },
+  async 'club-remove'(_, el) {
+    const g = db.groups.find(x => x.id === el.dataset.club), uidT = el.dataset.user, who = (userById(uidT) || { name: 'this person' }).name;
+    if (!confirm(`Remove ${who} from ${g.name}? They can rejoin only with a new invite.`)) return;
+    const res = await clubRun(g.id, 'remove', uidT); if (!res) return;
+    ui.sheet = null; ui.sheetData = {}; await clubRefresh();
+    toast(`${who} removed`, async () => { if (await clubRun(g.id, 'readd', uidT, res.role || 'member')) await clubRefresh(); });
+  },
+  async 'club-delete'(id) {
+    const g = db.groups.find(x => x.id === id); if (!g) return;
+    if (!confirm(`Delete ${g.name} for everyone? Members keep their own books and thoughts.`)) return;
+    if (!(await clubRun(id, 'delete'))) return;
+    ui.clubPage = null; await clubRefresh(); scrollTo(0, 0);
+    toast(`${g.name} deleted`, async () => { if (await clubRun(id, 'restore')) { await clubRefresh(); ui.clubPage = id; render(); } });
+  },
   'club-back'() { ui.clubPage = null; render(); scrollTo(0, 0); },
   'club-tab'(id) { ui.clubTab = id; render(); },
   invite(id) { openSheet('invite', { id }); },
@@ -2188,7 +2292,8 @@ const actions = {
   },
   async 'leave-club'(id) {
     const g = db.groups.find(x => x.id === id);
-    if (!confirm(`Leave ${g.name}? You can rejoin with the code.`)) return;
+    const soleOwner = roleOf(g, ME) === 'owner' && g.members.filter(m => roleOf(g, m) === 'owner').length === 1 && g.members.length > 1;
+    if (!confirm(`Leave ${g.name}? You can rejoin with the code.${soleOwner ? ' You are the only owner, so a moderator or the longest-standing member will become owner.' : ''}`)) return;
     leaveClub(id);
   },
 
@@ -2368,6 +2473,8 @@ document.addEventListener('input', e => {
   if (t.id === 'thought') ui.share.text = t.value;
   if (t.id === 'fb-text') { ui.sheetData.text = t.value; const c = document.getElementById('fb-count'); if (c) c.textContent = t.value.length + ' / 2000'; }
   if (t.id === 'fb-email') ui.sheetData.email = t.value;
+  if (t.id === 'ce-name') ui.sheetData.name = t.value;
+  if (t.id === 'ce-about') { ui.sheetData.about = t.value; const c = document.getElementById('ce-count'); if (c) c.textContent = t.value.length + ' / 300'; }
   if (t.id === 'q') queueSearch(t.value.trim());
 });
 document.addEventListener('keydown', e => {
@@ -2385,6 +2492,12 @@ document.addEventListener('change', async e => {
   }
   if (t.dataset && t.dataset.disp === 'texture') { setDisplay({ texture: t.checked }); renderSheet(); }
   if (t.dataset && t.dataset.genreFor) { updBook(t.dataset.genreFor, { genre: t.value }); applyDisplay(); render(); }
+  if (t.dataset && t.dataset.admRole) {
+    const r = ui.sheetData.item, m = r && r.members.find(x => x.id === t.dataset.user), prev = m && m.role;
+    if (await admRun('admin_member', { p_club: t.dataset.club, p_user: t.dataset.user, p_op: t.value }, 'Role updated')) { if (m) m.role = t.value; adm.list = null; renderSheet(); }
+    else { t.value = prev; }
+    return;
+  }
   if (t.dataset && t.dataset.pref === 'stamps') {
     db.me.showStamps = t.checked; save(); renderSheet();
     toast(t.checked ? 'Your clubs can see your stamps' : 'Your stamps are private again');
