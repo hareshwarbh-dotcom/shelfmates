@@ -82,6 +82,13 @@ img { max-width: 100%; }
 .btn:disabled { opacity: .45; cursor: default; }
 .actions { display: flex; gap: .4rem; margin-top: .6rem; flex-wrap: wrap; }
 .formbtns { display: flex; gap: .5rem; margin-top: 1.1rem; }
+.email-hint { font-size: .82rem; color: var(--ink); margin-top: .3rem; min-height: 0; }
+.email-hint:empty { display: none; }
+.email-hint .link { padding: 0 .2rem; font-weight: 600; }
+.pw-wrap { position: relative; }
+.pw-wrap .hb-input { padding-right: 2.8rem; }
+.pw-eye { position: absolute; right: .3rem; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 1.05rem; padding: .4rem; cursor: pointer; opacity: .55; }
+.pw-eye[aria-pressed="true"] { opacity: 1; }
 .sheet-head { position: sticky; top: -1.1rem; z-index: 5; display: flex; align-items: center; gap: .5rem; margin: -1.1rem -1rem .7rem; padding: .8rem 1rem .7rem; background: var(--bg); border-bottom: 1px solid var(--line); }
 .sheet-head .sh-mid { flex: 1; min-width: 0; }
 .sheet-head .sheet-title { font-size: 1.12rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -794,6 +801,11 @@ async function loadBookInfo(x) {
     done({ desc, year: hit.first_publish_year || '', pages: hit.number_of_pages_median || 0 });
   } catch (e) { done({ desc: '' }); }
 }
+async function reauth(email, password) {
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) { toast(/invalid/i.test(error.message) ? "That password isn't right" : error.message); return false; }
+  return true;
+}
 async function clubRun(club, op, user = null, text = null) {
   if (!CLOUD || !sb) { toast('This needs an internet connection'); return null; }
   const { data, error } = await sb.rpc('club_manage', { p_club: club, p_op: op, p_user: user, p_text: text });
@@ -894,10 +906,43 @@ function installStepsHTML() {
   return now + desktop + `<p class="sub">On a phone? Open ${esc(location.host)} there and follow the steps for iPhone or Android.</p>` + ios + android;
 }
 
+const guestStuff = () => { if (!db || signedInEmail() || !CLOUD) return null;
+  const b = guestBookCount(), p = db.posts.filter(x => x.userId === ME && !x.demo).length, c = db.groups.filter(g => !g.demo).length;
+  return b + p + c ? { b, p, c } : null; };
 function switchWarnHTML() {
-  const n = signedInEmail() ? 0 : guestBookCount();
-  if (!n) return '';
-  return `<div class="banner warn" style="margin-bottom:.8rem"><span class="b-icon">⚠️</span><div class="sub" style="color:var(--ink)">You have <b>${n} book${n > 1 ? 's' : ''}</b> saved here as a guest. Signing in switches to your other account, and ${n > 1 ? "these won't" : "it won't"} move over.<br><button class="btn accent" style="margin-top:.5rem" data-act="settings" data-id="account">Create account instead to keep ${n > 1 ? 'them' : 'it'}</button></div></div>`;
+  const g = guestStuff(); if (!g) return '';
+  const what = [g.b ? `${g.b} book${g.b > 1 ? 's' : ''}` : '', g.p ? `${g.p} thought${g.p > 1 ? 's' : ''}` : '', g.c ? `${g.c} club${g.c > 1 ? 's' : ''}` : ''].filter(Boolean).join(', ');
+  return `<label class="banner info" style="margin-bottom:.8rem;cursor:pointer;align-items:center"><input type="checkbox" id="keep-guest" checked style="width:1.2rem;height:1.2rem;accent-color:var(--accent);flex-shrink:0">
+    <div class="sub" style="color:var(--ink)"><b>Bring my ${what} along</b><br>Everything you added here as a guest moves into your account.</div></label>`;
+}
+/* ---------- email typo check ---------- */
+const MAIL_DOMAINS = ['mail.com', 'gmail.com', 'yahoo.com', 'yahoo.co.in', 'outlook.com', 'hotmail.com', 'icloud.com', 'rediffmail.com', 'live.com', 'protonmail.com', 'me.com', 'ymail.com', 'aol.com', 'outlook.in', 'zoho.com'];
+function lev(a, b) { const m = a.length, n = b.length, d = Array.from({ length: m + 1 }, (_, i) => [i, ...Array(n).fill(0)]); for (let j = 1; j <= n; j++) d[0][j] = j;
+  for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++) { d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1); } return d[m][n]; }
+function suggestEmail(v) {
+  let e = String(v || '').trim().toLowerCase().replace(/\s+/g, '').replace(/@+/g, '@').replace(/,/g, '.').replace(/\.+$/, '');
+  const at = e.lastIndexOf('@'); if (at < 1) return '';
+  const user = e.slice(0, at); let dom = e.slice(at + 1); if (!dom) return '';
+  dom = dom.replace(/\.(con|cmo|ocm|cpm|vom|xom|om|comm|coom|c0m)$/, '.com');
+  if (MAIL_DOMAINS.includes(dom)) { const fixed = user + '@' + dom; return fixed !== String(v).trim().toLowerCase() ? fixed : ''; }
+  let best = '', score = 9;
+  for (const d of MAIL_DOMAINS) { const s = Math.min(lev(dom, d), dom.includes('.') ? 9 : lev(dom, d.split('.')[0])); if (s < score) { score = s; best = d; } }
+  const base = dom.split('.')[0];
+  return best && (score === 1 || (score === 2 && base.length >= 6) || (!dom.includes('.') && score === 0)) ? user + '@' + best : '';
+}
+function emailHint(input) {
+  let h = input.nextElementSibling; if (!h || !h.classList.contains('email-hint')) { h = document.createElement('div'); h.className = 'email-hint'; input.after(h); }
+  const s = suggestEmail(input.value);
+  h.innerHTML = s ? `Did you mean <b>${esc(s)}</b>? <button class="link" data-act="email-fix" data-id="${esc(s)}" data-for="${input.id}">Use this</button>` : '';
+}
+/* show / hide on password boxes */
+function addEyes(root) {
+  root.querySelectorAll('input[type=password]').forEach(i => {
+    if (i.parentElement.classList.contains('pw-wrap')) return;
+    const w = document.createElement('div'); w.className = 'pw-wrap'; i.before(w); w.appendChild(i);
+    w.insertAdjacentHTML('beforeend', `<button type="button" class="pw-eye" data-act="pw-eye" aria-label="Show password" aria-pressed="false">👁</button>`);
+  });
 }
 /* ---------- gentle account nudges (guests only, once each) ---------- */
 const NUDGE = {
@@ -1436,7 +1481,12 @@ function renderSheet(animate) {
         inner = `${title('Account &amp; sync')}
           <div class="card"><div class="row"><span style="font-size:1.3rem">${syncState === 'error' ? '⚠️' : '✅'}</span><div class="grow"><div class="item-title">${syncState === 'error' ? 'Not synced yet' : 'Synced'}</div><div class="meta">${esc(email)} · you are ${esc(db.me.name)}</div></div></div></div>
           <div class="actions"><button class="btn" data-act="sync-now">🔄 Sync now</button></div>
-          <p class="sub">Sign in with the same email and password on any other phone or laptop.</p>${subEnd}`;
+          <p class="sub">Sign in with the same email and password on any other phone or laptop.</p>
+          <div class="mgroup">
+            ${mrow('set-page', 'acc-email', '✉️', 'Change email', '')}
+            ${mrow('set-page', 'acc-pass', '🔑', 'Change password', '')}
+          </div>
+          <div class="mgroup">${mrow('set-page', 'acc-delete', '🗑️', 'Delete my account', null, 'danger')}</div>${subEnd}`;
       } else if (d.signin) {
         inner = `${title('Sign in')}
           <p class="sub">Use the email and password you created on your other device.</p>${switchWarnHTML()}
@@ -1453,6 +1503,23 @@ function renderSheet(animate) {
           <button class="link" style="display:block;margin:.3rem auto 0" data-act="acc-mode">Already have an account? Sign in</button>
           ${subEnd}`;
       }
+    } else if (page === 'acc-email') {
+      inner = `${title('Change email')}
+        <p class="sub">Now: <b style="color:var(--ink)">${esc(email)}</b></p>
+        <label class="hb-label" for="ne-email">New email</label><input class="hb-input" id="ne-email" type="email" inputmode="email" autocomplete="email">
+        <label class="hb-label" for="ne-pw">Your password</label><input class="hb-input" id="ne-pw" type="password" autocomplete="current-password">
+        <div class="formbtns"><button class="btn" data-act="set-page" data-id="account">‹ Account</button><button class="btn primary" data-act="email-save">Save</button></div>`;
+    } else if (page === 'acc-pass') {
+      inner = `${title('Change password')}
+        <label class="hb-label" for="np-old">Current password</label><input class="hb-input" id="np-old" type="password" autocomplete="current-password">
+        <label class="hb-label" for="np-new">New password <span class="sub">(at least 6 characters)</span></label><input class="hb-input" id="np-new" type="password" autocomplete="new-password">
+        <div class="formbtns"><button class="btn" data-act="set-page" data-id="account">‹ Account</button><button class="btn primary" data-act="pass-save">Save</button></div>`;
+    } else if (page === 'acc-delete') {
+      inner = `${title('Delete my account')}
+        <div class="banner warn"><span class="b-icon">⚠️</span><div class="sub" style="color:var(--ink)">This removes your profile, books and thoughts, and takes you out of every club. Clubs you own pass to another member. You won't be able to sign in with <b>${esc(email)}</b> again.</div></div>
+        <label class="hb-label" for="dl-pw">Type your password to confirm</label><input class="hb-input" id="dl-pw" type="password" autocomplete="current-password">
+        <button class="btn danger block" style="margin-top:1rem" data-act="delete-me">Delete my account</button>
+        <div class="formbtns"><button class="btn" data-act="set-page" data-id="account">‹ Account</button><button class="btn primary" data-act="close">Done</button></div>`;
     } else if (page === 'profile') {
       const p = d.draft || (ui.sheetData.draft = { name: db.me.name, bio: db.me.bio || '', genres: [...(db.me.genres || [])], avatar: db.me.avatar || '' });
       inner = `${title('Your profile')}
@@ -1785,12 +1852,12 @@ function renderSheet(animate) {
 
   const prevScroll = animate ? 0 : (root.querySelector('.sheet')?.scrollTop || 0);
   root.innerHTML = `<div class="overlay ${animate ? 'anim' : ''}" data-act="overlay"><div class="sheet ${tall ? 'tall' : ''}" role="dialog" aria-modal="true">${inner}</div></div>`;
-  sheetHeader(root.querySelector('.sheet'));
+  sheetHeader(root.querySelector('.sheet')); addEyes(root);
   if (prevScroll) root.querySelector('.sheet').scrollTop = prevScroll;
   if (animate) { const f = root.querySelector('#g-name, #q, #m-title, #wc-name, #wj-code'); if (f) setTimeout(() => f.focus(), 250); }
 }
 /* Save / Done live in a sticky header, top right. Big actions (Join, Start reading…) stay at the bottom. */
-const TOP_ACTS = /^(close|profile-save|name-save|fb-send|adm-save|create-save|club-edit-save)$/;
+const TOP_ACTS = /^(close|profile-save|name-save|fb-send|adm-save|create-save|club-edit-save|email-save|pass-save)$/;
 function sheetHeader(sh) {
   if (!sh) return;
   const fbs = sh.querySelectorAll('.formbtns'), last = fbs[fbs.length - 1];
@@ -2132,6 +2199,7 @@ const actions = {
     if (!name) { toast('Add your name'); return; }
     if (!/^\S+@\S+\.\S+$/.test(email)) { toast('Enter a valid email'); return; }
     if (password.length < 6) { toast('Password needs at least 6 characters'); return; }
+    if (!confirmEmail(email)) return;
     ui.sheet = null; startApp(name); await finishOnboard();
     await createAccount(email, password);
   },
@@ -2154,17 +2222,63 @@ const actions = {
     const email = document.getElementById('acc-email').value.trim(), password = document.getElementById('acc-pw').value;
     if (!/^\S+@\S+\.\S+$/.test(email)) { toast('Enter a valid email'); return; }
     if (password.length < 6) { toast('Password needs at least 6 characters'); return; }
+    if (!confirmEmail(email)) return;
     if (await createAccount(email, password)) renderSheet();
   },
   async 'acc-signin'() {
     const email = document.getElementById('acc-email').value.trim(), password = document.getElementById('acc-pw').value;
     if (!email || !password) { toast('Enter your email and password'); return; }
-    const n = signedInEmail() ? 0 : guestBookCount();
-    if (n && !confirm(`Your ${n} guest book${n > 1 ? 's' : ''} on this device won't move to that account. Sign in anyway?`)) return;
+    const g = guestStuff(), keep = g && document.getElementById('keep-guest')?.checked;
+    if (g && !keep && !confirm('Your guest books on this device won\'t move to that account. Sign in anyway?')) return;
+    let ticket = null;
+    if (keep) {
+      try { clearTimeout(syncTimer); await sync(); } catch (e) {}
+      const h = await sb.rpc('guest_handoff'); if (h.error) { toast("Couldn't prepare your guest books: " + h.error.message); return; }
+      ticket = h.data;
+    }
+    const guestId = ME;
     const { error } = await sb.auth.signInWithPassword({ email, password });
     if (error) { toast(/invalid/i.test(error.message) ? "That email and password don't match" : error.message); return; }
-    try { localStorage.removeItem(STORE_KEY + ':' + ME); } catch (e) {}
+    if (ticket) {
+      const c = await sb.rpc('claim_guest', { p_token: ticket });
+      try { sessionStorage.setItem('sm.flash', c.error ? "Signed in, but your guest books couldn't move: " + c.error.message : `Welcome back! ${c.data.books || 0} book${c.data.books === 1 ? '' : 's'} moved into your account 📚`); } catch (e) {}
+    }
+    try { localStorage.removeItem(STORE_KEY + ':' + guestId); } catch (e) {}
     location.reload();
+  },
+  'email-fix'(s, el) { const i = document.getElementById(el.dataset.for); if (i) { i.value = s; emailHint(i); i.focus(); } },
+  'pw-eye'(_, el) { const i = el.parentElement.querySelector('input'); const show = i.type === 'password'; i.type = show ? 'text' : 'password'; el.setAttribute('aria-pressed', show); el.setAttribute('aria-label', show ? 'Hide password' : 'Show password'); },
+  async 'email-save'() {
+    const cur = signedInEmail(), ne = (document.getElementById('ne-email').value || '').trim().toLowerCase(), pw = document.getElementById('ne-pw').value;
+    if (!/^\S+@\S+\.\S+$/.test(ne)) { toast('Enter a valid email'); return; }
+    if (ne === cur) { toast("That's already your email"); return; }
+    if (!pw) { toast('Enter your password'); return; }
+    if (!confirmEmail(ne)) return;
+    if (!(await reauth(cur, pw))) return;
+    const { error } = await sb.rpc('change_my_email', { p_email: ne });
+    if (error) { toast(error.message); return; }
+    await sb.auth.refreshSession(); const u = (await sb.auth.getUser()).data.user; if (u) authUser = u;
+    ui.sheetData = { page: 'account' }; renderSheet(); toast('Email changed to ' + ne + '. Use it next time you sign in.');
+  },
+  async 'pass-save'() {
+    const old = document.getElementById('np-old').value, nw = document.getElementById('np-new').value;
+    if (!old) { toast('Enter your current password'); return; }
+    if (nw.length < 6) { toast('New password needs at least 6 characters'); return; }
+    if (nw === old) { toast('Pick a different password'); return; }
+    if (!(await reauth(signedInEmail(), old))) return;
+    const { error } = await sb.auth.updateUser({ password: nw });
+    if (error) { toast(error.message); return; }
+    ui.sheetData = { page: 'account' }; renderSheet(); toast('Password changed 🔑');
+  },
+  async 'delete-me'() {
+    const pw = document.getElementById('dl-pw').value;
+    if (!pw) { toast('Type your password to confirm'); return; }
+    if (!confirm('Delete your account for good? This cannot be undone from the app.')) return;
+    if (!(await reauth(signedInEmail(), pw))) return;
+    const { error } = await sb.rpc('delete_me');
+    if (error) { toast(error.message); return; }
+    try { localStorage.removeItem(cacheKey()); sessionStorage.setItem('sm.flash', 'Your account was deleted. Thanks for reading with us 💛'); } catch (e) {}
+    await sb.auth.signOut(); location.reload();
   },
   async 'sign-out'() {
     if (!confirm('Log out on this device?')) return;
@@ -2463,6 +2577,10 @@ const actions = {
   overlay(_, el, e) { if (e.target === el) closeSheet(); }
 };
 
+function confirmEmail(email) {
+  const s = suggestEmail(email);
+  return confirm(`We'll save your account as:\n\n${email.toLowerCase()}\n\n${s ? `⚠️ Did you mean ${s}? Tap Cancel to fix it.` : 'Is that right?'}`);
+}
 async function createAccount(email, password) {
   let r = await sb.auth.updateUser({ email });
   if (r.error) { toast(/already|registered|exists/i.test(r.error.message) ? 'That email already has an account. Use Sign in instead.' : r.error.message); return false; }
@@ -2530,6 +2648,7 @@ document.addEventListener('input', e => {
   if (t.id === 'thought') ui.share.text = t.value;
   if (t.id === 'fb-text') { ui.sheetData.text = t.value; const c = document.getElementById('fb-count'); if (c) c.textContent = t.value.length + ' / 2000'; }
   if (t.id === 'fb-email') ui.sheetData.email = t.value;
+  if (t.type === 'email') emailHint(t);
   if (t.id === 'ce-name') ui.sheetData.name = t.value;
   if (t.id === 'ce-about') { ui.sheetData.about = t.value; const c = document.getElementById('ce-count'); if (c) c.textContent = t.value.length + ' / 300'; }
   if (t.id === 'q') queueSearch(t.value.trim());
@@ -2605,6 +2724,7 @@ document.addEventListener('change', async e => {
    ============================================================ */
 applyDisplay();
 (async function init() {
+  setTimeout(() => { try { const f = sessionStorage.getItem('sm.flash'); if (f) { sessionStorage.removeItem('sm.flash'); toast(f); } } catch (e) {} }, 1200);
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
   if (!CLOUD) { db = load(); render(); return; }
   sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
