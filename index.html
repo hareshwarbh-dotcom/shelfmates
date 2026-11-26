@@ -394,8 +394,21 @@ a.mrow { text-decoration: none; }
 .fb-desc { line-height: 1.6; margin: .3rem 0 0; }
 .cc-status { height: 1.3rem; display: flex; align-items: center; }
 .ccard > .btn:last-child { margin-top: auto; }
-.ccard { flex: 0 0 8.4rem; scroll-snap-align: start; display: flex; flex-direction: column; gap: .4rem; }
+.ccard { flex: 0 0 6.4rem; max-width: 6.4rem; min-width: 0; scroll-snap-align: start; display: flex; flex-direction: column; gap: .4rem; }
 .ccard .who { display: flex; align-items: center; gap: .35rem; font-size: .8rem; }
+.ccard .who { min-width: 0; max-width: 100%; }
+.ccard .who b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.like-row { display: flex; align-items: center; gap: .6rem; margin-top: .55rem; flex-wrap: wrap; }
+.like-btn { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: .35rem; padding: .3rem .8rem; min-height: 2.2rem; box-sizing: border-box; border-radius: var(--radius-pill); border: 1px solid var(--line); font-size: .85rem; color: var(--ink); }
+.like-btn.on { background: var(--accent-soft); border-color: transparent; color: var(--accent-text); font-weight: 600; }
+.like-who { all: unset; cursor: pointer; font-size: .82rem; color: var(--muted); padding: .4rem 0; }
+.like-btn:focus-visible, .like-who:focus-visible, #pv-bar button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+#pv-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 9999; display: flex; align-items: center; gap: .5rem; padding: calc(.35rem + env(safe-area-inset-top)) .7rem .35rem; background: #d9692b; color: #fff; font-size: .85rem; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+#pv-bar .pv-t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#pv-bar button { all: unset; cursor: pointer; padding: .3rem .65rem; border-radius: 99px; background: rgba(255,255,255,.2); font-weight: 600; white-space: nowrap; }
+#pv-bar .pv-exit { background: #fff; color: #b4521b; }
+body.previewing { padding-top: calc(2.5rem + env(safe-area-inset-top)); }
+body.previewing .hb-header { top: calc(2.5rem + env(safe-area-inset-top)); }
 .photo { width: 100%; aspect-ratio: 4/3; max-height: 20rem; object-fit: cover; border-radius: var(--radius-sm); display: block; margin: .5rem 0; }
 .thought { font-size: .95rem; line-height: 1.5; white-space: pre-line; margin: .5rem 0; }
 .book-strip { display: flex; gap: .6rem; align-items: center; padding: .5rem; border-radius: var(--radius-md); background: var(--soft); margin-top: .4rem; }
@@ -579,6 +592,151 @@ const REACT = {
   down: { emoji: '👎', label: "Didn't like it", pill: 'late' }
 };
 
+/* ---------- likes on thoughts ----------
+   Real clubs: post_likes in Supabase (only clubmates see who liked).
+   Demo clubs: kept on this phone. Demo characters also like your own thoughts a little after you post. */
+const dlKey = () => 'sm.dlikes:' + ME;
+const dlGet = () => { try { return JSON.parse(localStorage.getItem(dlKey()) || '{}'); } catch (e) { return {}; } };
+const dlSet = v => { try { localStorage.setItem(dlKey(), JSON.stringify(v)); } catch (e) {} };
+const canLike = p => p.userId !== ME && !p.private && (p.demo || CLOUD);
+function likersOf(p) {
+  let ids = p.demo ? ((dlGet().mine || []).includes(p.id) ? [ME] : []) : (db.likes || []).filter(l => l.p === p.id).map(l => l.u);
+  if (p.userId === ME) { const now = Date.now(); ids = ids.concat(((dlGet().got || {})[p.id] || []).filter(x => x.at <= now).map(x => x.u)); }
+  return [...new Set(ids)].filter(id => id === ME || userById(id));
+}
+const likerName = id => id === ME ? 'You' : (userById(id) || {}).name || 'Someone';
+function likeRowHTML(p) {
+  const ids = likersOf(p), can = canLike(p), mine = ids.includes(ME);
+  if (!can && !ids.length) return '';
+  const lead = [...(mine ? [ME] : []), ...ids.filter(i => i !== ME)].map(likerName);
+  const who = lead.length === 1 ? lead[0] : lead.length === 2 ? lead.join(' and ') : `${lead[0]}, ${lead[1]} and ${lead.length - 2} more`;
+  return `<div class="like-row">${can ? `<button class="like-btn ${mine ? 'on' : ''}" data-act="like" data-id="${p.id}" aria-pressed="${mine}">${mine ? '❤️' : '🤍'}<span>${mine ? 'Liked' : 'Like'}</span></button>` : ''}
+    ${ids.length && !(mine && ids.length === 1) ? `<button class="like-who" data-act="likes" data-id="${p.id}">${can ? '' : '❤️ '}${esc(who)} liked this</button>` : ''}</div>`;
+}
+function rerenderLikes() { if (ui.sheet) renderSheet(); render(); }
+async function toggleLike(id) {
+  const p = db.posts.find(x => x.id === id); if (!p || !canLike(p)) return;
+  if (p.demo) { const d = dlGet(), m = new Set(d.mine || []); m.has(id) ? m.delete(id) : m.add(id); d.mine = [...m]; dlSet(d); rerenderLikes(); return; }
+  const on = (db.likes || []).some(l => l.p === id && l.u === ME);
+  const flip = () => { db.likes = on ? (db.likes || []).filter(l => !(l.p === id && l.u === ME)) : [...(db.likes || []), { p: id, u: ME }]; };
+  flip(); rerenderLikes();
+  const r = on ? await sb.from('post_likes').delete().eq('post_id', id).eq('user_id', ME) : await sb.from('post_likes').insert({ post_id: id, user_id: ME });
+  if (r.error && r.error.code !== '23505') {
+    db.likes = on ? [...db.likes, { p: id, u: ME }] : db.likes.filter(l => !(l.p === id && l.u === ME)); rerenderLikes();
+    toast(/relation|schema|exist|function/i.test(r.error.message) ? 'Likes need supabase-update-13.sql first' : "Couldn't save your like. Check your connection.");
+  } else { try { localStorage.setItem(cacheKey(), JSON.stringify(db)); } catch (e) {} }
+}
+/* demo characters like a new thought of yours: 2–3 of them, over the next couple of minutes */
+function queueDemoLikes(pid) {
+  const pool = (db.users || []).filter(u => u.demo); if (!pool.length) return;
+  const pick = pool.slice().sort(() => Math.random() - .5).slice(0, Math.random() < .5 ? 2 : 3), now = Date.now(), d = dlGet();
+  d.got = d.got || {}; d.got[pid] = pick.map((u, i) => ({ u: u.id, at: now + [20, 55, 150][i] * 1000 }));
+  const ks = Object.keys(d.got); if (ks.length > 300) ks.slice(0, ks.length - 300).forEach(k => delete d.got[k]);
+  if (!d.seen) d.seen = now;
+  dlSet(d); demoLikeTick();
+}
+let dlTimer;
+function demoLikeTick() {
+  clearTimeout(dlTimer); if (!db) return;
+  const d = dlGet(), now = Date.now(); let next = Infinity, fresh = null;
+  for (const [pid, arr] of Object.entries(d.got || {})) {
+    if (!db.posts.some(p => p.id === pid)) continue;
+    for (const x of arr) { if (x.at <= now && x.at > (d.seen || 0)) { if (!fresh || x.at > fresh.at) fresh = x; } else if (x.at > now) next = Math.min(next, x.at); }
+  }
+  if (fresh) {
+    d.seen = now; dlSet(d); const u = userById(fresh.u);
+    if (u && !toastUndo && !ui.sheet) toast(`${u.emoji || '❤️'} ${u.name} liked your thought`);
+    if (!ui.sheet) render();
+  }
+  if (next < Infinity) dlTimer = setTimeout(demoLikeTick, Math.min(next - now + 300, 3600000));
+}
+
+/* ---------- admin: "View as…" previews ----------
+   A sandbox: the app runs as another kind of person. Nothing is saved to the phone or the cloud.
+   Writes go to a throwaway layer; Exit puts the real account back exactly as it was. */
+const PREVIEWS = { new: ['🌱', 'Brand-new person', 'Starts at the welcome screen, no books, just the demo clubs'],
+  solo: ['📖', 'Solo reader', 'No clubs and no demo clubs: Popular, staff picks, the journal'],
+  guest: ['👤', 'Guest, not signed up', 'A few books, so you see the "Save your shelf" reminders'],
+  member: ['👥', 'Club member', 'Your real clubs without owner controls. Switch to moderator from the bar.'] };
+let PREVIEW = null, PV = null, lsOverlay = null;
+const realLS = { get: Storage.prototype.getItem, set: Storage.prototype.setItem, rm: Storage.prototype.removeItem };
+const LS_KEEP = ['sm.demoCfg', 'sm.display', 'sm.lastUser', 'sm.popular'];
+function sandboxStorage(on, fresh) {
+  if (!on) { Object.assign(Storage.prototype, { getItem: realLS.get, setItem: realLS.set, removeItem: realLS.rm }); lsOverlay = null; return; }
+  lsOverlay = new Map();
+  Storage.prototype.getItem = function (k) {
+    if (this !== localStorage) return realLS.get.call(this, k);
+    if (lsOverlay.has(k)) return lsOverlay.get(k);
+    return fresh && !LS_KEEP.includes(k) ? null : realLS.get.call(this, k);
+  };
+  Storage.prototype.setItem = function (k, v) { if (this !== localStorage) return realLS.set.call(this, k, v); lsOverlay.set(k, String(v)); };
+  Storage.prototype.removeItem = function (k) { if (this !== localStorage) return realLS.rm.call(this, k); lsOverlay.set(k, null); };
+}
+function sandboxSb(real) {
+  const ok = { data: null, error: null }, no = { data: { user: null, session: null }, error: { message: 'Not available while previewing' } };
+  const fake = () => { const t = new Proxy(function () {}, { get: (_, k) => k === 'then' ? (res, rej) => Promise.resolve(ok).then(res, rej) : () => t }); return t; };
+  const READ_RPC = ['popular_books', 'club_preview', 'member_clubs'];
+  return {
+    from: t => { const q = real.from(t); return new Proxy(q, { get: (o, k) => ['insert', 'upsert', 'update', 'delete'].includes(k) ? () => fake() : (typeof o[k] === 'function' ? o[k].bind(o) : o[k]) }); },
+    rpc: (fn, a) => READ_RPC.includes(fn) ? real.rpc(fn, a) : fn === 'am_i_admin' ? Promise.resolve({ data: false, error: null }) : Promise.resolve(ok),
+    storage: { from: () => ({ upload: async () => ({ error: { message: 'Photos aren’t saved while previewing' } }), getPublicUrl: () => ({ data: { publicUrl: '' } }) }) },
+    auth: new Proxy(real.auth, { get: (o, k) => ['getSession', 'getUser', 'onAuthStateChange'].includes(k) ? o[k].bind(o) : async () => no })
+  };
+}
+function startPreview(kind, role = 'member') {
+  if (!PREVIEWS[kind]) return;
+  if (!PV) PV = { db, authUser, isAdmin, sb };
+  else sandboxStorage(false);
+  PREVIEW = { kind, role };
+  clearTimeout(syncTimer); clearTimeout(dlTimer);
+  sandboxStorage(true, kind === 'new' || kind === 'guest');
+  sb = PV.sb ? sandboxSb(PV.sb) : null; isAdmin = false;
+  authUser = PV.authUser && (kind === 'new' || kind === 'guest') ? { ...PV.authUser, is_anonymous: true, email: null } : PV.authUser;
+  const real = PV.db ? JSON.parse(JSON.stringify(PV.db)) : seed('You');
+  if (kind === 'new') db = null;
+  else if (kind === 'solo') {
+    db = { ...real, groups: [], users: [], likes: [], books: real.books.filter(b => b.userId === ME), posts: real.posts.filter(p => p.userId === ME), me: { ...real.me, hiddenDemos: [...DEMO_KEYS] } };
+    applyDemos();
+  } else if (kind === 'guest') {
+    db = seed(real.me.name || 'You'); const now = Date.now();
+    const mine = real.books.filter(b => b.userId === ME && !b.demo).slice(0, 3);
+    db.books = (mine.length ? mine : [{ title: 'Atomic Habits', author: 'James Clear', pages: 320, page: 64, status: 'reading', coverUrl: olCover('9780735211292') }, { title: 'The Alchemist', author: 'Paulo Coelho', pages: 208, page: 0, status: 'want', coverUrl: olCover('9780062315007') }])
+      .map((b, i) => ({ ...b, id: uid(), userId: ME, cloud: false, updatedAt: now - i * 60000 }));
+    applyDemos();
+  } else {
+    db = real;
+    db.groups.forEach(g => { if (!g.demo) { g.roles = { ...(g.roles || {}), [ME]: role }; if (g.createdBy === ME) g.createdBy = '__previewer'; } });
+  }
+  ui.sheet = null; ui.sheetData = {}; ui.clubPage = null; ui.tab = 'home';
+  document.getElementById('sheet-root').innerHTML = ''; document.getElementById('cele-root').innerHTML = '';
+  toastUndo = null; document.getElementById('toast').classList.add('hide');
+  document.body.classList.add('previewing'); previewBar(); render(); scrollTo(0, 0);
+}
+function previewBar() {
+  let el = document.getElementById('pv-bar');
+  if (!el) { el = document.createElement('div'); el.id = 'pv-bar'; el.setAttribute('role', 'status'); document.body.appendChild(el); }
+  const [ic, label] = PREVIEWS[PREVIEW.kind];
+  el.innerHTML = `<span class="pv-t">👁 Previewing: <b>${ic} ${label}</b></span>
+    ${PREVIEW.kind === 'member' ? `<button data-act="pv-role">${PREVIEW.role === 'mod' ? '🛡️ Moderator' : 'Member'} ⇄</button>` : ''}
+    ${PREVIEW.kind === 'new' ? '<button data-act="pv-restart">↺ Start over</button>' : ''}<button data-act="pv-exit" class="pv-exit">Exit</button>`;
+}
+function exitPreview() {
+  if (!PV) return;
+  sandboxStorage(false);
+  ({ db, authUser, isAdmin, sb } = PV); PV = null; PREVIEW = null;
+  clearTimeout(syncTimer); stampQueue.length = 0; toastUndo = null;
+  document.body.classList.remove('previewing'); document.getElementById('pv-bar')?.remove();
+  document.getElementById('cele-root').innerHTML = '';
+  ui.clubPage = null; ui.tab = 'home'; ui.sheet = null; ui.sheetData = {};
+  render(); adm.tab = 'overview'; openSheet('admin'); admLoad(); toast('Back to your own account. Nothing from the preview was saved.');
+  demoLikeTick();
+}
+function previewPickerHTML() {
+  return `<div class="section-label">👁 View the app as…</div>
+    <div class="mgroup" style="margin-top:0">${Object.entries(PREVIEWS).map(([k, [ic, l, s]]) => `<button class="mrow" data-act="pv-start" data-id="${k}"><span class="mi">${ic}</span><span class="mt">${l}<small>${s}</small></span><span class="mc">›</span></button>`).join('')}</div>
+    <p class="small" style="margin:.3rem .2rem .9rem">A safe preview. Nothing you do there is saved, synced or counted. Tap Exit on the orange bar to come back.</p>`;
+}
+
 /* ---------- language check on shared thoughts ----------
    Strong words: a gentle "post anyway?" nudge. Slurs: not allowed. Private journal entries are never checked.
    Whole words only, so book titles and names like "Scunthorpe" or "Dick Francis" don't trip it. */
@@ -678,7 +836,7 @@ async function uploadPhoto(dataUrl) {
 }
 
 async function sync() {
-  if (!CLOUD || !db || !authUser) return;
+  if (!CLOUD || !db || !authUser || PREVIEW) return;
   if (syncing) { syncAgain = true; return; }
   syncing = true;
   setSyncState('pending');
@@ -758,6 +916,7 @@ async function sync() {
 
 /* pull everything visible to me from Supabase and rebuild db (keeps sample data) */
 async function pull() {
+  if (PREVIEW) return;
   const { data: prof, error: pe } = await sb.from('profiles').select('*').eq('id', ME).maybeSingle();
   if (pe) throw pe;
   if (!prof) { db = null; return; }
@@ -776,12 +935,13 @@ async function pull() {
   }
   const userIds = [...new Set([ME, ...members.map(m => m.user_id)])];
   const since = dayStr(Date.now() - 400 * 86400000);
-  const [profs, books, posts, admin, log] = await Promise.all([
+  const [profs, books, posts, admin, log, likesRes] = await Promise.all([
     sb.from('profiles').select('id,name,show_progress,avatar_url,bio,fav_genres,stamps,show_stamps').in('id', userIds).is('deleted_at', null),
     sb.from('books').select('*').in('user_id', userIds).is('deleted_at', null),
     sb.from('posts').select('*').in('user_id', userIds).is('deleted_at', null).order('created_at', { ascending: false }).limit(300),
     sb.rpc('am_i_admin'),
-    sb.from('reading_log').select('*').eq('user_id', ME).gte('day', since)
+    sb.from('reading_log').select('*').eq('user_id', ME).gte('day', since),
+    sb.from('post_likes').select('post_id,user_id').limit(5000)
   ]);
   if (profs.error) throw profs.error; if (books.error) throw books.error; if (posts.error) throw posts.error;
   isAdmin = !!admin.data;
@@ -800,7 +960,8 @@ async function pull() {
         members: gm.map(m => m.user_id), roles: Object.fromEntries(gm.map(m => [m.user_id, m.role || 'member'])),
         hidden: hiddenRows.filter(x => x.group_id === g.id).map(x => x.post_id) }; })],
     books: books.data.map(rowToBook),
-    posts: posts.data.map(rowToPost)
+    posts: posts.data.map(rowToPost),
+    likes: likesRes && !likesRes.error ? likesRes.data.map(r => ({ p: r.post_id, u: r.user_id })) : (prev && prev.likes) || []
   };
   applyDemos();
   // what the cloud has now
@@ -872,7 +1033,7 @@ async function leaveClub(id) {
 }
 let refreshing = false;
 async function refresh() {
-  if (!CLOUD || !authUser || refreshing || !db) return;
+  if (!CLOUD || !authUser || refreshing || !db || PREVIEW) return;
   refreshing = true;
   try { await sync(); await pull(); if (!ui.sheet) render(); } catch (e) { console.error(e); }
   refreshing = false;
@@ -950,7 +1111,7 @@ const demoCfg = () => { try { return JSON.parse(localStorage.getItem('sm.demoCfg
 const demoClubs = () => { const cfg = demoCfg();
   return DEMO_KEYS.map(key => { const row = cfg[key]; return { key, enabled: row ? row.enabled !== false : true, edited: !!(row && row.data), data: (row && row.data) || DEMO_BUILTIN[key] }; }); };
 async function loadDemoCfg() {
-  if (!CLOUD || !sb) return;
+  if (!CLOUD || !sb || PREVIEW) return;
   const { data, error } = await sb.from('demo_clubs').select('key,enabled,data');
   if (error) return;   // table not there yet: keep the built-in clubs
   const cfg = Object.fromEntries((data || []).map(r => [r.key, { enabled: r.enabled, data: r.data }]));
@@ -1515,6 +1676,7 @@ function postCard(p, club) {
       <div class="grow">${isMe ? `<div class="item-title" style="font-size:.9rem">${esc(p.title)}</div>` : `<button class="cover-btn item-title" style="font-size:.9rem;text-align:left" data-act="fbook" data-k="p" data-id="${p.id}">${esc(p.title)} <span style="color:var(--muted);font-weight:400">›</span></button>`}<div class="meta">${reactionPill(p.reaction)}</div></div>
       ${isMe ? '' : saveBtn(p.title, 'save-post', p.id, '＋ Save', 'font-size:.78rem')}
     </div>
+    ${likeRowHTML(p)}
   </article>`;
 }
 function feedHTML(people, emptyOthers, clubs = []) {
@@ -1831,6 +1993,7 @@ function renderSheet(animate) {
           ${row('stamps', !!db.me.showStamps, 'My stamps', 'Your clubs see the stamps you’ve earned')}
         </div>
         <p class="sub" style="margin:.5rem .2rem 0">🔒 Always private: your Today page, calendar, daily goal and journal entries.</p>
+        <p class="sub" style="margin:.4rem .2rem 0">❤️ Likes: people in your clubs see who liked a thought. Nobody outside your clubs sees your likes.</p>
         <div class="section-label">Reading</div>
         <div class="mgroup" style="margin-top:0">
           <div class="mrow static" style="flex-wrap:wrap"><span class="mt">Daily goal<small>Optional pages a day. No streaks, no reminders.</small></span>
@@ -2084,6 +2247,12 @@ function renderSheet(animate) {
       <div class="formbtns"><button class="btn danger" data-act="remove" data-id="${b.id}" data-sure="1">Remove anyway</button><button class="btn primary" data-act="aside" data-id="${b.id}">📕 Set aside</button></div>
       <button class="link" style="display:block;margin:.3rem auto 0" data-act="close">Cancel</button>`;
   }
+  if (ui.sheet === 'likes') {
+    const p = db.posts.find(x => x.id === d.id), ids = p ? likersOf(p) : [];
+    inner = `${title('Liked by')}<div class="mgroup" style="margin-top:0">${ids.map(i => { const u = i === ME ? { ...db.me, name: 'You' } : userById(i);
+      return `<div class="mrow static">${avatar(u)}<span class="mt">${esc(u.name)}${u.demo ? '<small>Demo club</small>' : ''}</span></div>`; }).join('')}</div>
+      <p class="small" style="text-align:center">Only people in your clubs can see who liked a thought.</p>`;
+  }
   if (ui.sheet === 'post-menu') {
     const g = db.groups.find(x => x.id === d.club), p = db.posts.find(x => x.id === d.id);
     if (!p) { ui.sheet = null; return renderSheet(); }
@@ -2279,7 +2448,7 @@ function adminHTML() {
   } else if (adm.tab === 'log') {
     body = adm.log && adm.log.length ? `<div class="mgroup" style="margin-top:0">${adm.log.map(l => `<div class="mrow static"><span class="mi">${(KIND[l.kind] || ['🛠️'])[0]}</span><span class="mt">${esc(l.label || '')}<small>${esc(l.action)} · ${new Date(l.at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}${l.admin_name ? ' · ' + esc(l.admin_name) : ''}</small></span></div>`).join('')}</div>` : '<div class="empty">No changes yet.</div>';
   }
-  return `<h2 class="sheet-title">🛡️ Admin dashboard</h2>${chips}${body}
+  return `<h2 class="sheet-title">🛡️ Admin dashboard</h2>${chips}${adm.tab === 'overview' ? previewPickerHTML() : ''}${body}
     <div class="formbtns"><button class="btn" data-act="settings">‹ Settings</button><button class="btn primary" data-act="close">Done</button></div>`;
 }
 function adminItemHTML(d) {
@@ -2919,6 +3088,12 @@ const actions = {
   'club-photo-rm'(id) { const g = db.groups.find(x => x.id === id); if (g) setClubPhoto(g, ''); },
   async 'adm-club-photo-rm'() { const r = ui.sheetData.item; if (r) admClubPhoto(r, ''); },
   'adm-demo-photo-rm'() { ui.sheetData.draft.photo = ''; renderSheet(); },
+  like(id) { toggleLike(id); },
+  likes(id) { openSheet('likes', { id }); },
+  'pv-start'(k) { startPreview(k); },
+  'pv-role'() { startPreview('member', PREVIEW.role === 'mod' ? 'member' : 'mod'); toast(PREVIEW.role === 'mod' ? 'Now previewing as a moderator' : 'Now previewing as a member'); },
+  'pv-restart'() { startPreview('new'); },
+  'pv-exit'() { exitPreview(); },
   'post-menu'(id, el) { openSheet('post-menu', { club: el.dataset.club, id }); },
   async 'post-report'(pid) {
     const p = db.posts.find(x => x.id === pid); if (!p || p.demo) return;
@@ -3094,6 +3269,7 @@ const actions = {
     const solo = isSolo();
     const post = { id: uid(), userId: ME, title: b.title, author: b.author, pages: b.pages, coverUrl: b.photo || b.coverUrl, reaction: s.reaction, text, photo: s.photo, createdAt: Date.now(), private: solo };
     db.posts.push(post);
+    setTimeout(() => { if (db && db.posts.some(x => x.id === post.id)) queueDemoLikes(post.id); }, 0);
     if (markDone) Object.assign(b, { status: 'finished', page: b.pages || b.page, percent: 100, updatedAt: Date.now() });
     if (OFFLINE) post.pendingNew = true;
     if (!save()) { db.posts.pop(); return; }
@@ -3334,7 +3510,7 @@ applyDisplay();
     });
     db = load(); applyDemos();
     ui.loading = !db; render();
-    loadDemoCfg();
+    loadDemoCfg(); demoLikeTick();
     await pull();
     ui.loading = false;
     if (db && pendingJoin) await joinByCode(pendingJoin);
