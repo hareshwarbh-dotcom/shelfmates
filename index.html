@@ -1342,7 +1342,7 @@ function homeHTML() {
         <div class="item-title">📖 Reading solo? That works too.</div>
         <p class="sub" style="margin:.3rem 0 0">Your shelf, journal and stamps are all yours. Clubs are optional. Add friends whenever you like.</p></div>`)}
     <div class="actions" style="margin-top:0">
-      <button class="btn" style="flex:1" data-act="create-open">＋ Create a club</button>
+      <button class="btn" style="flex:1" data-act="create-open">＋ Start a club</button>
       ${CLOUD ? '<button class="btn" style="flex:1" data-act="w-join">🔑 Join with code</button>' : ''}
     </div></div></div>`;
 }
@@ -1455,9 +1455,16 @@ const STAFF_PICKS_ALL = [
 ].map(([title, author, isbn, pages, genre]) => ({ title, author, coverUrl: OL(isbn), pages, genre }));
 /* 10 staff picks a week, rotating through all 30 */
 const weekNo = () => Math.floor((Date.now() / 86400000 + 3) / 7);
-const staffPicks = () => { const o = (weekNo() % 3) * 10; return STAFF_PICKS_ALL.slice(o, o + 10); };
+const staffPicks = (n = 6) => { const o = (weekNo() % 5) * 6; return Array.from({ length: n }, (_, i) => STAFF_PICKS_ALL[(o + i) % STAFF_PICKS_ALL.length]); };
 /* popular this week if there's enough, otherwise this week's staff picks */
-const picksNow = () => { const pop = popular.list || []; return pop.length >= 3 ? { pop: true, list: pop } : { pop: false, list: staffPicks() }; };
+const picksNow = () => { const pop = popular.list || []; return pop.length >= 3 ? { pop: true, list: pop } : { pop: false, list: staffPicks(10) }; };
+/* Discover: Popular (6, only once 3+ books) + Staff picks (6) */
+function discoverPicks() {
+  loadPopular();
+  const pop = popular.list || [], popL = pop.length >= 3 ? pop.slice(0, 6) : [], staff = staffPicks(6);
+  ui.picks = [...popL, ...staff];
+  return { popL, staff, off: popL.length };
+}
 /* popular books across the app: loaded once a day, only for solo readers */
 const popular = { list: null, loading: false };
 async function loadPopular() {
@@ -1479,23 +1486,23 @@ function pickTile(x, i, showReaders) {
     <span class="item-title clamp2">${esc(x.title)}</span><span class="meta">${esc(x.author || '')}${showReaders && x.readers ? ` · 📚 ${x.readers}` : ''}</span></div>`;
 }
 function popularRowHTML() {
-  loadPopular();
-  const { pop, list } = picksNow(); ui.picks = list;
-  return `<div class="section-label">${pop ? '🔥 Popular on Shelfmates' : '✨ Staff picks this week'}</div>
-    <div class="pick-strip">${list.map((x, i) => pickTile(x, i, pop)).join('')}</div>`;
+  const { popL, staff, off } = discoverPicks();
+  return `${popL.length ? `<div class="section-label">🔥 Popular on Shelfmates</div>
+    <div class="pick-strip">${popL.map((x, i) => pickTile(x, i, true)).join('')}</div>` : ''}
+    <div class="section-label">✨ Staff picks this week</div>
+    <div class="pick-strip">${staff.map((x, i) => pickTile(x, off + i, false)).join('')}</div>`;
 }
 function discoverHTML() {
   const clubs = myClubs();
   if (!clubs.length) {
-    loadPopular();
-    const { pop: usePop, list } = picksNow();
-    ui.picks = list;
-    return `<div class="section-label">${usePop ? '🔥 Popular on Shelfmates this week' : '✨ Staff picks to get you started'}</div>
-      <p class="sub" style="margin:-.2rem 0 .6rem">${usePop ? 'What readers here are adding and finishing.' : 'Indian and international favourites. New picks every week.'}</p>
-      <div class="shelf">${list.map((x, i) => pickTile(x, i, usePop)).join('')}</div>
-      <div class="card" style="text-align:center;margin-top:1rem"><div class="item-title">👥 Reading is better with friends</div>
-        <p class="sub" style="margin:.3rem 0 .7rem">See what they're reading and swap recommendations.</p>
-        <div class="actions" style="justify-content:center;margin:0"><button class="btn accent" data-act="create-open">＋ Start a club</button>${CLOUD ? '<button class="btn" data-act="w-join">🔑 Join with code</button>' : ''}</div></div>`;
+    const { popL, staff, off } = discoverPicks();
+    return `${popL.length ? `<div class="section-label">🔥 Popular on Shelfmates</div>
+      <p class="sub" style="margin:-.2rem 0 .6rem">What readers here are adding and finishing this week.</p>
+      <div class="shelf">${popL.map((x, i) => pickTile(x, i, true)).join('')}</div>` : ''}
+      <div class="section-label">✨ Staff picks this week</div>
+      <p class="sub" style="margin:-.2rem 0 .6rem">Indian and international favourites. New picks every week.</p>
+      <div class="shelf">${staff.map((x, i) => pickTile(x, off + i, false)).join('')}</div>
+      <p class="small" style="text-align:center;margin:1.4rem 0 .2rem">Want friends' reading here too? <button class="link" style="padding:0 .2rem;min-height:0" data-act="create-open">Start a club</button>${CLOUD ? ` · <button class="link" style="padding:0 .2rem;min-height:0" data-act="w-join">Join with code</button>` : ''}</p>`;
   }
   const inScope = ui.club === 'all' ? clubs : clubs.filter(g => g.id === ui.club);
   const chips = `<div class="chips"><button class="chip ${ui.club === 'all' ? 'on' : ''}" data-act="club-filter" data-id="all">All clubs</button>${clubs.map(g => `<button class="chip ${ui.club === g.id ? 'on' : ''}" data-act="club-filter" data-id="${g.id}">${esc(g.name)}</button>`).join('')}</div>`;
@@ -1765,7 +1772,7 @@ function renderSheet(animate) {
              ['📚', 'Shelf', 'Books you are reading, want to read, paused and finished. Tracking progress is optional.'],
              ['🧭', 'Discover', 'What people in your clubs are reading. Save anything to Want to read.'],
              ['✍️', 'Share', 'Finished a book? React and share a line about what stayed with you.'],
-             ['👥', 'Clubs', 'Create one on Home and send the link. Friends join without signing up.']]
+             ['👥', 'Clubs', 'Start one on Home and send the link. Friends join without signing up.']]
             .map(([i, t, x]) => `<div class="mrow static"><span class="mi">${i}</span><span class="mt">${t}<small>${x}</small></span></div>`).join('')}
         </div>${subEnd}`;
     }
@@ -1807,10 +1814,10 @@ function renderSheet(animate) {
 
   /* ---- clubs ---- */
   if (ui.sheet === 'create') {
-    inner = `${title('Create a club')}
+    inner = `${title('Start a club')}
       <label class="hb-label" for="g-name">Club name</label><input class="hb-input" id="g-name" maxlength="40" placeholder="e.g. Weekend Readers" enterkeyhint="done">
       <p class="sub">You'll get a link and a code to invite people next.</p>
-      <div class="formbtns"><button class="btn" data-act="close">Cancel</button><button class="btn primary" data-act="create-save">Create</button></div>`;
+      <div class="formbtns"><button class="btn" data-act="close">Cancel</button><button class="btn primary" data-act="create-save">Start club</button></div>`;
   }
   if (ui.sheet === 'invite') {
     const g = db.groups.find(x => x.id === d.id);
@@ -2612,7 +2619,7 @@ const actions = {
     db.groups.push(g); save();
     ui.clubPage = g.id; ui.clubTab = 'members'; ui.sheet = null; render();
     openSheet('invite', { id: g.id });
-    toast('Club created. Invite a few people.');
+    toast('Club started. Invite a few people.');
     if (wasSolo) offerJournal(g.name);
   },
   club(id) { ui.clubPage = id; ui.clubTab = 'books'; ui.sheet = null; render(); scrollTo(0, 0); },
