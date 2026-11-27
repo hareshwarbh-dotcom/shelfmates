@@ -479,12 +479,16 @@ body.portal .app { max-width: none; padding: 0; margin: 0; }
 .portal-main .stats { grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); }
 .notif-preview { display: flex; flex-direction: column; gap: .15rem; margin-top: .8rem; padding: .7rem .9rem; border-radius: 14px; background: var(--soft); font-size: .9rem; max-width: 26rem; }
 .tbl.picks td { padding: .25rem; } .tbl.picks .hb-input { min-height: 2.2rem; padding: .3rem .5rem; font-size: .88rem; }
+.portal-top { display: none; }
 @media (max-width: 820px) {
   .portal-wrap { grid-template-columns: 1fr; }
-  .portal-nav { position: static; height: auto; flex-direction: row; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: .6rem; }
-  .portal-nav button { width: auto; white-space: nowrap; }
-  .portal-brand, .portal-me { display: none; }
-  .portal-main { padding: 1rem 1rem 3rem; }
+  .portal-nav { display: none; }
+  .portal-top { display: flex; align-items: center; gap: .6rem; position: sticky; top: 0; z-index: 50; background: var(--card); border-bottom: 1px solid var(--line);
+    padding: calc(.6rem + env(safe-area-inset-top)) calc(.9rem + env(safe-area-inset-right)) .6rem calc(.9rem + env(safe-area-inset-left)); }
+  .portal-top-t { font-weight: 700; white-space: nowrap; }
+  .portal-top select { flex: 1; min-width: 0; min-height: 2.6rem; font-size: 1rem; }
+  .portal-main { padding: 1rem calc(1rem + env(safe-area-inset-right)) calc(3rem + env(safe-area-inset-bottom)) calc(1rem + env(safe-area-inset-left)); }
+  .portal-h { font-size: 1.35rem; }
 }
 /*}ADMIN*/
 </style>
@@ -1729,7 +1733,7 @@ const WELCOME_BOOKS = [
 const PILLARS = `<div class="mgroup">
   <div class="mrow static"><span class="mi">📖</span><span class="mt">Read<small>at your own pace, your own books</small></span></div>
   <div class="mrow static"><span class="mi">🧭</span><span class="mt">Discover<small>through friends, coworkers and family</small></span></div>
-  <div class="mrow static"><span class="mi">✍️</span><span class="mt">Share<small>what stays with you, in a line or two</small></span></div>
+  <div class="mrow static"><span class="mi">🔔</span><span class="mt">Build the habit<small>a gentle reminder on the days you pick</small></span></div>
 </div>`;
 function welcomeHTML() {
   return `<div class="welcome">
@@ -1739,7 +1743,7 @@ function welcomeHTML() {
     <div class="mgroup">
       <div class="mrow static"><span class="mi">📖</span><span class="mt">Read<small>at your own pace, your own books</small></span></div>
       <div class="mrow static"><span class="mi">🧭</span><span class="mt">Discover<small>through friends, coworkers and family</small></span></div>
-      <div class="mrow static"><span class="mi">✍️</span><span class="mt">Share<small>what stays with you, in a line or two</small></span></div>
+      <div class="mrow static"><span class="mi">🔔</span><span class="mt">Build the habit<small>a gentle reminder on the days you pick</small></span></div>
     </div>
     <label class="hb-label" for="ob-name">What should your clubs call you?</label>
     <input class="hb-input" id="ob-name" placeholder="Your first name" autocomplete="given-name" maxlength="40" enterkeyhint="go">
@@ -3754,7 +3758,11 @@ function renderPortal() {
   if (!authUser || !signedInEmail()) { app.innerHTML = msg('🔐', 'Sign in first', 'Open the app on this browser, sign in with your admin account, then come back to this page.', '<a class="btn primary" href="./">Open the app</a>'); return; }
   if (!isAdmin) { app.innerHTML = msg('🚫', 'Admins only', `${esc(signedInEmail())} isn't an admin account.`, '<a class="btn" href="./">Back to the app</a>'); return; }
   if (!adm.started) { adm.started = true; sb.rpc('admin_purge_expired').then(() => {}); setTimeout(admLoad, 0); }
-  app.innerHTML = `<div class="portal-wrap">
+  app.innerHTML = `<div class="portal-top"><span class="portal-top-t">🛡️ Admin</span>
+      <label class="sr" for="portal-sec">Section</label>
+      <select id="portal-sec" class="hb-input" data-portal-sec>${PORTAL_TABS.map(([k, ic, l]) => `<option value="${k}" ${adm.tab === k ? 'selected' : ''}>${ic} ${l}${k === 'feedback' && adm.fbNew ? ` (${adm.fbNew} new)` : ''}</option>`).join('')}</select>
+      <a href="./" class="small" style="white-space:nowrap">App ↗</a></div>
+    <div class="portal-wrap">
     <nav class="portal-nav" aria-label="Admin sections"><div class="portal-brand">🛡️ Shelfmates <b>Admin</b></div>
       ${PORTAL_TABS.map(([k, ic, l]) => `<button class="${adm.tab === k ? 'on' : ''}" data-act="adm-tab" data-id="${k}" ${adm.tab === k ? 'aria-current="page"' : ''}><span aria-hidden="true">${ic}</span> ${l}${k === 'feedback' && adm.fbNew ? ` <span class="pill info">${adm.fbNew}</span>` : ''}</button>`).join('')}
       <div class="portal-me small">${esc(signedInEmail())}<br><a href="./">Open the app ↗</a></div></nav>
@@ -3885,7 +3893,7 @@ document.addEventListener('input', e => {
   if (t.dataset.pk && adm.picks) { const [i, f] = t.dataset.pk.split('.'); adm.picks[+i][f] = t.value; }
   if (t.dataset.cs) { adm.cs = adm.cs || {}; adm.cs[t.dataset.cs] = t.value; if (t.dataset.cs === 'club') paintPortalMain(); }
 });
-document.addEventListener('change', e => { const t = e.target; if (PORTAL && t.dataset && t.dataset.pk && adm.picks) { const [i, f] = t.dataset.pk.split('.'); adm.picks[+i][f] = t.value; } });
+document.addEventListener('change', e => { const t = e.target; if (PORTAL && t.dataset && 'portalSec' in t.dataset) { actions['adm-tab'](t.value); return; } if (PORTAL && t.dataset && t.dataset.pk && adm.picks) { const [i, f] = t.dataset.pk.split('.'); adm.picks[+i][f] = t.value; } });
 /*}ADMIN*/
 (async function init() {
   setTimeout(() => { try { const f = sessionStorage.getItem('sm.flash'); if (f) { sessionStorage.removeItem('sm.flash'); toast(f); } } catch (e) {} }, 1200);
