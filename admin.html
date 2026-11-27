@@ -858,7 +858,9 @@ async function pushSub(create) {
 }
 async function savePrefs(r) {
   const j = (await pushSub(true)).toJSON(), tz = (Intl.DateTimeFormat().resolvedOptions().timeZone) || 'Asia/Kolkata';
-  let { error } = await sb.rpc('save_push_prefs', { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth, p_tz: tz, p_days: r.days, p_time: r.time, p_remind: !!r.on, p_celebrate: !!r.celebrate });
+  const base = { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth, p_tz: tz, p_days: r.days, p_time: r.time, p_remind: !!r.on, p_celebrate: !!r.celebrate };
+  let { error } = await sb.rpc('save_push_prefs', { ...base, p_clubmates: r.clubmates !== false });
+  if (error && /save_push_prefs|p_clubmates/i.test(error.message || '')) ({ error } = await sb.rpc('save_push_prefs', base));   // before supabase-update-17
   if (error && /save_push_prefs/i.test(error.message || '') && r.on)   // before supabase-update-15 was run
     ({ error } = await sb.rpc('save_push_sub', { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth, p_tz: tz, p_days: r.days, p_time: r.time }));
   if (error) throw error;
@@ -878,13 +880,16 @@ async function ensurePush() {
 /* change the reminder / celebrations switches and settings for this phone */
 async function setPush(patch, okMsg) {
   const before = { days: [0, 1, 2, 3, 4, 5, 6], time: '21:00', ...(remGet() || {}) }, r = { ...before, ...patch };
-  if (patch.on && before.celebrate === undefined) r.celebrate = true;   // first time: celebrations come along
-  const turningOn = (r.on && !before.on) || (r.celebrate && !before.celebrate);
+  if ((patch.on || patch.celebrate) && before.celebrate === undefined && patch.celebrate === undefined) r.celebrate = true;   // first time: celebrations come along
+  if (r.clubmates === undefined) r.clubmates = true;   // clubmates' new books: on by default
+  const subscribed = x => !!(x.on || x.celebrate || (x.clubmatesSet && x.clubmates));
+  if (patch.clubmates !== undefined || matesOn(before)) r.clubmatesSet = true;   // what the switch showed stays true
+  const turningOn = subscribed(r) && !subscribed(before) || (r.on && !before.on) || (r.celebrate && !before.celebrate) || (patch.clubmates && !subscribed(before));
   if (turningOn && !(await ensurePush())) { renderSheet(); return; }
   try {
     if (!PREVIEW) {
-      if (!r.on && !r.celebrate) { const s = await pushSub(false); if (s) { await sb.rpc('remove_push_sub', { p_endpoint: s.endpoint }); await s.unsubscribe(); } }
-      else if (r.on || r.celebrate) await savePrefs(r);
+      if (!subscribed(r)) { const s = await pushSub(false); if (s) { await sb.rpc('remove_push_sub', { p_endpoint: s.endpoint }); await s.unsubscribe(); } }
+      else await savePrefs(r);
     }
     remSet(r); try { localStorage.setItem('sm.remindOffer', 'done'); } catch (e) {}
     renderSheet(); render(); if (okMsg) toast(okMsg(r));
@@ -897,7 +902,8 @@ async function updateReminder(patch) {
   remSet(r); renderSheet();
   if (r.on && !PREVIEW) { try { await savePrefs(r); } catch (e) { toast(remErr(e)); } }
 }
-const notifSummary = () => { const r = remGet() || {}; return [r.on ? `Reminder ${daysLabel(r.days).toLowerCase()} at ${timeLabel(r.time)}` : 'Reminder off', r.celebrate ? '🎉 club celebrations' : ''].filter(Boolean).join(' · '); };
+const matesOn = r => !!(r && (r.on || r.celebrate || r.clubmatesSet) && r.clubmates !== false);
+const notifSummary = () => { const r = remGet() || {}; return [r.on ? `Reminder ${daysLabel(r.days).toLowerCase()} at ${timeLabel(r.time)}` : 'Reminder off', r.celebrate ? '🎉 club celebrations' : '', matesOn(r) ? '📖 clubmates' : ''].filter(Boolean).join(' · '); };
 function remindPageHTML(title, subEnd) {
   const r = { days: [0, 1, 2, 3, 4, 5, 6], time: '21:00', ...(remGet() || {}) }, on = !!r.on, cel = !!r.celebrate;
   const blocked = pushSupported() && Notification.permission === 'denied', off = !pushSupported() || blocked;
@@ -919,6 +925,9 @@ function remindPageHTML(title, subEnd) {
     <div class="section-label">🎉 Club celebrations</div>
     <div class="mgroup" style="margin-top:0"><label class="mrow static"><span class="mi">🎉</span><span class="mt">Club celebrations<small>When one of your clubs reaches a milestone or has news. Only from your own clubs, and only now and then.</small></span>
       <span class="switch"><input type="checkbox" data-celeb-on ${cel ? 'checked' : ''} ${off ? 'disabled' : ''} aria-label="Club celebrations"><span></span></span></label></div>
+    <div class="section-label">📖 What my clubmates are reading</div>
+    <div class="mgroup" style="margin-top:0"><label class="mrow static"><span class="mi">📖</span><span class="mt">New books from clubmates<small>When someone in your clubs starts reading a book. At most 3 a day from the same person.</small></span>
+      <span class="switch"><input type="checkbox" data-mates-on ${matesOn(r) ? 'checked' : ''} ${off ? 'disabled' : ''} aria-label="New books from clubmates"><span></span></span></label></div>
     ${subEnd}`;
 }
 function remindOfferHTML() {
@@ -3712,6 +3721,7 @@ document.addEventListener('change', async e => {
   if (t.dataset && 'remindOn' in t.dataset) { t.checked = !t.checked; if (!t.checked) await turnOnReminder(); else await turnOffReminder(); return; }
   if (t.dataset && 'addVis' in t.dataset) { ui.addVis = t.value; return; }
   if (t.dataset && t.dataset.visClub && ui.sheet === 'book-vis') { const d = ui.sheetData, set = new Set(d.picked || []); t.checked ? set.add(t.dataset.visClub) : set.delete(t.dataset.visClub); d.picked = [...set]; return; }
+  if (t.dataset && 'matesOn' in t.dataset) { const was = !t.checked; t.checked = was; await setPush({ clubmates: !was }, r => r.clubmates ? "📖 You'll hear when clubmates start a book" : 'Clubmate updates off'); return; }
   if (t.dataset && 'celebOn' in t.dataset) { const was = !t.checked; t.checked = was; await setPush({ celebrate: !was }, r => r.celebrate ? '🎉 Club celebrations on' : 'Club celebrations off'); return; }
   if (t.dataset && 'remindTime' in t.dataset) { if (/^\d\d:\d\d$/.test(t.value)) updateReminder({ time: t.value }); return; }
 /*ADMIN{*/  if (t.dataset && t.dataset.dp) demoInput(t);
@@ -3802,17 +3812,17 @@ function renderPortal() {
   const msg = (ic, t, s, btn = '') => `<div class="portal-msg"><div style="font-size:2.6rem" aria-hidden="true">${ic}</div><h1 class="hb-logo" style="margin:.4rem 0">${t}</h1><p class="sub">${s}</p>${btn}</div>`;
   if (!CLOUD) { app.innerHTML = msg('📡', 'Admin needs the internet', 'Check your connection and reload this page.'); return; }
   if (authUser && !window.__pulled) { app.innerHTML = '<div class="loading">Opening admin…</div>'; return; }
-  if (!authUser || !signedInEmail()) { app.innerHTML = msg('🔐', 'Sign in first', 'Open the app on this browser, sign in with your admin account, then come back to this page.', '<a class="btn primary" href="./">Open the app</a>'); return; }
-  if (!isAdmin) { app.innerHTML = msg('🚫', 'Admins only', `${esc(signedInEmail())} isn't an admin account.`, '<a class="btn" href="./">Back to the app</a>'); return; }
+  if (!authUser || !signedInEmail()) { app.innerHTML = portalSignInHTML(); addEyes(app); setTimeout(() => document.getElementById('pa-email')?.focus(), 50); return; }
+  if (!isAdmin) { app.innerHTML = msg('🚫', 'Admins only', `${esc(signedInEmail())} isn't an admin account.`, '<button class="btn primary" data-act="pa-switch">Sign in with another account</button><p class="small" style="margin-top:.8rem"><a href="./">Back to the app</a></p>'); return; }
   if (!adm.started) { adm.started = true; sb.rpc('admin_purge_expired').then(() => {}); setTimeout(admLoad, 0); }
   app.innerHTML = `<div class="portal-top"><span class="portal-top-t">🛡️ Admin</span>
       <label class="sr" for="portal-sec">Section</label>
       <select id="portal-sec" class="hb-input" data-portal-sec>${PORTAL_TABS.map(([k, ic, l]) => `<option value="${k}" ${adm.tab === k ? 'selected' : ''}>${ic} ${l}${k === 'feedback' && adm.fbNew ? ` (${adm.fbNew} new)` : ''}</option>`).join('')}</select>
-      <a href="./" class="small" style="white-space:nowrap">App ↗</a></div>
+      <button class="link small" style="white-space:nowrap" data-act="pa-signout">Sign out</button></div>
     <div class="portal-wrap">
     <nav class="portal-nav" aria-label="Admin sections"><div class="portal-brand">🛡️ Shelfmates <b>Admin</b></div>
       ${PORTAL_TABS.map(([k, ic, l]) => `<button class="${adm.tab === k ? 'on' : ''}" data-act="adm-tab" data-id="${k}" ${adm.tab === k ? 'aria-current="page"' : ''}><span aria-hidden="true">${ic}</span> ${l}${k === 'feedback' && adm.fbNew ? ` <span class="pill info">${adm.fbNew}</span>` : ''}</button>`).join('')}
-      <div class="portal-me small">${esc(signedInEmail())}<br><a href="./">Open the app ↗</a></div></nav>
+      <div class="portal-me small">${esc(signedInEmail())}<br><a href="./">Open the app ↗</a> · <button class="link" data-act="pa-signout">Sign out</button></div></nav>
     <main class="portal-main" id="portal-main"></main></div>`;
   paintPortalMain();
 }
@@ -3822,6 +3832,31 @@ function paintPortalMain() {
   m.innerHTML = `<h1 class="portal-h">${t[1]} ${t[2]}</h1>${adminBodyHTML()}`;
 }
 if (PORTAL) { const _rs = renderSheet; renderSheet = function () { _rs(); if (window.__pulled && isAdmin) paintPortalMain(); }; }
+
+/* ----- sign in (the installed SM Admin app keeps its own sign-in) ----- */
+function portalSignInHTML() {
+  return `<div class="portal-msg" style="margin-top:10vh;text-align:left;max-width:24rem">
+    <div style="text-align:center"><img src="admin-icon-192.png" alt="" width="72" height="72" style="border-radius:18px"><h1 class="hb-logo" style="margin:.5rem 0 .2rem">Shelfmates Admin</h1>
+      <p class="sub" style="margin:0 0 1rem">Sign in with your admin account. This device remembers you.</p></div>
+    <form data-form="portal-signin" class="card" style="padding:1rem 1rem 1.1rem">
+      <label class="hb-label" for="pa-email" style="margin-top:0">Email</label>
+      <input class="hb-input" id="pa-email" type="email" autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false" required>
+      <label class="hb-label" for="pa-pass">Password</label>
+      <input class="hb-input" id="pa-pass" type="password" autocomplete="current-password" required>
+      <button class="btn primary block" style="margin-top:1rem" type="submit" id="pa-go">Sign in</button>
+    </form>
+    <p class="small" style="text-align:center"><a href="./">Open the reading app instead</a></p></div>`;
+}
+document.addEventListener('submit', async e => {
+  if (!PORTAL || e.target.dataset.form !== 'portal-signin') return;
+  e.preventDefault();
+  const email = document.getElementById('pa-email').value.trim().toLowerCase(), password = document.getElementById('pa-pass').value, go = document.getElementById('pa-go');
+  if (!email || !password) return;
+  go.disabled = true; go.textContent = 'Signing in…';
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) { go.disabled = false; go.textContent = 'Sign in'; toast(/invalid|credentials/i.test(error.message) ? 'That email or password is wrong' : error.message); return; }
+  location.reload();
+});
 
 /* ----- View as… ----- */
 function previewPortalHTML() {
@@ -3902,6 +3937,8 @@ async function setSetting(key, value, okMsg) {
 const wordList = id => [...new Set((document.getElementById(id)?.value || '').split(/[,\n]/).map(w => w.trim().toLowerCase()).filter(w => w.length > 1))];
 
 Object.assign(actions, {
+  async 'pa-signout'() { if (!confirm('Sign out of the admin portal on this device?')) return; await sb.auth.signOut(); location.reload(); },
+  async 'pa-switch'() { await sb.auth.signOut(); location.reload(); },
   'pv-open'(k) { window.open('./?preview=' + encodeURIComponent(k), '_blank'); },
   async 'ms-save'() {
     const counts = [...new Set((document.getElementById('ms-counts').value || '').split(/[,\s]+/).map(Number).filter(n => Number.isInteger(n) && n > 1 && n < 100000))].sort((a, b) => a - b);
@@ -3957,6 +3994,7 @@ document.addEventListener('change', e => { const t = e.target; if (PORTAL && t.d
   ui.loading = true; render();
   try {
     let { data: { session } } = await sb.auth.getSession();
+    if (!session && PORTAL) { ui.loading = false; window.__pulled = true; render(); return; }   // the portal signs in with its own form
     if (!session) {
       const r = await sb.auth.signInAnonymously();
       if (r.error) throw r.error;
@@ -3971,7 +4009,9 @@ document.addEventListener('change', e => { const t = e.target; if (PORTAL && t.d
     db = load(); applyDemos();
     ui.loading = !db; render();
     loadDemoCfg(); loadAppCfg(); if (!PORTAL) demoLikeTick();
-    await pull(); window.__pulled = true;
+    await pull();
+    if (PORTAL && authUser) { const { data: a } = await sb.rpc('am_i_admin'); isAdmin = !!a; }   // admin accounts may have no reading profile
+    window.__pulled = true;
     ui.loading = false;
     if (db && pendingJoin) await joinByCode(pendingJoin);
     else render();
