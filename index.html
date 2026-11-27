@@ -711,6 +711,7 @@ function startPreview(kind, role = 'member') {
   document.getElementById('sheet-root').innerHTML = ''; document.getElementById('cele-root').innerHTML = '';
   toastUndo = null; document.getElementById('toast').classList.add('hide');
   document.body.classList.add('previewing'); previewBar(); render(); scrollTo(0, 0);
+  if (kind === 'guest') { dailySet({ opens: 2 }); setTimeout(dailyAsk, 1200); }
 }
 function previewBar() {
   let el = document.getElementById('pv-bar');
@@ -736,6 +737,66 @@ function previewPickerHTML() {
     <div class="mgroup" style="margin-top:0">${Object.entries(PREVIEWS).map(([k, [ic, l, s]]) => `<button class="mrow" data-act="pv-start" data-id="${k}"><span class="mi">${ic}</span><span class="mt">${l}<small>${s}</small></span><span class="mc">›</span></button>`).join('')}</div>
     <p class="small" style="margin:.3rem .2rem .9rem">A safe preview. Nothing you do there is saved, synced or counted. Tap Exit on the orange bar to come back.</p>`;
 }
+
+/* ---------- once-a-day reminders ----------
+   Guests: "Save your shelf" (from their 2nd visit).  Signed in, in a browser on a phone: "Install the app".
+   At most one a day, never on top of anything else. */
+const DAILY_KEY = 'sm.dailyAsk';
+const dailyGet = () => { try { return JSON.parse(localStorage.getItem(DAILY_KEY) || '{}'); } catch (e) { return {}; } };
+const dailySet = v => { try { localStorage.setItem(DAILY_KEY, JSON.stringify(v)); } catch (e) {} };
+const inAppBrowser = () => /FBAN|FBAV|Instagram|WhatsApp|Line\/|Snapchat|LinkedInApp|; wv\)/.test(navigator.userAgent);
+function dailyKind() {
+  if (!CLOUD || !db || !authUser) return null;
+  const st = dailyGet();
+  if (!signedInEmail()) return (st.opens || 0) >= 2 ? 'save' : null;
+  if (isInstalled() || platform() === 'desktop') return null;
+  if (st.installedSaid && Date.now() - st.installedSaid < 30 * 86400000) return null;
+  return 'install';
+}
+let dailyPending = false;   // stamps and other pop-ups wait while today's reminder is due
+function countOpen() { const st = dailyGet(); st.opens = (st.opens || 0) + 1; dailySet(st); dailyPending = st.day !== dayStr() && !pendingJoin && !!dailyKind(); }
+function dailyAsk(tries = 0) {
+  const st = dailyGet(), today = dayStr();
+  if (st.day === today || pendingJoin) { dailyPending = false; return; }
+  const kind = dailyKind(); if (!kind) { dailyPending = false; return; }
+  if (ui.loading || !calm(dailyPending ? 800 : 2000) || (!dailyPending && stampQueue.length)) { if (tries < 90) setTimeout(() => dailyAsk(tries + 1), 1000); else dailyPending = false; return; }
+  st.day = today; dailySet(st); dailyPending = false;
+  openSheet('daily', { kind });
+}
+/* "your 4 books, 2 thoughts and 6 days of reading" */
+function guestWhat() {
+  const b = guestBookCount(), p = db.posts.filter(x => x.userId === ME && !x.demo).length, days = new Set((db.log || []).filter(l => l.pages > 0).map(l => l.day)).size;
+  const parts = [b ? `${b} book${b > 1 ? 's' : ''}` : '', p ? `${p} thought${p > 1 ? 's' : ''}` : '', days ? `${days} day${days > 1 ? 's' : ''} of reading` : ''].filter(Boolean);
+  return parts.length > 1 ? parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1] : parts[0] || '';
+}
+const PRIVACY_LINE = '🔒 We use your email only to sign you in and keep your shelf safe. No ads, no spam, never sold or shared. You can delete your account anytime in Settings.';
+function dailyHTML(d) {
+  const x = `<button class="iconbtn" style="border:none;position:absolute;top:.6rem;right:.6rem" aria-label="Close" data-act="close">✕</button>`;
+  if (d.kind === 'save') {
+    const what = guestWhat();
+    return `<div style="position:relative">${x}<div style="text-align:center;padding:.6rem .4rem 0">
+      <div style="font-size:2.4rem" aria-hidden="true">☁️</div><h2 class="sheet-title" style="margin:.3rem 0 .4rem">Save your shelf</h2>
+      <p class="sub" style="margin:0;color:var(--ink)">Right now ${what ? `your <b>${esc(what)}</b> live` : 'everything you add lives'} only on this phone. If you clear your browser, switch phones or reinstall, ${what ? 'they’re' : 'it’s'} gone.</p>
+      <p class="sub" style="margin:.6rem 0 0">A free account keeps everything safe. It takes 20 seconds, with just an email and a password, and no email links to click.</p></div>
+      <button class="btn accent block" style="margin-top:1rem" data-act="daily-signup">Create free account</button>
+      <button class="link" style="display:block;margin:.6rem auto 0" data-act="daily-signin">I already have an account → Sign in</button>
+      <p class="small" style="margin:1rem .2rem .2rem;text-align:center">${PRIVACY_LINE}</p>
+      <button class="link" style="display:block;margin:.5rem auto 0;color:var(--muted)" data-act="close">Not now</button></div>`;
+  }
+  const pf = platform(), stuck = inAppBrowser() || pf === 'ios-other';
+  const body = stuck
+    ? `<div class="banner info"><span class="b-icon">🧭</span><div class="sub" style="color:var(--ink)">This browser can't install apps. Copy the link and open it in <b>${pf.startsWith('ios') ? 'Safari' : 'Chrome'}</b>, then install from there.</div></div>
+       <button class="btn accent block" data-act="daily-copy">📋 Copy link</button>`
+    : pf === 'android' && installPrompt ? `<button class="btn accent block" data-act="daily-install">📲 Install app</button>`
+    : installStepsHTML() + installGuideImg();
+  return `<div style="position:relative">${x}<div style="text-align:center;padding:.6rem .4rem .4rem">
+      <div style="font-size:2.4rem" aria-hidden="true">📲</div><h2 class="sheet-title" style="margin:.3rem 0 .4rem">Install Shelfmates</h2>
+      <p class="sub" style="margin:0;color:var(--ink)">Opens full screen with its own icon, one tap from your Home Screen. No app store needed.</p></div>
+    ${body}
+    <div class="formbtns"><button class="btn" data-act="close">Not now</button><button class="btn" data-act="daily-installed">I've already installed it</button></div></div>`;
+}
+/* one line for guests on celebration screens */
+const keepLine = () => CLOUD && db && !signedInEmail() ? `<button class="link" style="display:block;margin:.7rem auto 0" data-act="cele-save">☁️ Keep this forever → Save your shelf</button>` : '';
 
 /* ---------- language check on shared thoughts ----------
    Strong words: a gentle "post anyway?" nudge. Slurs: not allowed. Private journal entries are never checked.
@@ -1038,7 +1099,7 @@ async function refresh() {
   try { await sync(); await pull(); if (!ui.sheet) render(); } catch (e) { console.error(e); }
   refreshing = false;
 }
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refresh(); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { refresh(); setTimeout(dailyAsk, 2500); } });
 
 
 function seed(name) {
@@ -1316,7 +1377,7 @@ function celebrate(kind, b, undo) {
       <p>${body.replace('{t}', t)}</p>
       ${kind === 'finish' ? `<div class="ccover">${fcover(b)}</div>
         <div class="formbtns"><button class="btn" data-act="cele-close">Later</button><button class="btn accent" data-act="cele-share" data-id="${b.id}">✍️ Share what stayed</button></div>
-        ${undo ? '<button class="link" style="margin-top:.5rem" data-act="cele-undo">Oops, not finished yet</button>' : ''}` : undo ? '<button class="link" style="margin-top:.7rem" data-act="cele-undo">Oops, undo</button>' : '<p class="small" style="margin-top:.8rem">Tap anywhere to close</p>'}
+        ${undo ? '<button class="link" style="margin-top:.5rem" data-act="cele-undo">Oops, not finished yet</button>' : ''}${keepLine()}` : undo ? '<button class="link" style="margin-top:.7rem" data-act="cele-undo">Oops, undo</button>' : '<p class="small" style="margin-top:.8rem">Tap anywhere to close</p>'}
     </div></div>`;
   clearTimeout(celeTimer);
   if (kind === 'start') celeTimer = setTimeout(() => { root.innerHTML = ''; celeUndo = null; }, 4500);
@@ -1411,7 +1472,7 @@ function showStampSoon() {
   clearTimeout(stampWait);
   stampWait = setTimeout(() => {
     if (!stampQueue.length) return;
-    if (!calm()) { showStampSoon(); return; }
+    if (!calm() || dailyPending) { showStampSoon(); return; }
     const k = stampQueue.shift(), [, t, , line, ramp] = STAMP[k], r = RAMP[ramp]; stampShown = k;
     const n = earnedKeys(db.me.stamps).length;
     document.getElementById('cele-root').innerHTML = `<div class="cele" data-act="cele-close" role="dialog" aria-modal="true" aria-label="New stamp: ${esc(t)}">
@@ -1421,6 +1482,7 @@ function showStampSoon() {
         <h2 style="color:${r[3]}">${esc(t)}</h2>
         <p style="color:${r[2]}">${esc(line)}.</p>
         <div class="formbtns"><button class="btn" data-act="cele-close">Lovely</button><button class="btn" style="background:${r[2]};color:#fff;border-color:${r[2]}" data-act="stamps-open">See my stamps</button></div>
+        ${keepLine()}
       </div></div>`;
     if (stampQueue.length) showStampSoon();
   }, 1000);
@@ -2033,11 +2095,13 @@ function renderSheet(animate) {
     } else if (page === 'install') {
       inner = `${title('Install as app')}<p class="sub">Opens full screen with its own icon, like any other app. No app store needed.</p>
         ${isInstalled() ? '<div class="banner info"><span class="b-icon">✅</span><div class="sub" style="color:var(--ink)">You are already using the installed app.</div></div>'
-          : CLOUD && !email && !d.skipSave && myBooks().some(b => !b.demo) ? `<div class="card" style="text-align:center;padding:1rem">
+          : CLOUD && !email && !d.skipSave && guestStuff() ? `<div class="card" style="text-align:center;padding:1rem">
               <div style="font-size:2rem">💾</div><div class="item-title" style="margin-top:.3rem">Save your shelf first</div>
-              <p class="sub" style="margin:.3rem 0 .8rem">So your books are there in the app too. Takes 30 seconds, just an email and password.</p>
-              <button class="btn accent block" data-act="set-page" data-id="account">Create account</button>
-              <button class="link" style="display:block;margin:.4rem auto 0" data-act="skip-save">Skip, just show the steps</button></div>`
+              <p class="sub" style="margin:.3rem 0 .8rem;color:var(--ink)">${platform().startsWith('ios')
+                ? "On iPhone, the installed app starts empty. It can't see what you added here in Safari. Create a free account first, then sign in on the app and everything's there."
+                : 'So your books are there in the app too. Takes 20 seconds, just an email and password.'}</p>
+              <button class="btn accent block" data-act="set-page" data-id="account">Create free account</button>
+              <button class="link" style="display:block;margin:.5rem auto 0" data-act="skip-save">Install anyway</button></div>`
           : installStepsHTML() + installGuideImg()}${subEnd}`;
     } else if (page === 'help') {
       inner = `${title('How to use')}
@@ -2274,6 +2338,7 @@ function renderSheet(animate) {
       <div class="fb-count" id="ce-count">${(d.about ?? g.about ?? '').length} / 300</div>
       <div class="formbtns"><button class="btn" data-act="close">Cancel</button><button class="btn primary" data-act="club-edit-save" ${d.saving ? 'disabled' : ''}>${d.saving ? 'Saving…' : 'Save'}</button></div>`;
   }
+  if (ui.sheet === 'daily') { inner = dailyHTML(d); }
   if (ui.sheet === 'nudge') {
     const [ic, h, b] = NUDGE[d.key] || NUDGE.books3;
     inner = `<div style="text-align:center;padding:.4rem 0"><div style="font-size:2.4rem">${ic}</div><h2 class="sheet-title" style="margin:.4rem 0 .2rem">${h}</h2><p class="sub" style="margin:0">${b}</p><p class="small" style="margin:.4rem 0 0">Just an email and password. Everything you've added stays exactly as it is.</p></div>
@@ -3284,6 +3349,12 @@ const actions = {
 
   /* today + calendar */
   'today-open'() { openSheet('today'); },
+  'daily-signup'() { openSheet('settings', { page: 'account' }); },
+  'daily-signin'() { openSheet('settings', { page: 'account', signin: true }); },
+  async 'daily-copy'() { const u = location.origin + location.pathname; try { await navigator.clipboard.writeText(u); toast('Link copied. Paste it in ' + (platform().startsWith('ios') ? 'Safari' : 'Chrome')); } catch (e) { prompt('Copy this link:', u); } },
+  async 'daily-install'() { if (!installPrompt) return; installPrompt.prompt(); const r = await installPrompt.userChoice; installPrompt = null; closeSheet(); if (r && r.outcome === 'accepted') toast('Installed 📲'); },
+  'daily-installed'() { const st = dailyGet(); st.installedSaid = Date.now(); dailySet(st); try { localStorage.setItem('sm.installHint', 'done'); } catch (e) {} closeSheet(); render(); toast("Got it. We won't ask about installing for a month."); },
+  'cele-save'() { clearTimeout(celeTimer); document.getElementById('cele-root').innerHTML = ''; openSheet('settings', { page: 'account' }); },
   'skip-save'() { ui.sheetData.skipSave = true; renderSheet(); },
   'pf-genre'(id) {
     const dr = ui.sheetData.draft; ['name', 'bio'].forEach(k => { const el = document.getElementById('pf-' + k); if (el) dr[k] = el.value; });
@@ -3515,6 +3586,7 @@ applyDisplay();
     ui.loading = false;
     if (db && pendingJoin) await joinByCode(pendingJoin);
     else render();
+    countOpen(); setTimeout(dailyAsk, 900);
     if (!db && pendingJoin) {
       const { data } = await sb.rpc('club_preview', { p_code: pendingJoin });
       const row = Array.isArray(data) ? data[0] : data;
