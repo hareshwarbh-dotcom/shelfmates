@@ -798,6 +798,104 @@ function dailyHTML(d) {
 /* one line for guests on celebration screens */
 const keepLine = () => CLOUD && db && !signedInEmail() ? `<button class="link" style="display:block;margin:.7rem auto 0" data-act="cele-save">☁️ Keep this forever → Save your shelf</button>` : '';
 
+/* ---------- 📖 reading reminder (opt-in push notification) ----------
+   Off by default. The reader picks days and a time; the "reading-reminders" Edge Function sends it.
+   On iPhone it only works in the installed app (iOS 16.4+). */
+const VAPID_PUBLIC = 'BGOWP_gb4lrLodyRQC-5BVLnfyBZOM2t6QcaVpIg6yQEGUHHQiPczidfMV8s8Xh8MpYxoqRveVxdMv7I-1QOd0s';
+const pushSupported = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+const pushNeedsInstall = () => platform().startsWith('ios') && !isInstalled();
+const remKey = () => 'sm.remind:' + ME;
+const remGet = () => { try { return JSON.parse(localStorage.getItem(remKey()) || 'null'); } catch (e) { return null; } };
+const remSet = v => { try { localStorage.setItem(remKey(), JSON.stringify(v)); } catch (e) {} };
+const remOn = () => !!(remGet() || {}).on;
+const timeLabel = t => { const [h, m] = String(t || '21:00').split(':').map(Number); return `${(h % 12) || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'am' : 'pm'}`; };
+const DAY_SHORT = ['S', 'M', 'T', 'W', 'T', 'F', 'S'], DAY_LONG = ['Sundays', 'Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays'];
+function daysLabel(ds) {
+  const d = [...(ds || [])].sort();
+  if (d.length === 7) return 'Every day';
+  if (d.join() === '1,2,3,4,5') return 'Weekdays';
+  if (d.join() === '0,6') return 'Weekends';
+  return d.map(i => DAY_LONG[i].slice(0, 3)).join(', ') || 'No days';
+}
+const b64u = s => { const r = atob((s + '='.repeat((4 - s.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(r, c => c.charCodeAt(0)); };
+async function pushSub(create) {
+  const reg = await navigator.serviceWorker.ready;
+  let s = await reg.pushManager.getSubscription();
+  if (!s && create) s = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64u(VAPID_PUBLIC) });
+  return s;
+}
+async function saveReminder(r) {
+  const j = (await pushSub(true)).toJSON();
+  const { error } = await sb.rpc('save_push_sub', { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth,
+    p_tz: (Intl.DateTimeFormat().resolvedOptions().timeZone) || 'Asia/Kolkata', p_days: r.days, p_time: r.time });
+  if (error) throw error;
+}
+const remErr = e => /function|schema|save_push_sub/i.test((e && e.message) || '') ? 'Reminders need supabase-update-14.sql first' : "Couldn't save the reminder. " + ((e && e.message) || 'Try again.');
+async function turnOnReminder() {
+  if (PREVIEW) { toast('Reminders can’t be set while previewing'); renderSheet(); return; }
+  if (!CLOUD || !sb) { toast('This needs an internet connection'); renderSheet(); return; }
+  if (!pushSupported()) { toast("This browser can't show notifications"); renderSheet(); return; }
+  if (pushNeedsInstall()) { openSheet('settings', { page: 'install' }); toast('On iPhone, install the app first to get reminders'); return; }
+  let perm = Notification.permission;
+  if (perm === 'default') { try { perm = await Notification.requestPermission(); } catch (e) { perm = 'denied'; } }
+  if (perm !== 'granted') { toast(perm === 'denied' ? "Notifications are blocked. Turn them on for Shelfmates in your phone's settings." : 'No problem. Turn it on anytime.'); renderSheet(); return; }
+  const r = { days: [0, 1, 2, 3, 4, 5, 6], time: '21:00', ...(remGet() || {}), on: true };
+  try { await saveReminder(r); remSet(r); try { localStorage.setItem('sm.remindOffer', 'done'); } catch (e) {} renderSheet(); render(); toast(`🔔 Reminder set: ${daysLabel(r.days).toLowerCase()} at ${timeLabel(r.time)}`); }
+  catch (e) { toast(remErr(e)); renderSheet(); }
+}
+async function turnOffReminder() {
+  const r = remGet() || {};
+  try { const s = await pushSub(false); if (s) { await sb.rpc('remove_push_sub', { p_endpoint: s.endpoint }); await s.unsubscribe(); } } catch (e) {}
+  remSet({ ...r, on: false }); renderSheet(); render(); toast('Reminder off');
+}
+async function updateReminder(patch) {
+  const r = { days: [0, 1, 2, 3, 4, 5, 6], time: '21:00', ...(remGet() || {}), ...patch };
+  remSet(r); renderSheet();
+  if (r.on && !PREVIEW) { try { await saveReminder(r); } catch (e) { toast(remErr(e)); } }
+}
+function remindPageHTML(title, subEnd) {
+  const r = { days: [0, 1, 2, 3, 4, 5, 6], time: '21:00', ...(remGet() || {}) }, on = !!r.on;
+  const blocked = pushSupported() && Notification.permission === 'denied';
+  const note = !pushSupported() ? `<div class="banner info"><span class="b-icon">ℹ️</span><div class="sub" style="color:var(--ink)">This browser can't show notifications. Try Chrome on Android, or the installed app on iPhone.</div></div>`
+    : pushNeedsInstall() ? `<div class="banner info"><span class="b-icon">📲</span><div class="grow"><div class="sub" style="color:var(--ink)">On iPhone, reminders work in the <b>installed app</b> (iOS 16.4 or newer).</div><div class="actions" style="margin-top:.4rem"><button class="btn primary" data-act="set-page" data-id="install">Install as app</button></div></div></div>`
+    : blocked ? `<div class="banner info"><span class="b-icon">🔕</span><div class="sub" style="color:var(--ink)">Notifications are blocked for Shelfmates. Turn them on in your phone's settings (Settings → Notifications), then come back here.</div></div>` : '';
+  const quick = [['Every day', [0, 1, 2, 3, 4, 5, 6]], ['Weekdays', [1, 2, 3, 4, 5]], ['Weekends', [0, 6]]];
+  return `${title('Reading reminder')}
+    <p class="sub">A gentle nudge on the days you choose. It skips any day you've already moved your bookmark. Only you get it, and it's off unless you turn it on.</p>
+    ${note}
+    <div class="mgroup"><label class="mrow static"><span class="mi">🔔</span><span class="mt">Remind me to read<small>${on ? `${esc(daysLabel(r.days))} at ${timeLabel(r.time)}` : 'Off'}</small></span>
+      <span class="switch"><input type="checkbox" data-remind-on ${on ? 'checked' : ''} ${!pushSupported() || blocked ? 'disabled' : ''} aria-label="Remind me to read"><span></span></span></label></div>
+    ${on ? `<div class="section-label">Which days</div>
+      <div class="chips" style="margin:0 0 .4rem" role="group" aria-label="Days">${DAY_SHORT.map((l, i) => `<button class="chip ${r.days.includes(i) ? 'on' : ''}" style="min-width:2.6rem;justify-content:center" aria-label="${DAY_LONG[i]}" aria-pressed="${r.days.includes(i)}" data-act="rem-day" data-id="${i}">${l}</button>`).join('')}</div>
+      <div class="chips" style="margin:0">${quick.map(([l, d]) => `<button class="chip sm ${[...r.days].sort().join() === d.join() ? 'on' : ''}" data-act="rem-days" data-id="${d.join(',')}">${l}</button>`).join('')}</div>
+      <label class="hb-label" for="rem-time">What time</label>
+      <input class="hb-input" id="rem-time" type="time" step="900" value="${esc(r.time)}" data-remind-time style="max-width:10rem">
+      <div class="section-label">What it says</div>
+      <div class="card"><div class="sub" style="color:var(--ink);line-height:1.6">📖 Reading something: <i>"Your bookmark is waiting on page 140 of …"</i><br>🎉 Just finished one: <i>"You finished … Add your next book"</i><br>🔖 Nothing on the go: <i>"… is waiting on your Want to read list"</i><br>📚 Empty shelf: <i>"What are you reading next?"</i></div></div>
+      <button class="btn block" style="margin-top:.6rem" data-act="rem-test">Send me a test now</button>` : ''}
+    ${subEnd}`;
+}
+function remindOfferHTML() {
+  if (!CLOUD || !db || PREVIEW || remOn() || !pushSupported() || pushNeedsInstall() || Notification.permission === 'denied') return '';
+  try { if (localStorage.getItem('sm.remindOffer')) return ''; } catch (e) { return ''; }
+  if (!isInstalled() && !(db.log || []).some(l => l.pages > 0)) return '';
+  return `<div class="banner accent"><span class="b-icon">🔔</span><div class="grow"><div class="item-title">Want a gentle reminder to read?</div><div class="sub" style="color:var(--ink)">Pick the days and a time. Turn it off whenever you like.</div>
+    <div class="actions" style="margin-top:.4rem"><button class="btn primary" data-act="rem-offer">Pick a time</button></div></div><button class="iconbtn" style="border:none" aria-label="Dismiss" data-act="rem-offer-no">✕</button></div>`;
+}
+/* links from a notification: ?open=today | add | book&id=… */
+function openFromLink(params) {
+  const what = params.get('open'); if (!what || !db) return false;
+  try { history.replaceState(null, '', location.pathname); } catch (e) {}
+  ui.clubPage = null; ui.tab = 'home'; render();
+  if (what === 'today' && myBooks().some(b => b.status === 'reading')) openSheet('today');
+  else if (what === 'book' && db.books.some(b => b.id === params.get('id'))) openSheet('book', { id: params.get('id') });
+  else actions['add-open']();
+  return true;
+}
+if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => {
+  if (e.data && e.data.type === 'open') { try { openFromLink(new URL(e.data.url).searchParams); } catch (er) {} }
+});
+
 /* ---------- language check on shared thoughts ----------
    Strong words: a gentle "post anyway?" nudge. Slurs: not allowed. Private journal entries are never checked.
    Whole words only, so book titles and names like "Scunthorpe" or "Dick Francis" don't trip it. */
@@ -1664,7 +1762,7 @@ function homeHTML() {
   }).join('');
   return `
     ${!isInstalled() && !installHintDone() && myBooks().some(b => !b.demo) && platform() !== 'desktop' ? `<div class="banner accent"><span class="b-icon">📱</span><div class="grow"><div class="item-title">Install Shelfmates as an app</div><div class="sub" style="color:var(--ink)">Opens like an app, one tap away.</div>
-      <div class="actions" style="margin-top:.4rem"><button class="btn primary" data-act="install-show">Show me</button></div></div><button class="iconbtn" style="border:none" aria-label="Dismiss" data-act="install-dismiss">✕</button></div>` : ''}
+      <div class="actions" style="margin-top:.4rem"><button class="btn primary" data-act="install-show">Show me</button></div></div><button class="iconbtn" style="border:none" aria-label="Dismiss" data-act="install-dismiss">✕</button></div>` : remindOfferHTML()}
     <div class="home-grid"><div class="home-left">${todayCardHTML()}</div><div class="home-right">
     <div class="section-label">Your clubs</div>
     ${clubCards || (soloCardDismissed() ? `<div class="card empty">No clubs yet. Start one and send the link to a few friends.</div>`
@@ -2058,10 +2156,13 @@ function renderSheet(animate) {
         <p class="sub" style="margin:.4rem .2rem 0">❤️ Likes: people in your clubs see who liked a thought. Nobody outside your clubs sees your likes.</p>
         <div class="section-label">Reading</div>
         <div class="mgroup" style="margin-top:0">
-          <div class="mrow static" style="flex-wrap:wrap"><span class="mt">Daily goal<small>Optional pages a day. No streaks, no reminders.</small></span>
+          <button class="mrow" data-act="set-page" data-id="remind"><span class="mi">🔔</span><span class="mt">Reading reminder<small>${remOn() ? esc(daysLabel(remGet().days)) + ' at ' + timeLabel(remGet().time) : 'Off. A gentle nudge on days you pick.'}</small></span><span class="mc">›</span></button>
+          <div class="mrow static" style="flex-wrap:wrap"><span class="mt">Daily goal<small>Optional pages a day. No streaks, no pressure.</small></span>
             <div class="chips" style="margin:0;width:100%">${goals.map(x => `<button class="chip sm ${g === x ? 'on' : ''}" data-act="goal-set" data-id="${x}">${x ? x : 'Off'}</button>`).join('')}
               <button class="chip sm ${g && !goals.includes(g) ? 'on' : ''}" data-act="goal-custom">${g && !goals.includes(g) ? g : 'Other…'}</button></div></div>
         </div>${subEnd}`;
+    } else if (page === 'remind') {
+      inner = remindPageHTML(title, subEnd);
     } else if (page === 'display') {
       const chipRow = (key, opts) => `<div class="chips" style="margin:0">${opts.map(([v, l]) => `<button class="chip sm ${display[key] === v ? 'on' : ''}" data-act="disp" data-k="${key}" data-id="${v}">${l}</button>`).join('')}</div>`;
       const dk = document.documentElement.dataset.theme === 'dark' ? 'd' : 'l';
@@ -3349,6 +3450,20 @@ const actions = {
 
   /* today + calendar */
   'today-open'() { openSheet('today'); },
+  'rem-day'(id) { const r = { days: [0, 1, 2, 3, 4, 5, 6], ...(remGet() || {}) }, i = +id, d = new Set(r.days); d.has(i) ? d.delete(i) : d.add(i);
+    if (!d.size) { toast('Pick at least one day, or turn the reminder off'); return; } updateReminder({ days: [...d].sort() }); },
+  'rem-days'(id) { updateReminder({ days: id.split(',').map(Number) }); },
+  async 'rem-test'() {
+    if (PREVIEW) { toast('Not while previewing'); return; }
+    try { const s = await pushSub(false); if (!s) { toast('Turn the reminder on first'); return; }
+      toast('Sending…');
+      const { data, error } = await sb.functions.invoke('reading-reminders', { body: { test: true, endpoint: s.endpoint } });
+      if (error || !data || !data.sent) { toast(error && /404|not found|Failed to send|FunctionsFetchError|FunctionsHttpError/i.test(String(error.name || '') + String(error.message || '')) ? "The reminder sender isn't set up yet (see the setup steps)" : "Couldn't send it. " + ((data && data.error) || (error && error.message) || '')); return; }
+      toast('Sent! It should pop up in a few seconds 📖');
+    } catch (e) { toast("Couldn't send it. " + (e.message || '')); }
+  },
+  'rem-offer'() { try { localStorage.setItem('sm.remindOffer', 'done'); } catch (e) {} openSheet('settings', { page: 'remind' }); },
+  'rem-offer-no'() { try { localStorage.setItem('sm.remindOffer', 'done'); } catch (e) {} render(); toast('Okay. You can set one anytime in Settings → Preferences.'); },
   'daily-signup'() { openSheet('settings', { page: 'account' }); },
   'daily-signin'() { openSheet('settings', { page: 'account', signin: true }); },
   async 'daily-copy'() { const u = location.origin + location.pathname; try { await navigator.clipboard.writeText(u); toast('Link copied. Paste it in ' + (platform().startsWith('ios') ? 'Safari' : 'Chrome')); } catch (e) { prompt('Copy this link:', u); } },
@@ -3476,6 +3591,8 @@ document.addEventListener('change', async e => {
   }
   if (t.dataset && t.dataset.disp === 'texture') { setDisplay({ texture: t.checked }); renderSheet(); }
   if (t.dataset && t.dataset.genreFor) { updBook(t.dataset.genreFor, { genre: t.value }); applyDisplay(); render(); }
+  if (t.dataset && 'remindOn' in t.dataset) { t.checked = !t.checked; if (!t.checked) await turnOnReminder(); else await turnOffReminder(); return; }
+  if (t.dataset && 'remindTime' in t.dataset) { if (/^\d\d:\d\d$/.test(t.value)) updateReminder({ time: t.value }); return; }
   if (t.dataset && t.dataset.dp) demoInput(t);
   if (t.dataset && t.dataset.admDemoOn) {
     const key = t.dataset.admDemoOn, row = admDemoRow(key), name = ((row && row.data) || DEMO_BUILTIN[key]).name, on = t.checked;
@@ -3586,7 +3703,8 @@ applyDisplay();
     ui.loading = false;
     if (db && pendingJoin) await joinByCode(pendingJoin);
     else render();
-    countOpen(); setTimeout(dailyAsk, 900);
+    const fromLink = openFromLink(new URLSearchParams(location.search));
+    countOpen(); if (fromLink) dailyPending = false; else setTimeout(dailyAsk, 900);
     if (!db && pendingJoin) {
       const { data } = await sb.rpc('club_preview', { p_code: pendingJoin });
       const row = Array.isArray(data) ? data[0] : data;
