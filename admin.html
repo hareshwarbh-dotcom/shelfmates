@@ -491,6 +491,36 @@ body.portal .app { max-width: none; padding: 0; margin: 0; }
   .portal-h { font-size: 1.35rem; }
 }
 /*}ADMIN*/
+/* 📖 club read */
+.cr-card { display: block; width: 100%; text-align: left; color: var(--ink); cursor: pointer; border: 1px solid var(--accent-soft); }
+div.cr-card { cursor: default; }
+.cr-tag { display: inline-block; font-size: .7rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--accent-text); background: var(--accent-soft); border-radius: var(--radius-pill); padding: .1rem .5rem; margin-bottom: .45rem; }
+.cr-card .item-title, .cr-card .meta { display: block; }
+.cr-under { display: flex; flex-wrap: wrap; gap: .35rem .5rem; align-items: center; margin: -.2rem 0 .7rem .2rem; }
+.cr-home { display: block; margin-top: .15rem; }
+.cr-hero .cr-title { font-family: var(--font-display); font-size: 1.3rem; line-height: 1.2; margin: 0 0 .15rem; }
+.cr-mine { margin-top: .8rem; padding-top: .7rem; border-top: 1px solid var(--line); }
+.cr-mgr { display: flex; flex-wrap: wrap; gap: .4rem 1rem; margin-top: .7rem; padding-top: .6rem; border-top: 1px solid var(--line); }
+.danger-link { color: var(--red) !important; }
+.btn.on-soft { background: var(--accent-soft); color: var(--accent-text); border-color: transparent; font-weight: 600; }
+.cr-msg { display: flex; gap: .6rem; padding: .7rem .2rem; border-bottom: 1px solid var(--line); }
+.cr-msg:last-child { border-bottom: none; }
+.cr-msg.pinned { background: var(--accent-soft); border-radius: var(--radius-md); padding: .7rem; margin-bottom: .4rem; border-bottom: none; }
+.cr-msg.hid { opacity: .6; }
+.cr-head { display: flex; flex-wrap: wrap; gap: .1rem .5rem; align-items: baseline; }
+.cr-head b { font-size: .92rem; }
+.cr-text { white-space: pre-wrap; overflow-wrap: anywhere; margin-top: .15rem; line-height: 1.45; }
+.cr-spoiler { all: unset; cursor: pointer; display: block; margin-top: .3rem; padding: .55rem .75rem; border-radius: var(--radius-md); background: var(--soft); color: var(--muted); font-size: .88rem; border: 1px dashed var(--line); }
+.cr-spoiler:focus-visible, .cr-like:focus-visible, .cr-more:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cr-acts { display: flex; gap: .4rem; align-items: center; margin-top: .35rem; }
+.cr-like, .cr-more { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: .25rem; min-height: 2rem; padding: 0 .6rem; border-radius: var(--radius-pill); border: 1px solid var(--line); font-size: .82rem; color: var(--ink); box-sizing: border-box; }
+.cr-like.on { background: var(--accent-soft); border-color: transparent; color: var(--accent-text); font-weight: 600; }
+.cr-more { border-color: transparent; color: var(--muted); font-size: 1.1rem; }
+#cr-list { background: var(--card); border-radius: var(--radius-lg); padding: .2rem .7rem; border: 1px solid var(--line); }
+#cr-list > .card.empty, #cr-list > .empty { border: none; background: none; margin: 0; }
+.cr-compose { margin-top: .7rem; }
+.cr-spoil { display: inline-flex; align-items: center; gap: .35rem; flex-wrap: wrap; }
+.cr-spoil input[type=number] { width: 5rem; min-height: 2.2rem; padding: .2rem .5rem; }
 </style>
 </head>
 <body>
@@ -859,7 +889,8 @@ async function pushSub(create) {
 async function savePrefs(r) {
   const j = (await pushSub(true)).toJSON(), tz = (Intl.DateTimeFormat().resolvedOptions().timeZone) || 'Asia/Kolkata';
   const base = { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth, p_tz: tz, p_days: r.days, p_time: r.time, p_remind: !!r.on, p_celebrate: !!r.celebrate };
-  let { error } = await sb.rpc('save_push_prefs', { ...base, p_clubmates: r.clubmates !== false });
+  let { error } = await sb.rpc('save_push_prefs', { ...base, p_clubmates: r.clubmates !== false, p_clubread: r.clubread !== false });
+  if (error && /save_push_prefs|p_clubread/i.test(error.message || '')) ({ error } = await sb.rpc('save_push_prefs', { ...base, p_clubmates: r.clubmates !== false }));   // before supabase-update-18
   if (error && /save_push_prefs|p_clubmates/i.test(error.message || '')) ({ error } = await sb.rpc('save_push_prefs', base));   // before supabase-update-17
   if (error && /save_push_prefs/i.test(error.message || '') && r.on)   // before supabase-update-15 was run
     ({ error } = await sb.rpc('save_push_sub', { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth, p_tz: tz, p_days: r.days, p_time: r.time }));
@@ -882,9 +913,11 @@ async function setPush(patch, okMsg) {
   const before = { days: [0, 1, 2, 3, 4, 5, 6], time: '21:00', ...(remGet() || {}) }, r = { ...before, ...patch };
   if ((patch.on || patch.celebrate) && before.celebrate === undefined && patch.celebrate === undefined) r.celebrate = true;   // first time: celebrations come along
   if (r.clubmates === undefined) r.clubmates = true;   // clubmates' new books: on by default
-  const subscribed = x => !!(x.on || x.celebrate || (x.clubmatesSet && x.clubmates));
+  if (r.clubread === undefined) r.clubread = true;     // club read messages: on by default
+  const subscribed = x => !!(x.on || x.celebrate || (x.clubmatesSet && x.clubmates) || (x.clubreadSet && x.clubread));
   if (patch.clubmates !== undefined || matesOn(before)) r.clubmatesSet = true;   // what the switch showed stays true
-  const turningOn = subscribed(r) && !subscribed(before) || (r.on && !before.on) || (r.celebrate && !before.celebrate) || (patch.clubmates && !subscribed(before));
+  if (patch.clubread !== undefined || readsOn(before)) r.clubreadSet = true;
+  const turningOn = subscribed(r) && !subscribed(before) || (r.on && !before.on) || (r.celebrate && !before.celebrate) || ((patch.clubmates || patch.clubread) && !subscribed(before));
   if (turningOn && !(await ensurePush())) { renderSheet(); return; }
   try {
     if (!PREVIEW) {
@@ -903,7 +936,8 @@ async function updateReminder(patch) {
   if (r.on && !PREVIEW) { try { await savePrefs(r); } catch (e) { toast(remErr(e)); } }
 }
 const matesOn = r => !!(r && (r.on || r.celebrate || r.clubmatesSet) && r.clubmates !== false);
-const notifSummary = () => { const r = remGet() || {}; return [r.on ? `Reminder ${daysLabel(r.days).toLowerCase()} at ${timeLabel(r.time)}` : 'Reminder off', r.celebrate ? '🎉 club celebrations' : '', matesOn(r) ? '📖 clubmates' : ''].filter(Boolean).join(' · '); };
+const readsOn = r => !!(r && (r.on || r.celebrate || r.clubmatesSet || r.clubreadSet) && r.clubread !== false);
+const notifSummary = () => { const r = remGet() || {}; return [r.on ? `Reminder ${daysLabel(r.days).toLowerCase()} at ${timeLabel(r.time)}` : 'Reminder off', r.celebrate ? '🎉 club celebrations' : '', matesOn(r) ? '📖 clubmates' : '', readsOn(r) ? '💬 club reads' : ''].filter(Boolean).join(' · '); };
 function remindPageHTML(title, subEnd) {
   const r = { days: [0, 1, 2, 3, 4, 5, 6], time: '21:00', ...(remGet() || {}) }, on = !!r.on, cel = !!r.celebrate;
   const blocked = pushSupported() && Notification.permission === 'denied', off = !pushSupported() || blocked;
@@ -928,6 +962,9 @@ function remindPageHTML(title, subEnd) {
     <div class="section-label">📖 What my clubmates are reading</div>
     <div class="mgroup" style="margin-top:0"><label class="mrow static"><span class="mi">📖</span><span class="mt">New books from clubmates<small>When someone in your clubs starts reading a book. At most 3 a day from the same person.</small></span>
       <span class="switch"><input type="checkbox" data-mates-on ${matesOn(r) ? 'checked' : ''} ${off ? 'disabled' : ''} aria-label="New books from clubmates"><span></span></span></label></div>
+    <div class="section-label">💬 Club reads</div>
+    <div class="mgroup" style="margin-top:0"><label class="mrow static"><span class="mi">💬</span><span class="mt">Club read messages<small>New messages in club reads you've joined. At most one every 2 hours per club read, and spoilers never show. New club reads and meet-up reminders come whenever notifications are on.</small></span>
+      <span class="switch"><input type="checkbox" data-reads-on ${readsOn(r) ? 'checked' : ''} ${off ? 'disabled' : ''} aria-label="Club read messages"><span></span></span></label></div>
     ${subEnd}`;
 }
 function remindOfferHTML() {
@@ -945,6 +982,7 @@ function openFromLink(params) {
   if (what === 'today' && myBooks().some(b => b.status === 'reading')) openSheet('today');
   else if (what === 'book' && db.books.some(b => b.id === params.get('id'))) openSheet('book', { id: params.get('id') });
   else if (what === 'club') { const g = db.groups.find(x => x.id === params.get('id')); if (g) { ui.clubPage = g.id; ui.clubTab = 'books'; render(); scrollTo(0, 0); } }
+  else if (what === 'read') { if (readById(params.get('id'))) crOpen(params.get('id')); else crRefresh().then(() => { if (readById(params.get('id'))) crOpen(params.get('id')); }); }
   else actions['add-open']();
   return true;
 }
@@ -1157,14 +1195,15 @@ async function pull() {
   }
   const userIds = [...new Set([ME, ...members.map(m => m.user_id)])];
   const since = dayStr(Date.now() - 400 * 86400000);
-  const [profs, books, posts, admin, log, likesRes, msRes] = await Promise.all([
+  const [profs, books, posts, admin, log, likesRes, msRes, crRes] = await Promise.all([
     sb.from('profiles').select('id,name,show_progress,avatar_url,bio,fav_genres,stamps,show_stamps').in('id', userIds).is('deleted_at', null),
     sb.from('books').select('*').in('user_id', userIds).is('deleted_at', null),
     sb.from('posts').select('*').in('user_id', userIds).is('deleted_at', null).order('created_at', { ascending: false }).limit(300),
     sb.rpc('am_i_admin'),
     sb.from('reading_log').select('*').eq('user_id', ME).gte('day', since),
     sb.from('post_likes').select('post_id,user_id').limit(5000),
-    sb.from('club_milestones').select('group_id,n,reached_at').gte('reached_at', new Date(Date.now() - 7 * 86400000).toISOString())
+    sb.from('club_milestones').select('group_id,n,reached_at').gte('reached_at', new Date(Date.now() - 7 * 86400000).toISOString()),
+    sb.rpc('club_read_summary')
   ]);
   if (profs.error) throw profs.error; if (books.error) throw books.error; if (posts.error) throw posts.error;
   isAdmin = !!admin.data;
@@ -1185,7 +1224,8 @@ async function pull() {
     books: books.data.map(rowToBook),
     posts: posts.data.map(rowToPost),
     milestones: msRes && !msRes.error ? msRes.data : (prev && prev.milestones) || [],
-    likes: likesRes && !likesRes.error ? likesRes.data.map(r => ({ p: r.post_id, u: r.user_id })) : (prev && prev.likes) || []
+    likes: likesRes && !likesRes.error ? likesRes.data.map(r => ({ p: r.post_id, u: r.user_id })) : (prev && prev.likes) || [],
+    reads: crRes && !crRes.error && crRes.data && crRes.data.reads ? readsFromSummary(crRes.data) : (prev && prev.reads) || { reads: [], members: [], rsvp: [], suggestions: [] }
   };
   applyDemos();
   // what the cloud has now
@@ -1326,7 +1366,22 @@ const DEMO_BUILTIN = {
       { who: 'lizzie', title: "Harry Potter and the Philosopher's Stone", author: 'J.K. Rowling', reaction: 'up', text: 'Loved it. Mr Darcy refuses to read anything with a wizard in it. His loss.', daysAgo: 3 },
       { who: 'darcy', title: "Harry Potter and the Philosopher's Stone", author: 'J.K. Rowling', reaction: 'mid', text: 'I did not refuse. I am simply taking my time. Page three is a perfectly respectable place to be.', daysAgo: 2 },
       { who: 'dracula', title: 'The Silent Patient', author: 'Alex Michaelides', reaction: 'down', text: 'Far too much daylight in this one. Finished it at 3 a.m., as one does.', daysAgo: 5 }
-    ]
+    ],
+    read: {
+      title: 'A Study in Scarlet', author: 'Arthur Conan Doyle', pages: 160, isbn: '9780140439083', genre: 'mystery', by: 'holmes',
+      finishInDays: 10, meetInDays: 3, meetWhere: '221B Baker Street, the sitting room', pin: 0,
+      readers: [{ who: 'holmes', page: 160 }, { who: 'watson', page: 22 }, { who: 'lizzie', page: 64 }, { who: 'dracula', page: 41 }],
+      rsvp: ['holmes', 'watson', 'lizzie'],
+      msgs: [
+        { who: 'holmes', text: 'This week: Part One, chapters 1 to 4. Tick 🙈 for anything past that, Watson insists.', minsAgo: 2900, likes: ['watson', 'lizzie'] },
+        { who: 'watson', text: 'Please, nobody spoil it. I am only on page 22, and yes, I am aware I wrote it.', minsAgo: 2700, likes: ['lizzie', 'dracula'] },
+        { who: 'dracula', text: 'The first meeting in the laboratory, with the blood test. Finally, a book about something important.', minsAgo: 1500, likes: ['holmes'] },
+        { who: 'lizzie', text: 'A man who knows nothing of the solar system and is proud of it. I have met such men at every ball in Hertfordshire.', minsAgo: 900, likes: ['watson', 'dracula'] },
+        { who: 'holmes', text: 'The answer was on the wall in the first room. RACHE. Elementary. Everything after that is just walking.', page: 140, minsAgo: 300, likes: ['dracula'] },
+        { who: 'watson', text: 'Holmes. Spoiler tags exist for a reason. I can see the blur and I know it is you.', minsAgo: 240, likes: ['lizzie'] },
+        { who: 'darcy', text: 'I shall join once I have finished page four of the other book. Please do not wait.', minsAgo: 60 }
+      ]
+    }
   }
 };
 const DEMO_KEYS = Object.keys(DEMO_BUILTIN);
@@ -1349,6 +1404,7 @@ function applyDemos() {
   if (!db) return;
   db.users = (db.users || []).filter(u => !u.demo); db.groups = (db.groups || []).filter(g => !g.demo);
   db.books = (db.books || []).filter(b => !b.demo); db.posts = (db.posts || []).filter(p => !p.demo);
+  { const X = crData(); ['reads', 'members', 'rsvp'].forEach(k => { X[k] = (X[k] || []).filter(x => !x.demo); }); X.suggestions = X.suggestions || []; }
   const gone = (db.me && db.me.hiddenDemos) || [], now = Date.now(), day = 86400000;
   for (const c of demoClubs()) {
     if (!c.enabled || gone.includes(c.key)) continue;
@@ -1369,6 +1425,7 @@ function applyDemos() {
       db.posts.push({ id: `demo_${c.key}_p${i}`, userId: mid(p.who), title: p.title.trim(), author: p.author || (bk && bk.author) || '', pages: bk ? parseInt(bk.pages, 10) || 0 : 0,
         coverUrl: (bk && (bk.coverUrl || (bk.isbn ? olCover(bk.isbn) : ''))) || '', reaction: REACT[p.reaction] ? p.reaction : 'up', text: p.text || '', photo: '',
         createdAt: now - (Math.max(0, parseFloat(p.daysAgo) || 0)) * day - i * 60000, demo: true }); });
+    applyDemoReads(c, d, mid, now);
   }
 }
 const hiddenDemoClubs = () => { const gone = (db && db.me.hiddenDemos) || []; return demoClubs().filter(c => c.enabled && gone.includes(c.key)); };
@@ -1716,11 +1773,12 @@ function render() {
   const titles = { home: '', shelf: 'My shelf', discover: 'Discover', share: isSolo() ? 'My reading journal' : 'My thoughts' };
   const club = ui.clubPage ? db.groups.find(g => g.id === ui.clubPage) : null;
   if (ui.clubPage && !club) ui.clubPage = null;
+  if (!ui.clubPage) ui.readPage = null;
   const body = club ? clubPageHTML(club) : ui.tab === 'shelf' ? shelfHTML() : ui.tab === 'discover' ? discoverHTML() : ui.tab === 'share' ? shareHTML() : homeHTML();
   const tab = (k, ic, label) => `<button class="${ui.tab === k && !club ? 'on' : ''}" data-act="tab" data-id="${k}" ${ui.tab === k ? 'aria-current="page"' : ''}><span class="ic">${ic}</span>${label}</button>`;
   app.innerHTML = `
     <header class="hb-header">
-      ${club ? `<div class="row grow" style="gap:.4rem;min-width:0"><button class="iconbtn" style="border:none" aria-label="Back" data-act="club-back">‹</button>${clubBadge(club, 'sm')}<h1 class="hb-logo" style="font-size:1.3rem">${esc(club.name)}</h1></div>
+      ${club ? `<div class="row grow" style="gap:.4rem;min-width:0"><button class="iconbtn" style="border:none" aria-label="Back" data-act="${ui.readPage ? 'cr-back' : 'club-back'}">‹</button>${clubBadge(club, 'sm')}<h1 class="hb-logo" style="font-size:1.3rem">${esc(club.name)}</h1></div>
         ${club.demo ? '' : `<button class="btn accent" data-act="invite" data-id="${club.id}">💌 Invite</button>`}` : ui.tab === 'home' ? `<h1 class="hb-logo" style="margin:0"><button data-act="about" aria-label="About ${APP.first} ${esc(APP.second)}" style="all:unset;cursor:pointer">${APP.first} <span>${esc(APP.second)}</span></button></h1>` : `<h1 class="hb-logo">${titles[ui.tab]}</h1>`}
       ${club ? '' : `<button class="iconbtn" aria-label="Settings" data-act="settings">⚙︎`}${CLOUD ? `<span class="syncdot ${dotClass()}" id="syncdot"></span>` : ''}${club ? '' : '</button>'}
     </header>
@@ -1830,6 +1888,7 @@ function homeHTML() {
       <span class="grow">
         <span class="item-title">${esc(g.name)}</span>
         <span class="meta">👥 ${g.members.length} ${g.members.length === 1 ? 'member' : 'members'}${nowB.length ? ` · 📖 ${nowB.length} reading now` : ''}${g.demo ? ' <span class="pill info">Demo club</span>' : ''}</span>
+        ${(() => { const r = liveRead(g); return r ? `<span class="meta cr-home">📖 Reading <b>${esc(r.title)}</b> together${r.unread ? ` <span class="pill soon">💬 ${r.unread} new</span>` : ''}</span>` : ''; })()}
         ${nowB.length ? `<span class="minicovers">${nowB.slice(0, 6).map(b => coverHTML(b, 18, 26)).join('')}</span>` : ''}
       </span><span style="color:var(--muted);font-size:1.1rem">›</span>
     </button>`;
@@ -2015,11 +2074,13 @@ function discoverHTML() {
 
 /* ----- Club page ----- */
 function clubPageHTML(g) {
+  if (ui.readPage) { const r = readById(ui.readPage); if (r && r.groupId === g.id) return readPageHTML(g, r); ui.readPage = null; }
   const t = ui.clubTab || 'books';
   const chips = `<div class="chips">${[['books', '📖 Books'], ['members', `👥 Members · ${g.members.length}`], ['about', 'ℹ️ About']].map(([k, l]) => `<button class="chip ${t === k ? 'on' : ''}" data-act="club-tab" data-id="${k}">${l}</button>`).join('')}</div>`;
   let body = '';
   const ms = g.demo ? null : (db.milestones || []).filter(x => x.group_id === g.id).sort((a, b) => b.n - a.n)[0];
   if (t === 'books') body = (ms ? `<div class="banner accent"><span class="b-icon">🎉</span><div class="grow"><div class="item-title">${esc(g.name)} reached ${ms.n} members!</div><div class="sub" style="color:var(--ink)">Say hi to the newest readers and share what you're reading.</div></div></div>` : '') + (g.demo ? `<div class="banner info"><span class="b-icon">🧪</span><div class="grow"><div class="item-title">This is a demo club</div><div class="sub">These readers are pretend, to show how a club works. Your own books show up here too. Only you can see this club.</div></div></div>` : '')
+    + clubReadCardHTML(g)
     + feedHTML(new Set(g.members), g.demo ? '' : 'Just you so far. Tap <b>Invite</b> at the top to bring people in.', [g]);
   if (t === 'members') {
     const ids = [ME, ...g.members.filter(id => id !== ME)].filter(id => g.members.includes(id));
@@ -2062,6 +2123,531 @@ function clubPageHTML(g) {
   }
   return chips + body;
 }
+
+/* ============================================================
+   📖 Club read: one book, read together, talked about in one place
+   Real clubs: club_reads + friends in Supabase (supabase-update-18).
+   Demo clubs: built in, and anything you do there stays on this phone.
+   ============================================================ */
+const CRX = { id: null, msgs: [], likes: [], reveal: new Set(), loading: false, err: '' };
+const crData = () => (db && db.reads) || (db ? (db.reads = { reads: [], members: [], rsvp: [], suggestions: [] }) : { reads: [], members: [], rsvp: [], suggestions: [] });
+const readById = id => crData().reads.find(r => r.id === id);
+const liveRead = g => crData().reads.find(r => r.groupId === g.id && !r.endedAt);
+const pastReads = g => crData().reads.filter(r => r.groupId === g.id && r.endedAt).sort((a, b) => b.startedAt - a.startedAt);
+const readMembers = r => crData().members.filter(m => m.readId === r.id);
+const readJoined = (r, u = ME) => readMembers(r).some(m => m.userId === u);
+const readRsvp = r => crData().rsvp.filter(v => v.readId === r.id);
+const clubSuggestions = g => crData().suggestions.filter(s => s.groupId === g.id);
+const isLink = s => /^https?:\/\/\S+$/i.test(String(s || '').trim());
+function readerBook(r, uidX) {
+  const m = readMembers(r).find(x => x.userId === uidX);
+  return (m && m.bookId && db.books.find(b => b.id === m.bookId && b.userId === uidX)) || db.books.find(b => b.userId === uidX && norm(b.title) === norm(r.title));
+}
+/* how far I am, in pages (Infinity once finished), for spoiler tags */
+function myPageIn(r) {
+  const b = readerBook(r, ME); if (!b) return 0;
+  if (b.status === 'finished') return Infinity;
+  const pages = b.pages || r.pages || 0;
+  return b.page ? b.page : (b.percent && pages ? Math.round(b.percent * pages / 100) : 0);
+}
+const msgTime = ts => { const s = (Date.now() - ts) / 1000; if (s < 60) return 'just now'; if (s < 3600) return Math.floor(s / 60) + ' min ago'; if (s < 86400) return Math.floor(s / 3600) + ' h ago';
+  return new Date(ts).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }); };
+const dateLong = d => new Date(String(d).length === 10 ? d + 'T12:00' : d).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+const meetWhen = ts => { const d = new Date(ts), t = d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
+  const day = dayStr(d), today = dayStr(), tom = dayStr(Date.now() + 86400000);
+  return (day === today ? 'Today' : day === tom ? 'Tomorrow' : dateLong(d)) + ' at ' + t; };
+const nameOf = id => id === ME ? 'You' : ((userById(id) || {}).name || 'Former member');
+
+/* ---------- from the cloud summary ---------- */
+function readsFromSummary(s) {
+  const t = x => x ? Date.parse(x) : null;
+  return {
+    reads: (s.reads || []).map(r => ({ id: r.id, groupId: r.group_id, title: r.title, author: r.author || '', pages: r.pages || 0, coverUrl: r.cover_url || '', genre: r.genre || '',
+      startedBy: r.started_by, startedAt: t(r.started_at) || Date.now(), finishBy: r.finish_by || null, endedAt: t(r.ended_at), pinned: r.pinned || null,
+      meetAt: t(r.meet_at), meetWhere: r.meet_where || '', msgs: +r.msgs || 0, unread: +r.unread || 0 })),
+    members: (s.members || []).map(m => ({ readId: m.read_id, userId: m.user_id, bookId: m.book_id })),
+    rsvp: (s.rsvp || []).map(v => ({ readId: v.read_id, userId: v.user_id })),
+    suggestions: (s.suggestions || []).map(x => ({ id: x.id, groupId: x.group_id, userId: x.user_id, title: x.title, author: x.author || '', pages: x.pages || 0, coverUrl: x.cover_url || '', genre: x.genre || '' }))
+  };
+}
+async function crRefresh() {
+  if (!CLOUD || !sb || PREVIEW || !db) return;
+  const { data, error } = await sb.rpc('club_read_summary');
+  if (error || !data) return;
+  const demo = crData(), keep = k => demo[k].filter(x => x.demo);
+  const fresh = readsFromSummary(data);
+  db.reads = { reads: [...fresh.reads, ...keep('reads')], members: [...fresh.members, ...keep('members')], rsvp: [...fresh.rsvp, ...keep('rsvp')], suggestions: fresh.suggestions };
+  save();
+}
+
+/* ---------- demo club read (on this phone) ---------- */
+const demoReadKey = key => 'sm.demoRead:' + ME + ':' + key;
+const demoReadGet = key => { try { return JSON.parse(localStorage.getItem(demoReadKey(key)) || '{}'); } catch (e) { return {}; } };
+const demoReadSet = (key, v) => { try { localStorage.setItem(demoReadKey(key), JSON.stringify(v)); } catch (e) {} };
+function applyDemoReads(c, d, mid, now) {
+  const rd = d.read || (DEMO_BUILTIN[c.key] || {}).read; if (!rd || !(rd.title || '').trim()) return;
+  const X = crData(), rid = `demo_${c.key}_read`, day = 86400000, pages = parseInt(rd.pages, 10) || 0, cover = rd.coverUrl || (rd.isbn ? olCover(rd.isbn) : '');
+  const ks = new Set((d.members || []).map(m => m.k)), mine = demoReadGet(c.key);
+  const meet = new Date(now + (rd.meetInDays ?? 3) * day); meet.setHours(19, 0, 0, 0);
+  X.reads.push({ id: rid, groupId: 'demo_' + c.key, title: rd.title.trim(), author: rd.author || '', pages, coverUrl: cover, genre: rd.genre || '', startedBy: mid(rd.by || (d.members[0] || {}).k),
+    startedAt: now - 5 * day, finishBy: dayStr(now + (rd.finishInDays ?? 14) * day), endedAt: null, pinned: Number.isInteger(rd.pin) ? `${rid}_m${rd.pin}` : null,
+    meetAt: rd.meetWhere ? meet.getTime() : null, meetWhere: rd.meetWhere || '', msgs: (rd.msgs || []).length + (mine.msgs || []).length, unread: 0, demo: true });
+  (rd.readers || []).forEach((x, i) => { if (!ks.has(x.who)) return;
+    const bid = `demo_${c.key}_rb${i}`, pg = Math.min(pages, parseInt(x.page, 10) || 0);
+    db.books.push({ id: bid, userId: mid(x.who), title: rd.title.trim(), author: rd.author || '', pages, page: pg, status: pages && pg >= pages ? 'finished' : 'reading', coverUrl: cover, photo: '', from: '', genre: rd.genre || '', track: true, updatedAt: now - (i + 2) * 3600000, demo: true });
+    X.members.push({ readId: rid, userId: mid(x.who), bookId: bid, demo: true }); });
+  (rd.rsvp || []).filter(k => ks.has(k)).forEach(k => X.rsvp.push({ readId: rid, userId: mid(k), demo: true }));
+  if (mine.joined) X.members.push({ readId: rid, userId: ME, bookId: (myCopy(rd.title) || {}).id || null, demo: true });
+  if (mine.rsvp) X.rsvp.push({ readId: rid, userId: ME, demo: true });
+}
+function demoReadMsgs(r) {
+  const c = demoClubs().find(x => 'demo_' + x.key === r.groupId); if (!c) return { msgs: [], likes: [] };
+  const rd = (c.data || {}).read || (DEMO_BUILTIN[c.key] || {}).read || {}, mine = demoReadGet(c.key), mid = k => `demo_${c.key}_${k}`, now = Date.now();
+  const msgs = (rd.msgs || []).map((m, i) => ({ id: `${r.id}_m${i}`, userId: mid(m.who), text: m.text || '', page: Number.isFinite(+m.page) && m.page !== '' && m.page !== null && m.page !== undefined ? +m.page : null,
+    createdAt: now - (parseFloat(m.minsAgo) || (rd.msgs.length - i) * 90) * 60000, demo: true }));
+  (mine.msgs || []).forEach(m => msgs.push({ ...m, userId: ME, demo: true }));
+  const likes = [];
+  (rd.msgs || []).forEach((m, i) => (m.likes || []).forEach(k => likes.push({ m: `${r.id}_m${i}`, u: mid(k) })));
+  (mine.likes || []).forEach(id => likes.push({ m: id, u: ME }));
+  return { msgs: msgs.sort((a, b) => a.createdAt - b.createdAt), likes };
+}
+
+/* ---------- loading the discussion ---------- */
+async function crLoad(rid, quiet) {
+  const r = readById(rid); if (!r) return;
+  if (CRX.id !== rid) { CRX.id = rid; CRX.msgs = []; CRX.likes = []; CRX.reveal = new Set(); CRX.err = ''; quiet = false; }
+  if (r.demo || PREVIEW || !CLOUD || !sb) { const x = r.demo ? demoReadMsgs(r) : { msgs: [], likes: [] }; CRX.msgs = x.msgs; CRX.likes = x.likes; crPaint(); return; }
+  if (!quiet) { CRX.loading = true; crPaint(); }
+  const m = await sb.from('club_read_msgs').select('id,read_id,user_id,text,page,created_at,hidden_at').eq('read_id', rid).order('created_at', { ascending: true }).limit(500);
+  CRX.loading = false;
+  if (m.error) { CRX.err = "Couldn't load the discussion. Pull down to refresh, or check your connection."; crPaint(); return; }
+  const ids = m.data.map(x => x.id);
+  const l = ids.length ? await sb.from('club_read_likes').select('msg_id,user_id').in('msg_id', ids) : { data: [] };
+  if (CRX.id !== rid) return;
+  const before = JSON.stringify([CRX.msgs.map(x => x.id + (x.hidden ? 'h' : '')), CRX.likes.length]);
+  CRX.msgs = m.data.map(x => ({ id: x.id, userId: x.user_id, text: x.text, page: x.page, createdAt: Date.parse(x.created_at), hidden: !!x.hidden_at }));
+  CRX.likes = (l.data || []).map(x => ({ m: x.msg_id, u: x.user_id }));
+  CRX.err = '';
+  if (r.unread) { r.unread = 0; save(); }
+  sb.from('club_read_seen').upsert({ read_id: rid, user_id: ME, seen_at: new Date().toISOString() }, { onConflict: 'read_id,user_id' }).then(() => {});
+  if (!quiet || before !== JSON.stringify([CRX.msgs.map(x => x.id + (x.hidden ? 'h' : '')), CRX.likes.length])) crPaint();
+}
+/* repaint just the discussion, so typing isn't interrupted */
+function crPaint() {
+  const el = document.getElementById('cr-list'); if (!el) return;
+  const r = readById(CRX.id), g = r && db.groups.find(x => x.id === r.groupId); if (!r || !g) return;
+  el.innerHTML = crListHTML(g, r);
+  const n = document.getElementById('cr-count'); if (n) n.textContent = CRX.msgs.filter(m => !m.hidden).length;
+}
+setInterval(() => { if (ui.readPage && !ui.sheet && document.visibilityState === 'visible' && db) crLoad(ui.readPage, true); }, 15000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && ui.readPage && db) crLoad(ui.readPage, true); });
+
+/* ---------- club page: the club read card ---------- */
+function clubReadCardHTML(g) {
+  if (!CLOUD && !g.demo) return '';
+  if (g.demo && !liveRead(g)) return '';
+  const r = liveRead(g), mgr = canManage(g), sugg = clubSuggestions(g), past = pastReads(g);
+  const extras = [!g.demo ? `<button class="link small" data-act="cr-pick" data-id="${g.id}" data-mode="suggest">💡 Suggest ${r ? 'the next' : 'a'} book</button>` : '',
+    sugg.length ? `<button class="link small" data-act="cr-sugg" data-id="${g.id}">${sugg.length} ${sugg.length === 1 ? 'suggestion' : 'suggestions'}</button>` : '',
+    past.length ? `<button class="link small" data-act="cr-past" data-id="${g.id}">Past club reads · ${past.length}</button>` : ''].filter(Boolean).join('<span class="small">·</span>');
+  if (r) {
+    const n = readMembers(r).length, meet = r.meetAt && r.meetAt > Date.now() - 3600000;
+    return `<button class="card cr-card" data-act="cr-open" data-id="${r.id}">
+        <span class="cr-tag">📖 Club read${r.demo ? ' · demo' : ''}</span>
+        <span class="row" style="align-items:flex-start">${coverHTML(r, 46, 69)}<span class="grow" style="min-width:0">
+          <span class="item-title clamp2">${esc(r.title)}</span><span class="meta">${esc(r.author || '')}</span>
+          <span class="meta">👥 ${n} reading together${r.finishBy ? ` · 🏁 by ${esc(dateLong(r.finishBy))}` : ''}</span>
+          ${meet ? `<span class="meta">📅 Meet-up ${esc(meetWhen(r.meetAt))}</span>` : ''}</span>
+          ${r.unread ? `<span class="pill soon">💬 ${r.unread} new</span>` : '<span class="mc" style="color:var(--muted);font-size:1.1rem">›</span>'}</span>
+      </button>${extras ? `<div class="cr-under">${extras}</div>` : ''}`;
+  }
+  return `<div class="card cr-card"><span class="cr-tag">📖 Club read</span>
+      <div class="item-title">Read one book together</div>
+      <p class="sub" style="margin:.2rem 0 0">Everyone reads the same book at their own pace and talks about it in one place. Spoilers stay hidden until you get there.</p>
+      ${mgr ? `<div class="actions" style="margin-top:.6rem"><button class="btn primary" data-act="cr-pick" data-id="${g.id}" data-mode="start">📖 Start a club read</button></div>`
+        : g.demo ? '' : `<p class="small" style="margin:.5rem 0 0">Owners and moderators can start one. Suggest a book you'd like to read together.</p>`}
+    </div>${extras ? `<div class="cr-under">${extras}</div>` : ''}`;
+}
+
+/* ---------- the club read page ---------- */
+function readPageHTML(g, r) {
+  const ended = !!r.endedAt, mgr = canManage(g), joined = readJoined(r), mine = readerBook(r, ME), live = !ended;
+  const starter = r.startedBy ? nameOf(r.startedBy) : '';
+  const prog = b => { if (!b) return null; const pages = b.pages || r.pages || 0;
+    if (b.status === 'finished') return { pct: 100, label: 'Finished ✓' };
+    const pct = b.page && pages ? Math.min(100, Math.round(b.page / pages * 100)) : (b.percent || 0);
+    return { pct, label: b.page ? `Page ${b.page}${pages ? ' of ' + pages : ''}` : pct ? pct + '%' : 'Just started' }; };
+  const readers = [...readMembers(r)].sort((a, b) => (a.userId === ME ? -1 : b.userId === ME ? 1 : 0));
+  const rs = readRsvp(r), imIn = rs.some(v => v.userId === ME), meetPast = r.meetAt && r.meetAt < Date.now() - 3 * 3600000;
+  const msgs = CRX.id === r.id ? CRX.msgs.filter(m => !m.hidden) : [];
+  return `<div class="card cr-hero">
+      <div class="row" style="align-items:flex-start;gap:.9rem">${coverHTML(r, 74, 111)}<div class="grow" style="min-width:0">
+        <span class="cr-tag">📖 Club read${ended ? ' · ended' : ''}</span>
+        <h2 class="cr-title">${esc(r.title)}</h2>
+        <div class="meta">${esc(r.author || 'Unknown author')}${r.pages ? ' · ' + r.pages + ' pages' : ''}</div>
+        <div class="meta" style="margin-top:.25rem">${starter ? `Started by ${esc(starter)} · ` : ''}${esc(dateLong(r.startedAt))}</div>
+        ${r.finishBy && live ? `<div class="meta">🏁 Finish by ${esc(dateLong(r.finishBy))}</div>` : ''}
+        ${ended ? `<div class="meta">Ended ${esc(dateLong(r.endedAt))}</div>` : ''}
+      </div></div>
+      ${live ? (joined ? (mine ? (() => { const p = prog(mine); return `<div class="cr-mine"><div class="row" style="justify-content:space-between"><span class="small" style="color:var(--ink)"><b>You</b> · ${esc(p.label)}</span>
+            <button class="btn" data-act="cr-bookmark" data-id="${mine.id}">📍 Move my bookmark</button></div><div class="bar" style="margin-top:.4rem"><div style="width:${p.pct}%"></div></div></div>`; })()
+          : `<div class="actions"><button class="btn" data-act="cr-join" data-id="${r.id}">＋ Add it to my shelf</button></div>`)
+        : `<button class="btn primary block" style="margin-top:.8rem" data-act="cr-join" data-id="${r.id}">➕ Join this read</button><p class="small" style="text-align:center;margin:.3rem 0 0">Adds it to your shelf as Reading. Read at your own pace.</p>`) : ''}
+      ${live && mgr ? `<div class="cr-mgr"><button class="link small" data-act="cr-finish" data-id="${r.id}">🏁 ${r.finishBy ? 'Change' : 'Set a'} finish date</button>
+        ${r.meetAt ? '' : `<button class="link small" data-act="cr-meet" data-id="${r.id}">📅 Plan a meet-up</button>`}
+        <button class="link small danger-link" data-act="cr-end" data-id="${r.id}">End club read</button></div>` : ''}
+    </div>
+
+    ${r.meetAt && !(ended && meetPast) ? `<div class="card cr-meet">
+      <div class="row" style="align-items:flex-start"><span style="font-size:1.4rem">📅</span><div class="grow">
+        <div class="item-title">${meetPast ? 'Last meet-up' : 'Meet-up'} · ${esc(meetWhen(r.meetAt))}</div>
+        ${r.meetWhere ? (isLink(r.meetWhere) ? `<a class="small" href="${esc(r.meetWhere.trim())}" target="_blank" rel="noopener">Join link ↗</a>` : `<div class="meta">📍 ${esc(r.meetWhere)}</div>`) : ''}
+        <div class="meta" style="margin-top:.2rem">${rs.length ? `👍 ${rs.length} in: ${esc(rs.map(v => nameOf(v.userId)).join(', '))}` : 'No one has said yes yet'}</div>
+      </div></div>
+      ${live && !meetPast ? `<div class="actions" style="margin-top:.5rem"><button class="btn ${imIn ? 'on-soft' : 'primary'}" data-act="cr-rsvp" data-id="${r.id}" aria-pressed="${imIn}">${imIn ? "✓ I'm in" : "👍 I'm in"}</button>
+        ${mgr ? `<button class="btn" data-act="cr-meet" data-id="${r.id}">Edit</button>` : ''}</div>` : ''}
+      ${live && meetPast && mgr ? `<div class="actions" style="margin-top:.5rem"><button class="btn" data-act="cr-meet" data-id="${r.id}">📅 Plan the next one</button></div>` : ''}
+    </div>` : ''}
+
+    <div class="section-label">👥 Reading together · ${readers.length}</div>
+    ${readers.length ? `<div class="mgroup" style="margin-top:0">${readers.map(m => { const u = m.userId === ME ? { ...db.me, name: 'You' } : (userById(m.userId) || { name: 'Former member' });
+        const b = readerBook(r, m.userId), p = prog(b), hide = m.userId !== ME && u.showProgress === false;
+        return `<div class="mrow static">${avatar(u, 'sm')}<span class="mt">${esc(u.name)}<small>${hide ? 'Progress hidden' : p ? esc(p.label) : 'Not started yet'}</small>
+          ${!hide && p ? `<span class="bar" style="display:block;margin-top:.3rem"><span style="display:block;height:100%;width:${p.pct}%;background:var(--accent)"></span></span>` : ''}</span></div>`; }).join('')}</div>`
+      : '<div class="card empty">No one has joined yet.</div>'}
+
+    <div class="section-label"><span>💬 Discussion · <span id="cr-count">${msgs.length}</span></span></div>
+    <div id="cr-list">${crListHTML(g, r)}</div>
+    ${live ? `<div class="card cr-compose">
+        <label class="sr" for="cr-text">Write a message</label>
+        <textarea class="hb-input" id="cr-text" rows="2" maxlength="1000" placeholder="Say something about the book…">${esc(ui.crDraft || '')}</textarea>
+        <div class="row" style="justify-content:space-between;gap:.5rem;margin-top:.5rem;flex-wrap:wrap">
+          <label class="small cr-spoil" style="color:var(--ink)"><input type="checkbox" id="cr-spoil" ${ui.crSpoil ? 'checked' : ''}> 🙈 Spoiler from page
+            <input class="hb-input" id="cr-page" type="number" inputmode="numeric" min="0" max="100000" value="${ui.crPage ?? (Number.isFinite(myPageIn(r)) ? myPageIn(r) : (r.pages || 0))}" aria-label="Page"></label>
+          <button class="btn primary" data-act="cr-send" data-id="${r.id}">Send</button>
+        </div>
+        <p class="small" style="margin:.35rem 0 0">Tick 🙈 if it gives away anything past a page. People who haven't got there yet see it blurred.</p>
+      </div>`
+      : `<div class="banner info"><span class="b-icon">📕</span><div class="sub" style="color:var(--ink)">This club read has ended. The discussion stays here to read.</div></div>`}`;
+}
+function crMsgHTML(m, g, r, pinned) {
+  const u = m.userId === ME ? { ...db.me, name: 'You' } : (userById(m.userId) || { name: 'Former member' });
+  const blur = m.page !== null && m.page !== undefined && m.userId !== ME && myPageIn(r) < m.page && !CRX.reveal.has(m.id);
+  const likes = CRX.likes.filter(l => l.m === m.id), mineL = likes.some(l => l.u === ME), canLike = m.userId !== ME && !m.hidden && !r.endedAt || (m.userId !== ME && !m.hidden && mineL);
+  return `<div class="cr-msg ${m.hidden ? 'hid' : ''} ${pinned ? 'pinned' : ''}">${avatar(u, 'sm')}<div class="grow" style="min-width:0">
+      <div class="cr-head"><b>${esc(u.name)}</b><span class="small">${pinned ? '📌 Pinned · ' : ''}${esc(msgTime(m.createdAt))}${m.page !== null && m.page !== undefined ? ` · 🙈 from p. ${m.page}` : ''}</span></div>
+      ${blur ? `<button class="cr-spoiler" data-act="cr-reveal" data-id="${m.id}">🙈 Spoiler – page ${m.page}. Tap to read</button>` : `<div class="cr-text">${esc(m.text)}</div>`}
+      ${m.hidden ? '<div class="small" style="margin-top:.2rem">🙈 Hidden by a moderator. Only you and the club’s moderators see it.</div>' : ''}
+      <div class="cr-acts">${canLike ? `<button class="cr-like ${mineL ? 'on' : ''}" data-act="cr-like" data-id="${m.id}" aria-pressed="${mineL}" aria-label="${mineL ? 'Unlike' : 'Like'}">${mineL ? '❤️' : '🤍'}${likes.length ? ' ' + likes.length : ''}</button>`
+        : likes.length ? `<span class="small">❤️ ${likes.length}</span>` : ''}
+        <button class="cr-more" data-act="cr-menu" data-id="${m.id}" aria-label="More">⋯</button></div>
+    </div></div>`;
+}
+function crListHTML(g, r) {
+  if (CRX.id !== r.id || (CRX.loading && !CRX.msgs.length)) return '<div class="empty">Loading the discussion…</div>';
+  if (CRX.err) return `<div class="empty">${esc(CRX.err)}</div>`;
+  const list = CRX.msgs.filter(m => !m.hidden || m.userId === ME || canManage(g));
+  const pin = r.pinned && list.find(m => m.id === r.pinned && !m.hidden);
+  if (!list.length) return `<div class="card empty">${r.endedAt ? 'No messages.' : 'No messages yet. Start the conversation: what drew you to this book?'}</div>`;
+  return (pin ? crMsgHTML(pin, g, r, true) : '') + list.filter(m => m !== pin).map(m => crMsgHTML(m, g, r, false)).join('');
+}
+
+/* ---------- sheets ---------- */
+function crPickHTML(d) {
+  const g = db.groups.find(x => x.id === d.club); if (!g) return '';
+  const start = d.mode === 'start', title = t => `<h2 class="sheet-title">${t}</h2>`;
+  if (d.chosen) {
+    const c = d.chosen;
+    return `${title(start ? 'Start a club read' : 'Suggest a book')}
+      ${c.manual ? `<label class="hb-label" for="crm-title">Title</label><input class="hb-input" id="crm-title" maxlength="300" value="${esc(c.title || '')}">
+        <label class="hb-label" for="crm-author">Author <span class="sub">(optional)</span></label><input class="hb-input" id="crm-author" maxlength="200" value="${esc(c.author || '')}">
+        <label class="hb-label" for="crm-pages">Pages <span class="sub">(optional)</span></label><input class="hb-input" id="crm-pages" type="number" inputmode="numeric" min="0" style="max-width:8rem" value="${c.pages || ''}">`
+        : `<div class="card row">${coverHTML(c, 46, 69)}<div class="grow"><div class="item-title">${esc(c.title)}</div><div class="meta">${esc(c.author || 'Unknown author')}${c.pages ? ' · ' + c.pages + ' pages' : ''}</div>${c.by ? `<div class="meta">💡 Suggested by ${esc(nameOf(c.by))}</div>` : ''}</div></div>`}
+      ${start ? `<label class="hb-label" for="cr-fin">Finish by <span class="sub">(optional)</span></label><input class="hb-input" id="cr-fin" type="date" min="${dayStr()}" style="max-width:12rem">
+        <p class="sub" style="margin:.6rem 0 0">Everyone in ${esc(g.name)} gets a notification and can join with one tap. It goes on your shelf as Reading.</p>` : `<p class="sub" style="margin:.6rem 0 0">Your club's owners and moderators will see it when they pick the next club read.</p>`}
+      <div class="formbtns"><button class="btn" data-act="cr-unchoose">‹ Back</button><button class="btn primary" data-act="${start ? 'cr-start' : 'cr-suggest'}" ${d.busy ? 'disabled' : ''}>${d.busy ? 'Saving…' : start ? '📖 Start club read' : '💡 Suggest it'}</button></div>`;
+  }
+  return `${title(start ? 'Start a club read' : 'Suggest a book')}
+    <form data-form="search" role="search"><label class="sr" for="q">Search by title or author</label>
+      <input class="hb-input" id="q" type="search" placeholder="🔍 Title or author" value="${esc(ui.search.q)}" autocomplete="off" enterkeyhint="search"></form>
+    <div id="results" style="margin-top:.4rem">${resultsHTML()}</div>
+    <button class="link" data-act="cr-manual">Can't find it? Type it in</button>
+    <div class="formbtns"><button class="btn primary" data-act="close">Cancel</button></div>`;
+}
+function crResultsHTML() {
+  const d = ui.sheetData, s = ui.search, g = db.groups.find(x => x.id === d.club);
+  const row = (x, src, i) => `<div class="result">${coverHTML(x, 36, 54)}<div class="grow"><div class="item-title clamp2">${esc(x.title)}</div>
+      <div class="meta">${esc(x.author || 'Unknown author')}${x.pages ? ' · ' + x.pages + ' pages' : ''}${x.userId ? ' · 💡 ' + esc(nameOf(x.userId)) : ''}</div></div>
+      <button class="btn primary" data-act="cr-choose" data-src="${src}" data-id="${i}">Pick</button></div>`;
+  if (!s.q) {
+    const sugg = g ? clubSuggestions(g) : [];
+    return d.mode === 'start' && sugg.length ? `<div class="section-label">Suggested by your club</div>${sugg.map((x, i) => row(x, 'sugg', i)).join('')}`
+      : '<div class="empty">Search millions of books by title or author.</div>';
+  }
+  if (s.loading) return '<div class="empty">Searching…</div>';
+  if (s.error) return `<div class="empty">${esc(s.error)}</div>`;
+  return s.results.map((x, i) => row(x, 'search', i)).join('');
+}
+function crSheetHTML(name, d) {
+  const title = t => `<h2 class="sheet-title">${t}</h2>`, close = (l = 'Done') => `<div class="formbtns"><button class="btn primary" data-act="close">${l}</button></div>`;
+  if (name === 'cr-pick') return crPickHTML(d);
+  if (name === 'cr-sugg') {
+    const g = db.groups.find(x => x.id === d.club); if (!g) return '';
+    const L = clubSuggestions(g), mgr = canManage(g), live = liveRead(g);
+    return `${title('Suggested books')}<p class="sub">Books people in ${esc(g.name)} would like to read together.</p>
+      ${L.length ? L.map(s => `<div class="result">${coverHTML(s, 36, 54)}<div class="grow"><div class="item-title clamp2">${esc(s.title)}</div><div class="meta">${esc(s.author || '')}${s.author ? ' · ' : ''}💡 ${esc(nameOf(s.userId))}</div></div>
+          <div class="row" style="gap:.3rem">${mgr && !live ? `<button class="btn primary" data-act="cr-sugg-start" data-id="${s.id}">Start</button>` : ''}
+          ${mgr || s.userId === ME ? `<button class="iconbtn" style="border:none" aria-label="Remove suggestion" data-act="cr-sugg-rm" data-id="${s.id}">✕</button>` : ''}</div></div>`).join('')
+        : '<div class="empty">No suggestions yet.</div>'}
+      ${mgr && live ? '<p class="small" style="text-align:center">End the current club read to start one of these.</p>' : ''}
+      <button class="btn block" style="margin-top:.6rem" data-act="cr-pick" data-id="${g.id}" data-mode="suggest">💡 Suggest a book</button>${close()}`;
+  }
+  if (name === 'cr-past') {
+    const g = db.groups.find(x => x.id === d.club); if (!g) return '';
+    return `${title('Past club reads')}${pastReads(g).map(r => `<button class="result" style="width:100%;text-align:left;cursor:pointer;background:none;border:none;color:var(--ink)" data-act="cr-open" data-id="${r.id}">${coverHTML(r, 36, 54)}
+        <span class="grow"><span class="item-title clamp2">${esc(r.title)}</span><span class="meta">${esc(dateLong(r.startedAt))} – ${esc(dateLong(r.endedAt))} · 👥 ${readMembers(r).length} · 💬 ${r.msgs}</span></span><span class="mc">›</span></button>`).join('') || '<div class="empty">None yet.</div>'}${close()}`;
+  }
+  if (name === 'cr-finish') {
+    const r = readById(d.id); if (!r) return '';
+    return `${title('Finish date')}<p class="sub">A gentle target for the club. Everyone still reads at their own pace.</p>
+      <label class="hb-label" for="cr-fin2">Finish by</label><input class="hb-input" id="cr-fin2" type="date" min="${dayStr()}" value="${esc(r.finishBy || '')}" style="max-width:12rem">
+      <div class="formbtns">${r.finishBy ? '<button class="btn danger" data-act="cr-finish-save" data-id="clear">Remove date</button>' : '<button class="btn" data-act="close">Cancel</button>'}<button class="btn primary" data-act="cr-finish-save" ${d.busy ? 'disabled' : ''}>Save</button></div>`;
+  }
+  if (name === 'cr-meet') {
+    const r = readById(d.id); if (!r) return '';
+    const v = r.meetAt && r.meetAt > Date.now() ? (() => { const x = new Date(r.meetAt); x.setMinutes(x.getMinutes() - x.getTimezoneOffset()); return x.toISOString().slice(0, 16); })() : '';
+    return `${title(r.meetAt ? 'Edit meet-up' : 'Plan a meet-up')}<p class="sub">Everyone in the club gets a reminder the day before and 1 hour before.</p>
+      <label class="hb-label" for="cr-mt">Date and time</label><input class="hb-input" id="cr-mt" type="datetime-local" value="${v}" style="max-width:15rem">
+      <label class="hb-label" for="cr-mw">Where <span class="sub">(optional)</span></label><input class="hb-input" id="cr-mw" maxlength="300" placeholder="A video call link, or a place" value="${esc(r.meetWhere || '')}">
+      ${r.meetAt ? '<button class="link danger-link" style="display:block;margin:.6rem auto 0" data-act="cr-meet-clear">Cancel the meet-up</button>' : ''}
+      <div class="formbtns"><button class="btn" data-act="close">Cancel</button><button class="btn primary" data-act="cr-meet-save" ${d.busy ? 'disabled' : ''}>Save</button></div>`;
+  }
+  if (name === 'cr-menu') {
+    const r = readById(CRX.id), g = r && db.groups.find(x => x.id === r.groupId), m = CRX.msgs.find(x => x.id === d.id);
+    if (!r || !g || !m) return '';
+    const mgr = canManage(g), own = m.userId === ME, who = nameOf(m.userId);
+    return `${title(own ? 'Your message' : 'Message from ' + esc(who))}<div class="mgroup" style="margin-top:0">
+      ${mgr && !m.hidden && !r.endedAt ? (r.pinned === m.id ? `<button class="mrow" data-act="cr-pin" data-id="${m.id}" data-un="1"><span class="mi">📌</span><span class="mt">Unpin</span></button>`
+        : `<button class="mrow" data-act="cr-pin" data-id="${m.id}"><span class="mi">📌</span><span class="mt">Pin to the top<small>Good for "This week: chapters 1–5"</small></span></button>`) : ''}
+      ${mgr && !own ? (m.hidden ? `<button class="mrow" data-act="cr-hide" data-id="${m.id}" data-un="1"><span class="mi">👁</span><span class="mt">Show it again</span></button>`
+        : `<button class="mrow" data-act="cr-hide" data-id="${m.id}"><span class="mi">🙈</span><span class="mt">Hide from the club<small>${esc(who)} still sees it. You can show it again.</small></span></button>`) : ''}
+      ${own ? `<button class="mrow danger" data-act="cr-del" data-id="${m.id}"><span class="mi">🗑️</span><span class="mt">Delete message</span></button>` : ''}
+      ${!own && !r.demo && CLOUD ? (wasReported(m.id) ? `<div class="mrow static"><span class="mi">🚩</span><span class="mt">Reported<small>Thanks. The Shelfmates team has it.</small></span></div>`
+        : `<button class="mrow danger" data-act="cr-report" data-id="${m.id}"><span class="mi">🚩</span><span class="mt">Report this message<small>Sends it to the Shelfmates team. ${esc(who)} isn't told who reported it.</small></span></button>`) : ''}
+      ${!own && r.demo ? '<div class="mrow static"><span class="mi">🧪</span><span class="mt">Demo club<small>These readers are pretend.</small></span></div>' : ''}
+    </div>${close('Cancel')}`;
+  }
+  return '';
+}
+
+/* ---------- doing things ---------- */
+async function crRun(g, op, p = {}) {
+  if (!CLOUD || !sb || PREVIEW) { toast(PREVIEW ? "Can't change club reads while previewing" : 'This needs an internet connection'); return null; }
+  const { data, error } = await sb.rpc('club_read_manage', { p_club: g.id, p_op: op, p });
+  if (error) { toast(/function|schema/i.test(error.message || '') ? 'Club reads need the latest Supabase update first' : error.message); return null; }
+  return data || {};
+}
+/* put the club read book on my shelf (or reuse my copy) and make sure this club can see it */
+function crShelfCopy(r, g) {
+  let b = myCopy(r.title), added = false;
+  if (!b) { b = addBook({ title: r.title, author: r.author, pages: r.pages, coverUrl: r.coverUrl, genre: r.genre, status: 'reading', from: 'Club read · ' + g.name }); added = true; }
+  if (!b) return null;
+  const patch = {};
+  if (!added && (b.status === 'want' || b.status === 'paused')) patch.status = 'reading';
+  if (!g.demo && Array.isArray(b.visibleTo) && !b.visibleTo.includes(g.id)) patch.visibleTo = [...b.visibleTo, g.id];
+  if (Object.keys(patch).length) updBook(b.id, patch);
+  return b;
+}
+async function crJoin(rid) {
+  const r = readById(rid), g = r && db.groups.find(x => x.id === r.groupId); if (!r || !g) return;
+  if (!r.demo && (!CLOUD || !sb || PREVIEW)) { toast(PREVIEW ? "Can't join while previewing" : 'This needs an internet connection'); return; }
+  const b = crShelfCopy(r, g); if (!b) return;
+  if (r.demo) { const key = g.demoKey, st = demoReadGet(key); st.joined = true; demoReadSet(key, st); }
+  else {
+    const { error } = await sb.from('club_read_members').upsert({ read_id: r.id, user_id: ME, book_id: b.id }, { onConflict: 'read_id,user_id' });
+    if (error) { toast("Couldn't join: " + error.message); return; }
+  }
+  const X = crData(); X.members = X.members.filter(m => !(m.readId === r.id && m.userId === ME)); X.members.push({ readId: r.id, userId: ME, bookId: b.id, demo: !!r.demo });
+  save(); render(); toast(`📖 You're in! ${r.title} is on your shelf`);
+}
+async function crSend(rid) {
+  const r = readById(rid), g = r && db.groups.find(x => x.id === r.groupId), ta = document.getElementById('cr-text'); if (!r || !g || !ta) return;
+  const text = ta.value.trim(); if (!text) { ta.focus(); return; }
+  if (r.endedAt) return;
+  const c = langCheck(text);
+  if (c === 'block') { toast("That has a word that isn't allowed on Shelfmates. Please edit it before sending."); ta.focus(); return; }
+  if (c === 'strong' && !confirm('Heads up: this has a strong word, and your club will see it.\n\nOK to send anyway, or Cancel to edit.')) return;
+  const spoil = document.getElementById('cr-spoil')?.checked, pg = parseInt(document.getElementById('cr-page')?.value, 10);
+  const page = spoil && Number.isFinite(pg) ? Math.max(0, Math.min(100000, pg)) : null;
+  let m;
+  if (r.demo) {
+    m = { id: 'mine_' + uid(), userId: ME, text, page, createdAt: Date.now() };
+    const st = demoReadGet(g.demoKey); st.msgs = [...(st.msgs || []), { id: m.id, text, page, createdAt: m.createdAt }].slice(-50); demoReadSet(g.demoKey, st);
+  } else {
+    if (!CLOUD || !sb || PREVIEW) { toast(PREVIEW ? "Can't send while previewing" : 'This needs an internet connection'); return; }
+    const btn = document.querySelector('[data-act="cr-send"]'); if (btn) btn.disabled = true;
+    const { data, error } = await sb.from('club_read_msgs').insert({ read_id: r.id, user_id: ME, text, page }).select('id,created_at').single();
+    if (btn) btn.disabled = false;
+    if (error) { toast("Couldn't send: " + error.message); return; }
+    m = { id: data.id, userId: ME, text, page, createdAt: Date.parse(data.created_at) || Date.now() };
+  }
+  if (CRX.id === r.id && !CRX.msgs.some(x => x.id === m.id)) CRX.msgs.push(m);
+  r.msgs = (r.msgs || 0) + 1; ui.crDraft = ''; ui.crSpoil = false; ui.crPage = undefined; ta.value = ''; const sp = document.getElementById('cr-spoil'); if (sp) sp.checked = false;
+  save(); crPaint();
+  const last = document.querySelector('#cr-list .cr-msg:last-child'); if (last) last.scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
+async function crPickFor(d) {
+  const c = d.chosen; if (!c) return null;
+  if (c.manual) {
+    const t = (document.getElementById('crm-title')?.value || '').trim(); if (!t) { toast('Type the book title'); document.getElementById('crm-title')?.focus(); return null; }
+    return { title: t, author: (document.getElementById('crm-author')?.value || '').trim(), pages: parseInt(document.getElementById('crm-pages')?.value, 10) || 0, coverUrl: '', genre: '' };
+  }
+  return c;
+}
+async function crStartFrom(g, c, finish, suggestion) {
+  const res = await crRun(g, 'start', { title: c.title, author: c.author || '', pages: c.pages || 0, cover_url: c.coverUrl || '', genre: c.genre || '', finish_by: finish || '', suggestion: suggestion || '' });
+  if (!res || !res.id) return false;
+  await crRefresh();
+  const r = readById(res.id);
+  if (r) { const b = crShelfCopy(r, g); if (b) await sb.from('club_read_members').upsert({ read_id: r.id, user_id: ME, book_id: b.id }, { onConflict: 'read_id,user_id' }); await crRefresh(); }
+  ui.sheet = null; ui.sheetData = {}; ui.clubPage = g.id; ui.readPage = res.id; render(); scrollTo(0, 0); crLoad(res.id);
+  toast(`📖 Club read started. ${g.name} will get a notification.`);
+  return true;
+}
+function crOpen(rid) {
+  const r = readById(rid); if (!r) return;
+  ui.sheet = null; ui.sheetData = {}; ui.clubPage = r.groupId; ui.readPage = r.id; ui.crDraft = ''; ui.crSpoil = false; ui.crPage = undefined;
+  render(); scrollTo(0, 0); crLoad(r.id);
+}
+
+const crActions = {
+  'cr-open'(id) { crOpen(id); },
+  'cr-back'() { ui.readPage = null; CRX.id = null; render(); scrollTo(0, 0); },
+  'cr-join'(id) { crJoin(id); },
+  'cr-send'(id) { crSend(id); },
+  'cr-reveal'(id) { CRX.reveal.add(id); crPaint(); },
+  'cr-bookmark'(id) { openSheet('book', { id }); },
+  'cr-pick'(id, el) { ui.search = { q: '', loading: false, results: [], error: '' }; openSheet('cr-pick', { club: id, mode: el.dataset.mode || 'suggest' }); },
+  'cr-choose'(i, el) {
+    const d = ui.sheetData, g = db.groups.find(x => x.id === d.club);
+    const x = el.dataset.src === 'sugg' ? clubSuggestions(g)[+i] : ui.search.results[+i]; if (!x) return;
+    d.chosen = { title: x.title, author: x.author || '', pages: x.pages || 0, coverUrl: x.coverUrl || '', genre: x.genre || '', by: x.userId || null }; d.suggestion = el.dataset.src === 'sugg' ? x.id : null; renderSheet();
+  },
+  'cr-manual'() { ui.sheetData.chosen = { manual: true, title: ui.search.q || '' }; ui.sheetData.suggestion = null; renderSheet(); setTimeout(() => document.getElementById('crm-title')?.focus(), 50); },
+  'cr-unchoose'() { ui.sheetData.chosen = null; renderSheet(); },
+  async 'cr-start'() {
+    const d = ui.sheetData, g = db.groups.find(x => x.id === d.club), c = await crPickFor(d); if (!g || !c) return;
+    const fin = document.getElementById('cr-fin')?.value || '';
+    d.busy = true; renderSheet();
+    const ok = await crStartFrom(g, c, fin, d.suggestion);
+    if (!ok && ui.sheet === 'cr-pick') { d.busy = false; renderSheet(); }
+  },
+  async 'cr-suggest'() {
+    const d = ui.sheetData, g = db.groups.find(x => x.id === d.club), c = await crPickFor(d); if (!g || !c) return;
+    if (!CLOUD || !sb || PREVIEW) { toast(PREVIEW ? "Can't suggest while previewing" : 'This needs an internet connection'); return; }
+    if (clubSuggestions(g).some(s => norm(s.title) === norm(c.title))) { toast('Already suggested 👍'); closeSheet(); return; }
+    d.busy = true; renderSheet();
+    const { error } = await sb.from('club_read_suggestions').insert({ group_id: g.id, user_id: ME, title: c.title, author: c.author || '', pages: c.pages || 0, cover_url: c.coverUrl || '', genre: c.genre || '' });
+    if (error) { d.busy = false; renderSheet(); toast(/security|policy/i.test(error.message) ? 'You can have up to 5 suggestions in a club. Remove one first.' : "Couldn't suggest: " + error.message); return; }
+    await crRefresh(); closeSheet(); toast('💡 Suggested to ' + g.name);
+  },
+  'cr-sugg'(id) { openSheet('cr-sugg', { club: id }); },
+  'cr-past'(id) { openSheet('cr-past', { club: id }); },
+  async 'cr-sugg-rm'(id) {
+    const s = crData().suggestions.find(x => x.id === id); if (!s) return;
+    const { error } = await sb.from('club_read_suggestions').delete().eq('id', id);
+    if (error) { toast("Couldn't remove: " + error.message); return; }
+    await crRefresh(); renderSheet(); render(); toast('Suggestion removed');
+  },
+  async 'cr-sugg-start'(id) {
+    const s = crData().suggestions.find(x => x.id === id), g = s && db.groups.find(x => x.id === s.groupId); if (!s || !g) return;
+    ui.search = { q: '', loading: false, results: [], error: '' };
+    openSheet('cr-pick', { club: g.id, mode: 'start', chosen: { title: s.title, author: s.author, pages: s.pages, coverUrl: s.coverUrl, genre: s.genre, by: s.userId }, suggestion: s.id });
+  },
+  'cr-finish'(id) { openSheet('cr-finish', { id }); },
+  async 'cr-finish-save'(v) {
+    const r = readById(ui.sheetData.id), g = r && db.groups.find(x => x.id === r.groupId); if (!r || !g) return;
+    const val = v === 'clear' ? '' : (document.getElementById('cr-fin2')?.value || '');
+    if (!(await crRun(g, 'finish_by', { read: r.id, finish_by: val }))) return;
+    await crRefresh(); closeSheet(); toast(val ? '🏁 Finish date set' : 'Finish date removed');
+  },
+  'cr-meet'(id) { openSheet('cr-meet', { id }); },
+  async 'cr-meet-save'() {
+    const r = readById(ui.sheetData.id), g = r && db.groups.find(x => x.id === r.groupId); if (!r || !g) return;
+    const v = document.getElementById('cr-mt')?.value; if (!v) { toast('Pick a date and time'); return; }
+    const at = new Date(v); if (!(at.getTime() > Date.now())) { toast('Pick a time in the future'); return; }
+    const sameTime = r.meetAt && Math.abs(r.meetAt - at.getTime()) < 60000;
+    if (!(await crRun(g, 'meet', { read: r.id, at: at.toISOString(), where: document.getElementById('cr-mw')?.value || '', keep_rsvp: sameTime ? 'true' : 'false' }))) return;
+    await crRefresh(); closeSheet(); toast('📅 Meet-up saved. Reminders go out the day before and 1 hour before.');
+  },
+  async 'cr-meet-clear'() {
+    const r = readById(ui.sheetData.id), g = r && db.groups.find(x => x.id === r.groupId); if (!r || !g) return;
+    if (!confirm('Cancel the meet-up?')) return;
+    if (!(await crRun(g, 'meet_clear', { read: r.id }))) return;
+    await crRefresh(); closeSheet(); toast('Meet-up cancelled');
+  },
+  async 'cr-rsvp'(id) {
+    const r = readById(id); if (!r) return;
+    const X = crData(), on = readRsvp(r).some(v => v.userId === ME);
+    if (r.demo) { const key = db.groups.find(x => x.id === r.groupId).demoKey, st = demoReadGet(key); st.rsvp = !on; demoReadSet(key, st); }
+    else {
+      if (!CLOUD || !sb || PREVIEW) { toast('This needs an internet connection'); return; }
+      const { error } = on ? await sb.from('club_read_rsvp').delete().eq('read_id', id).eq('user_id', ME) : await sb.from('club_read_rsvp').insert({ read_id: id, user_id: ME });
+      if (error) { toast("Couldn't save: " + error.message); return; }
+    }
+    X.rsvp = X.rsvp.filter(v => !(v.readId === id && v.userId === ME)); if (!on) X.rsvp.push({ readId: id, userId: ME, demo: !!r.demo });
+    save(); render(); toast(on ? 'Okay, maybe next time' : "👍 You're in. See you there!");
+  },
+  async 'cr-end'(id) {
+    const r = readById(id), g = r && db.groups.find(x => x.id === r.groupId); if (!r || !g) return;
+    if (!confirm(`End the club read of ${r.title}? It moves to Past club reads, and the discussion stays there to read. Everyone keeps the book on their shelf.`)) return;
+    if (!(await crRun(g, 'end', { read: r.id }))) return;
+    await crRefresh(); render(); toast('Club read ended. You can start the next one anytime.');
+  },
+  'cr-menu'(id) { openSheet('cr-menu', { id }); },
+  async 'cr-like'(id) {
+    const r = readById(CRX.id), m = CRX.msgs.find(x => x.id === id); if (!r || !m || m.userId === ME) return;
+    const on = CRX.likes.some(l => l.m === id && l.u === ME);
+    CRX.likes = on ? CRX.likes.filter(l => !(l.m === id && l.u === ME)) : [...CRX.likes, { m: id, u: ME }]; crPaint();
+    if (r.demo) { const key = db.groups.find(x => x.id === r.groupId).demoKey, st = demoReadGet(key), s = new Set(st.likes || []); on ? s.delete(id) : s.add(id); st.likes = [...s]; demoReadSet(key, st); return; }
+    if (!CLOUD || !sb || PREVIEW) return;
+    const { error } = on ? await sb.from('club_read_likes').delete().eq('msg_id', id).eq('user_id', ME) : await sb.from('club_read_likes').insert({ msg_id: id, user_id: ME });
+    if (error) { toast("Couldn't save your like"); crLoad(r.id, true); }
+  },
+  async 'cr-pin'(id, el) {
+    const r = readById(CRX.id), g = r && db.groups.find(x => x.id === r.groupId); if (!r || !g) return;
+    const un = !!el.dataset.un; if (!(await crRun(g, un ? 'unpin' : 'pin', { read: r.id, msg: id }))) return;
+    r.pinned = un ? null : id; save(); closeSheet(); crPaint(); toast(un ? 'Unpinned' : '📌 Pinned to the top');
+  },
+  async 'cr-hide'(id, el) {
+    const r = readById(CRX.id), g = r && db.groups.find(x => x.id === r.groupId); if (!r || !g) return;
+    const un = !!el.dataset.un; if (!(await crRun(g, un ? 'unhide' : 'hide', { msg: id }))) return;
+    const m = CRX.msgs.find(x => x.id === id); if (m) m.hidden = !un; if (!un && r.pinned === id) r.pinned = null;
+    closeSheet(); crPaint(); toast(un ? 'Showing again' : 'Hidden from the club', un ? null : async () => { if (await crRun(g, 'unhide', { msg: id })) { if (m) m.hidden = false; crPaint(); } });
+  },
+  async 'cr-del'(id) {
+    const r = readById(CRX.id); if (!r || !confirm('Delete your message?')) return;
+    if (r.demo) { const key = db.groups.find(x => x.id === r.groupId).demoKey, st = demoReadGet(key); st.msgs = (st.msgs || []).filter(x => x.id !== id); demoReadSet(key, st); }
+    else { const { error } = await sb.from('club_read_msgs').delete().eq('id', id).eq('user_id', ME); if (error) { toast("Couldn't delete: " + error.message); return; } }
+    CRX.msgs = CRX.msgs.filter(x => x.id !== id); r.msgs = Math.max(0, (r.msgs || 1) - 1); if (r.pinned === id) r.pinned = null; save(); closeSheet(); crPaint(); toast('Message deleted');
+  },
+  async 'cr-report'(id) {
+    const r = readById(CRX.id), g = r && db.groups.find(x => x.id === r.groupId), m = CRX.msgs.find(x => x.id === id); if (!r || !m) return;
+    if (!CLOUD || !sb || !authUser) { toast("Can't report right now. Check your connection."); return; }
+    const message = `🚩 Reported club read message\nBy: ${nameOf(m.userId)}\nClub: ${g ? g.name : '?'}\nBook: ${r.title}\nMessage: ${m.text}\nMessage id: ${m.id}`.slice(0, 2000);
+    const device = (innerWidth >= 900 ? 'laptop' : 'phone') + ' · ' + platform() + (isInstalled() ? ' · app' : '');
+    const { error } = await sb.from('feedback').insert({ user_id: ME, name: db.me.name || '', email: signedInEmail() || null, message, images: [], page: 'report', device });
+    if (error) { toast("Couldn't send: " + error.message); return; }
+    try { const x = JSON.parse(localStorage.getItem(reportedKey()) || '[]'); x.push(m.id); localStorage.setItem(reportedKey(), JSON.stringify(x.slice(-200))); } catch (e) {}
+    closeSheet(); toast('Reported. Thanks for flagging it.');
+  }
+};
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (t.id === 'cr-text') ui.crDraft = t.value;
+  if (t.id === 'cr-page') { ui.crPage = t.value; const sp = document.getElementById('cr-spoil'); if (sp && !sp.checked) { sp.checked = true; ui.crSpoil = true; } }
+});
+document.addEventListener('change', e => { if (e.target.id === 'cr-spoil') ui.crSpoil = e.target.checked; });
 
 /* ----- Share ----- */
 /* draft is kept on the phone as you type, so nothing is lost */
@@ -2572,6 +3158,8 @@ function renderSheet(animate) {
       <p class="small" style="text-align:center">🔒 Only you can see this</p>${close()}`;
   }
 
+  if (ui.sheet && ui.sheet.startsWith('cr-')) { inner = crSheetHTML(ui.sheet, d); if (!inner) { ui.sheet = null; ui.sheetData = {}; return renderSheet(); } tall = ui.sheet === 'cr-pick' && !d.chosen; }
+
   /* ---- owner dashboard ---- */
 /*ADMIN{*/  if (ui.sheet === 'admin-item') { tall = true; inner = adminItemHTML(d); }
   if (ui.sheet === 'admin-confirm') { inner = adminConfirmHTML(d); }
@@ -2638,7 +3226,7 @@ const inviteLink = g => location.origin + location.pathname + '?join=' + g.code;
 /* ============================================================
    Admin dashboard (only for people on the admins list)
    ============================================================ */
-const KIND = { people: ['👤', 'Person'], clubs: ['👥', 'Club'], books: ['📚', 'Book'], posts: ['✍️', 'Thought'] };
+const KIND = { people: ['👤', 'Person'], clubs: ['👥', 'Club'], books: ['📚', 'Book'], posts: ['✍️', 'Thought'], reads: ['📖', 'Club read'] };
 /* club pictures: owners through club_photo, admins through admin_club_photo. Both come with Undo. */
 async function setClubPhoto(g, url, undoable = true) {
   if (!CLOUD || !sb) { toast('This needs an internet connection'); return; }
@@ -2699,6 +3287,8 @@ function adminBodyHTML() {
   } else if (['people', 'clubs', 'books', 'posts'].includes(adm.tab)) {
     body = `<form data-form="adm-search" class="row" style="gap:.4rem;margin-bottom:.4rem"><label class="sr" for="adm-q">Search</label><input class="hb-input" id="adm-q" type="search" placeholder="Search ${adm.tab === 'posts' ? 'thoughts' : adm.tab}" value="${esc(adm.q)}"><button class="btn" type="submit">Search</button></form>
       ${adm.list && adm.list.length ? `<div class="mgroup" style="margin-top:0">${adm.list.map(r => adminRow(adm.tab, r)).join('')}</div>` : '<div class="empty">Nothing found.</div>'}`;
+  } else if (adm.tab === 'reads') {
+    body = adminReadsHTML();
   } else if (adm.tab === 'demo') {
     body = adminDemoListHTML();
   } else if (adm.tab === 'notify') {
@@ -2813,6 +3403,12 @@ async function admLoad() {
       adm.settings = Object.fromEntries((data || []).map(r => [r.key, r.value])); adm.picks = null;
     }
     else if (adm.tab === 'viewas') { /* nothing to load */ }
+    else if (adm.tab === 'reads') {
+      const { data, error } = await sb.rpc('admin_club_reads');
+      if (error) throw new Error(/function|schema/i.test(error.message) ? 'Run supabase-update-18.sql in Supabase first.' : error.message);
+      adm.reads = data || [];
+      if (adm.readOpen) { const m = await sb.rpc('admin_read_msgs', { p_read: adm.readOpen }); adm.readMsgs = m.error ? [] : m.data; }
+    }
     else if (adm.tab === 'feedback') { const { data, error } = await sb.from('feedback').select('*').order('created_at', { ascending: false }).limit(200); if (error) throw error; adm.fb = data; adm.fbNew = data.filter(x => x.status === 'new').length; }
     else if (adm.tab === 'bin') {
       const res = await Promise.all(['people', 'clubs', 'books', 'posts'].map(k => sb.rpc('admin_list', { p_kind: k, p_q: '', p_bin: true }).then(r => { if (r.error) throw r.error; return (r.data || []).map(x => ({ ...x, kind: k })); })));
@@ -2821,6 +3417,27 @@ async function admLoad() {
     else { const { data, error } = await sb.rpc('admin_list', { p_kind: adm.tab, p_q: adm.q, p_bin: false }); if (error) throw error; adm.list = data; }
   } catch (e) { adm.error = "Couldn't load: " + (e.message || e) + (/function|schema/i.test(e.message || '') ? ' (run supabase-update-3.sql)' : ''); }
   adm.loading = false; renderPortal();
+}
+/* ---------- admin: club reads ---------- */
+function adminReadsHTML() {
+  const L = adm.reads || [], open = adm.readOpen && L.find(r => r.id === adm.readOpen);
+  if (open) {
+    const M = adm.readMsgs || [];
+    return `<button class="btn" data-act="adm-read-open" data-id="">‹ All club reads</button>
+      <div class="card row" style="margin-top:.6rem">${coverHTML({ title: open.title, coverUrl: open.cover_url }, 46, 69)}<div class="grow"><div class="item-title">${esc(open.title)}</div>
+        <div class="meta">${esc(open.club)} · started ${fmtDate(open.started_at)}${open.started_by_name ? ' by ' + esc(open.started_by_name) : ''} · ${open.ended_at ? 'ended ' + fmtDate(open.ended_at) : '<b>live</b>'} · 👥 ${open.joined} · 💬 ${open.msgs}</div></div>
+        ${open.ended_at ? '' : `<button class="btn danger" data-act="adm-read-op" data-op="end" data-id="${open.id}">End it</button>`}</div>
+      <div class="section-label">Messages · ${M.length}</div>
+      ${M.length ? `<div class="mgroup" style="margin-top:0">${M.map(m => `<div class="mrow static" style="align-items:flex-start"><span class="mi">${m.hidden_at ? '🙈' : '💬'}</span>
+        <span class="mt" style="${m.hidden_at ? 'opacity:.6' : ''}">${esc(m.name)}<small>${new Date(m.created_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}${m.page !== null ? ' · 🙈 spoiler from p. ' + m.page : ''}${m.hidden_at ? ' · hidden' : ''}</small>
+          <span style="display:block;white-space:pre-wrap;margin-top:.2rem">${esc(m.text)}</span></span>
+        <span class="row" style="gap:.3rem;flex-shrink:0"><button class="btn" data-act="adm-read-op" data-op="${m.hidden_at ? 'unhide' : 'hide'}" data-id="${m.id}">${m.hidden_at ? 'Show' : 'Hide'}</button>
+          <button class="btn danger" data-act="adm-read-op" data-op="delete" data-id="${m.id}">Delete</button></span></div>`).join('')}</div>` : '<div class="empty">No messages yet.</div>'}`;
+  }
+  return `<p class="sub" style="margin-top:0">Every club read, live ones first. Open one to read its discussion and hide or delete messages.</p>
+    ${L.length ? `<div class="mgroup" style="margin-top:0">${L.map(r => `<button class="mrow" data-act="adm-read-open" data-id="${r.id}"><span class="mi">📖</span>
+      <span class="mt">${esc(r.title)}<small>${esc(r.club)} · ${r.ended_at ? 'ended ' + fmtDate(r.ended_at) : '🟢 live'} · 👥 ${r.joined} · 💬 ${r.msgs}${r.hidden ? ' · 🙈 ' + r.hidden + ' hidden' : ''}${r.last_msg ? ' · last ' + fmtDate(r.last_msg) : ''}</small></span><span class="mc">›</span></button>`).join('')}</div>`
+      : '<div class="empty">No club reads yet.</div>'}`;
 }
 /* ---------- admin: demo clubs ---------- */
 const admDemoRow = key => (adm.demo || {})[key];
@@ -2929,6 +3546,7 @@ function resultRow(r, i, src) {
   </div>`;
 }
 function resultsHTML() {
+  if (ui.sheet === 'cr-pick') return crResultsHTML();
   const s = ui.search;
   if (!s.q) {
     const sug = suggestions(); ui.sheetData.suggest = sug;
@@ -3005,7 +3623,7 @@ async function searchBooks(q) {
     ui.search.error = "Couldn't reach the book search. Check your connection, or add it yourself.";
   }
   ui.search.loading = false;
-  if (ui.sheet === 'add') renderResults();
+  if (ui.sheet === 'add' || ui.sheet === 'cr-pick') renderResults();
 }
 
 /* ---------- data actions ---------- */
@@ -3215,7 +3833,16 @@ const actions = {
     if (error) { toast("Couldn't delete: " + error.message); return; }
     toast('Feedback deleted'); admLoad();
   },
-  'adm-tab'(id) { adm.tab = id; adm.q = ''; adm.list = null; renderPortal(); scrollTo(0, 0); admLoad(); },
+  'adm-tab'(id) { adm.tab = id; adm.q = ''; adm.list = null; adm.readOpen = null; renderPortal(); scrollTo(0, 0); admLoad(); },
+  'adm-read-open'(id) { adm.readOpen = id || null; adm.readMsgs = null; scrollTo(0, 0); admLoad(); },
+  async 'adm-read-op'(id, el) {
+    const op = el.dataset.op;
+    if (op === 'delete' && !confirm('Delete this message for good?')) return;
+    if (op === 'end' && !confirm('End this club read for the club? The discussion stays readable.')) return;
+    const { error } = await sb.rpc('admin_club_read', { p_op: op, p_id: id });
+    if (error) { toast("Couldn't do that: " + error.message); return; }
+    toast({ hide: 'Hidden from the club', unhide: 'Showing again', delete: 'Message deleted', end: 'Club read ended' }[op]); admLoad();
+  },
   async 'adm-open'(id, el) {
     const k = el.dataset.k, item = (adm.list || []).find(x => x.id === id);
     if (k === 'clubs' && !adm.people) { const { data } = await sb.rpc('admin_list', { p_kind: 'people', p_q: '', p_bin: false }); adm.people = data || []; }
@@ -3330,7 +3957,7 @@ const actions = {
     toast('Club started. Invite a few people.');
     if (wasSolo) offerJournal(g.name);
   },
-  club(id) { ui.clubPage = id; ui.clubTab = 'books'; ui.sheet = null; render(); scrollTo(0, 0); },
+  club(id) { ui.clubPage = id; ui.clubTab = 'books'; ui.readPage = null; ui.sheet = null; render(); scrollTo(0, 0); },
   fbook(id, el) {
     const k = el.dataset.k, x = k === 'x' ? (ui.picks || [])[+id] : (k === 'p' ? db.posts : db.books).find(y => y.id === id); if (!x) return;
     openSheet('fbook', { k, id }); loadBookInfo(x);
@@ -3721,6 +4348,7 @@ document.addEventListener('change', async e => {
   if (t.dataset && 'remindOn' in t.dataset) { t.checked = !t.checked; if (!t.checked) await turnOnReminder(); else await turnOffReminder(); return; }
   if (t.dataset && 'addVis' in t.dataset) { ui.addVis = t.value; return; }
   if (t.dataset && t.dataset.visClub && ui.sheet === 'book-vis') { const d = ui.sheetData, set = new Set(d.picked || []); t.checked ? set.add(t.dataset.visClub) : set.delete(t.dataset.visClub); d.picked = [...set]; return; }
+  if (t.dataset && 'readsOn' in t.dataset) { const was = !t.checked; t.checked = was; await setPush({ clubread: !was }, r => r.clubread ? "💬 You'll hear about new club read messages" : 'Club read messages off'); return; }
   if (t.dataset && 'matesOn' in t.dataset) { const was = !t.checked; t.checked = was; await setPush({ clubmates: !was }, r => r.clubmates ? "📖 You'll hear when clubmates start a book" : 'Clubmate updates off'); return; }
   if (t.dataset && 'celebOn' in t.dataset) { const was = !t.checked; t.checked = was; await setPush({ celebrate: !was }, r => r.celebrate ? '🎉 Club celebrations on' : 'Club celebrations off'); return; }
   if (t.dataset && 'remindTime' in t.dataset) { if (/^\d\d:\d\d$/.test(t.value)) updateReminder({ time: t.value }); return; }
@@ -3800,10 +4428,11 @@ document.addEventListener('change', async e => {
 /* ============================================================
    Start
    ============================================================ */
+Object.assign(actions, crActions);
 applyDisplay();
 /*ADMIN{*//* ---------- ADMIN PORTAL (admin.html only) ----------
    A full-page admin portal on the same site. Readers' index.html is built without any of this. */
-const PORTAL_TABS = [['overview', '📊', 'Overview'], ['people', '👤', 'People'], ['clubs', '👥', 'Clubs'], ['books', '📚', 'Books'], ['posts', '✍️', 'Thoughts'],
+const PORTAL_TABS = [['overview', '📊', 'Overview'], ['people', '👤', 'People'], ['clubs', '👥', 'Clubs'], ['reads', '📖', 'Club reads'], ['books', '📚', 'Books'], ['posts', '✍️', 'Thoughts'],
   ['feedback', '💬', 'Feedback & reports'], ['notify', '🔔', 'Notifications'], ['settings', '⚙️', 'App settings'], ['demo', '🧪', 'Demo clubs'],
   ['viewas', '👁', 'View as…'], ['bin', '🗑️', 'Recently deleted'], ['log', '🕓', 'Activity']];
 function renderPortal() {
