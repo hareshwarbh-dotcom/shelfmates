@@ -910,6 +910,15 @@ async function setPush(patch, okMsg) {
     renderSheet(); render(); if (okMsg) toast(okMsg(r));
   } catch (e) { toast(remErr(e)); renderSheet(); }
 }
+/* one tap from any prompt turns on everything (reminder at 9 pm every day, celebrations, clubmates, club read messages) */
+const pushAllOn = () => setPush({ on: true, celebrate: true, clubmates: true, clubread: true }, () => '🔔 Notifications on. Change them anytime in Settings → Notifications.');
+const pushIsOn = () => { const r = remGet(); return !!(r && (r.on || r.celebrate || matesOn(r) || readsOn(r))) && pushSupported() && Notification.permission === 'granted'; };
+/* can we offer notifications here? (supported, not blocked, not already on) */
+const pushCanOffer = () => CLOUD && db && !PREVIEW && pushSupported() && Notification.permission !== 'denied' && !pushIsOn();
+/* "Not now" hides the prompts for 7 days; after the second "Not now" they stop. The small meet-up link still shows. */
+const pushAskGet = () => { try { const x = JSON.parse(localStorage.getItem('sm.pushAsk') || 'null'); if (x) return x; return localStorage.getItem('sm.remindOffer') ? { nos: 1, until: 0 } : { nos: 0, until: 0 }; } catch (e) { return { nos: 2, until: 0 }; } };
+const pushAskOK = () => pushCanOffer() && !pushNeedsInstall() && (() => { const a = pushAskGet(); return a.nos < 2 && Date.now() > (a.until || 0); })();
+const pushAskNo = () => { const a = pushAskGet(); try { localStorage.setItem('sm.pushAsk', JSON.stringify({ nos: (a.nos || 0) + 1, until: Date.now() + 7 * 86400000 })); } catch (e) {} };
 const turnOnReminder = () => setPush({ on: true }, r => `🔔 Reminder set: ${daysLabel(r.days).toLowerCase()} at ${timeLabel(r.time)}`);
 const turnOffReminder = () => setPush({ on: false }, () => 'Reminder off');
 async function updateReminder(patch) {
@@ -931,27 +940,24 @@ function remindPageHTML(title, subEnd) {
     <p class="sub">Only what you switch on, and only for you.</p>
     ${note}
     <div class="section-label">📖 Reading reminder</div>
-    <div class="mgroup" style="margin-top:0"><label class="mrow static"><span class="mi">🔔</span><span class="mt">Remind me to read<small>${on ? `${esc(daysLabel(r.days))} at ${timeLabel(r.time)}. Skipped on days you've already moved your bookmark.` : 'A gentle nudge on days you pick'}</small></span>
+    <div class="mgroup" style="margin-top:0"><label class="mrow static"><span class="mi">🔔</span><span class="mt">Remind me to read<small>${on ? `${esc(daysLabel(r.days))} at ${timeLabel(r.time)}` : 'On days you pick'}</small></span>
       <span class="switch"><input type="checkbox" data-remind-on ${on ? 'checked' : ''} ${off ? 'disabled' : ''} aria-label="Remind me to read"><span></span></span></label></div>
     ${on ? `<div class="chips" style="margin:.5rem 0 .4rem" role="group" aria-label="Days">${DAY_SHORT.map((l, i) => `<button class="chip ${r.days.includes(i) ? 'on' : ''}" style="min-width:2.6rem;justify-content:center" aria-label="${DAY_LONG[i]}" aria-pressed="${r.days.includes(i)}" data-act="rem-day" data-id="${i}">${l}</button>`).join('')}</div>
       <div class="chips" style="margin:0">${quick.map(([l, d]) => `<button class="chip sm ${[...r.days].sort().join() === d.join() ? 'on' : ''}" data-act="rem-days" data-id="${d.join(',')}">${l}</button>`).join('')}</div>
       <label class="hb-label" for="rem-time">What time</label>
       <input class="hb-input" id="rem-time" type="time" step="900" value="${esc(r.time)}" data-remind-time style="max-width:10rem">
       <button class="btn block" style="margin-top:.7rem" data-act="rem-test">Send me a test now</button>` : ''}
-    <div class="section-label">🎉 Club celebrations</div>
-    <div class="mgroup" style="margin-top:0"><label class="mrow static"><span class="mi">🎉</span><span class="mt">Club celebrations<small>When one of your clubs reaches a milestone or has news. Only from your own clubs, and only now and then.</small></span>
-      <span class="switch"><input type="checkbox" data-celeb-on ${cel ? 'checked' : ''} ${off ? 'disabled' : ''} aria-label="Club celebrations"><span></span></span></label></div>
-    <div class="section-label">📖 What my clubmates are reading</div>
-    <div class="mgroup" style="margin-top:0"><label class="mrow static"><span class="mi">📖</span><span class="mt">New books from clubmates<small>When someone in your clubs starts reading a book. At most 3 a day from the same person.</small></span>
-      <span class="switch"><input type="checkbox" data-mates-on ${matesOn(r) ? 'checked' : ''} ${off ? 'disabled' : ''} aria-label="New books from clubmates"><span></span></span></label></div>
-    <div class="section-label">💬 Club reads</div>
-    <div class="mgroup" style="margin-top:0"><label class="mrow static"><span class="mi">💬</span><span class="mt">Club read messages<small>New messages in club reads you've joined. At most one every 2 hours per club read, and spoilers never show. New club reads and meet-up reminders come whenever notifications are on.</small></span>
+    <div class="section-label">👥 From your clubs</div>
+    <div class="mgroup" style="margin-top:0"><label class="mrow static"><span class="mi">🎉</span><span class="mt">Club celebrations<small>Milestones in your clubs</small></span>
+      <span class="switch"><input type="checkbox" data-celeb-on ${cel ? 'checked' : ''} ${off ? 'disabled' : ''} aria-label="Club celebrations"><span></span></span></label>
+    <label class="mrow static"><span class="mi">📖</span><span class="mt">New books from clubmates<small>When a clubmate starts a book</small></span>
+      <span class="switch"><input type="checkbox" data-mates-on ${matesOn(r) ? 'checked' : ''} ${off ? 'disabled' : ''} aria-label="New books from clubmates"><span></span></span></label>
+    <label class="mrow static"><span class="mi">💬</span><span class="mt">Club read messages<small>New messages in club reads you've joined</small></span>
       <span class="switch"><input type="checkbox" data-reads-on ${readsOn(r) ? 'checked' : ''} ${off ? 'disabled' : ''} aria-label="Club read messages"><span></span></span></label></div>
     ${subEnd}`;
 }
 function remindOfferHTML() {
-  if (!CLOUD || !db || PREVIEW || remOn() || !pushSupported() || pushNeedsInstall() || Notification.permission === 'denied') return '';
-  try { if (localStorage.getItem('sm.remindOffer')) return ''; } catch (e) { return ''; }
+  if (!pushAskOK()) return '';
   if (!isInstalled() && !(db.log || []).some(l => l.pages > 0)) return '';
   return `<div class="banner accent"><span class="b-icon">🔔</span><div class="grow"><div class="item-title">Turn on notifications?</div><div class="sub" style="color:var(--ink)">Gentle reading reminders and news from your clubs. You choose what you get.</div>
     <div class="actions" style="margin-top:.4rem"><button class="btn primary" data-act="rem-offer">Turn on</button></div></div><button class="iconbtn" style="border:none" aria-label="Dismiss" data-act="rem-offer-no">✕</button></div>`;
@@ -2279,12 +2285,16 @@ function readPageHTML(g, r) {
         ${r.meetAt ? '' : `<button class="link small" data-act="cr-meet" data-id="${r.id}">📅 Plan a meet-up</button>`}
         <button class="link small danger-link" data-act="cr-end" data-id="${r.id}">End club read</button></div>` : ''}
     </div>
+    ${live && ui.crAskPush === r.id && pushAskOK() ? `<div class="banner accent"><span class="b-icon">🔔</span><div class="grow"><div class="item-title">Want a ping when your club talks?</div>
+      <div class="sub" style="color:var(--ink)">Get a nudge when there are new messages about the book or a meet-up is coming. Spoilers never show.</div>
+      <div class="actions" style="margin-top:.5rem"><button class="btn primary" data-act="push-all">Turn on</button><button class="btn" data-act="push-no">Not now</button></div></div></div>` : ''}
 
     ${r.meetAt && !(ended && meetPast) ? `<div class="card cr-meet">
       <div class="row" style="align-items:flex-start"><span style="font-size:1.4rem">📅</span><div class="grow">
         <div class="item-title">${meetPast ? 'Last meet-up' : 'Meet-up'} · ${esc(meetWhen(r.meetAt))}</div>
         ${r.meetWhere ? (isLink(r.meetWhere) ? `<a class="small" href="${esc(r.meetWhere.trim())}" target="_blank" rel="noopener">Join link ↗</a>` : `<div class="meta">📍 ${esc(r.meetWhere)}</div>`) : ''}
         <div class="meta" style="margin-top:.2rem">${rs.length ? `👍 ${rs.length} in: ${esc(rs.map(v => nameOf(v.userId)).join(', '))}` : 'No one has said yes yet'}</div>
+        ${live && !meetPast && !r.demo && pushCanOffer() ? '<button class="link small" style="margin-top:.3rem" data-act="push-all">🔔 Get meet-up reminders</button>' : ''}
       </div></div>
       ${live && !meetPast ? `<div class="actions" style="margin-top:.5rem"><button class="btn ${imIn ? 'on-soft' : 'primary'}" data-act="cr-rsvp" data-id="${r.id}" aria-pressed="${imIn}">${imIn ? "✓ I'm in" : "👍 I'm in"}</button>
         ${mgr ? `<button class="btn" data-act="cr-meet" data-id="${r.id}">Edit</button>` : ''}</div>` : ''}
@@ -2450,6 +2460,7 @@ async function crJoin(rid) {
     if (error) { toast("Couldn't join: " + error.message); return; }
   }
   const X = crData(); X.members = X.members.filter(m => !(m.readId === r.id && m.userId === ME)); X.members.push({ readId: r.id, userId: ME, bookId: b.id, demo: !!r.demo });
+  if (pushAskOK()) ui.crAskPush = r.id;
   save(); render(); toast(`📖 You're in! ${r.title} is on your shelf`);
 }
 async function crSend(rid) {
@@ -3810,8 +3821,10 @@ const actions = {
       toast('Sent! It should pop up in a few seconds 📖');
     } catch (e) { toast("Couldn't send it. " + (e.message || '')); }
   },
-  'rem-offer'() { try { localStorage.setItem('sm.remindOffer', 'done'); } catch (e) {} openSheet('settings', { page: 'remind' }); },
-  'rem-offer-no'() { try { localStorage.setItem('sm.remindOffer', 'done'); } catch (e) {} render(); toast('Okay. You can set one anytime in Settings → Preferences.'); },
+  'rem-offer'() { pushAllOn(); },
+  'rem-offer-no'() { pushAskNo(); render(); toast('Okay. Turn them on anytime in Settings → Notifications.'); },
+  'push-all'() { ui.crAskPush = null; pushAllOn(); },
+  'push-no'() { ui.crAskPush = null; pushAskNo(); render(); toast('Okay. Turn them on anytime in Settings → Notifications.'); },
   'daily-signup'() { openSheet('settings', { page: 'account' }); },
   'daily-signin'() { openSheet('settings', { page: 'account', signin: true }); },
   async 'daily-copy'() { const u = location.origin + location.pathname; try { await navigator.clipboard.writeText(u); toast('Link copied. Paste it in ' + (platform().startsWith('ios') ? 'Safari' : 'Chrome')); } catch (e) { prompt('Copy this link:', u); } },
