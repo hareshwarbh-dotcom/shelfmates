@@ -525,8 +525,28 @@ div.cr-card { cursor: default; }
 .cr-spoil { display: inline-flex; align-items: center; gap: .35rem; flex-wrap: wrap; }
 .cr-spoil input[type=number] { width: 5rem; min-height: 2.2rem; padding: .2rem .5rem; }
 /* ⏱ reading session, lines, up next, story */
-.sess { position: fixed; inset: 0; z-index: 19; background: var(--bg); overflow-y: auto; padding: calc(env(safe-area-inset-top) + .6rem) calc(1rem + env(safe-area-inset-right)) calc(env(safe-area-inset-bottom) + 1.4rem) calc(1rem + env(safe-area-inset-left)); }
+.sess { position: fixed; inset: 0; z-index: 19; background: var(--bg); color: var(--ink); overflow-y: auto; padding: calc(env(safe-area-inset-top) + .6rem) calc(1rem + env(safe-area-inset-right)) calc(env(safe-area-inset-bottom) + 1.4rem) calc(1rem + env(safe-area-inset-left)); }
 body.in-session { overflow: hidden; }
+/* focus mode: calm dark screen in every theme, big timer, smaller faded cover */
+.sess.focus { --bg: #0e0d16; --ink: #ECE9F7; --muted: #8E89A8; --line: rgba(255,255,255,.12); --card: #1A1826; --soft: #1F1D2C; background: radial-gradient(ellipse at 50% 35%, #1b1930 0%, #0e0d16 70%); }
+.sess.focus .btn:not(.accent):not(.primary) { background: rgba(255,255,255,.06); color: var(--ink); border-color: rgba(255,255,255,.14); }
+.sess.focus .iconbtn { color: var(--ink); background: transparent; }
+.sess.focus .sess-body { padding-top: 2.2rem; }
+.sess.focus .sess-cover.small-cover { width: 4.6rem; opacity: .55; margin-bottom: .6rem; }
+.sess-book { text-align: center; font-size: 1rem; color: var(--muted); }
+.sess.focus .sess-time { font-size: clamp(4.6rem, 24vw, 8.5rem); margin: 1.6rem 0 .4rem; line-height: 1; font-weight: 500; }
+.sess.focus .sess-time.soft { font-size: clamp(2.4rem, 11vw, 3.6rem); }
+.sess-fade { transition: opacity .7s ease; }
+.sess.idle .sess-fade { opacity: 0; pointer-events: none; }
+.sess.idle { cursor: pointer; }
+@media (prefers-reduced-motion: reduce) { .sess-fade { transition: none; } }
+/* minimised: a small bar above the bottom menu */
+.sess-mini { position: fixed; z-index: 12; left: calc(1rem + env(safe-area-inset-left)); right: 5.4rem; bottom: calc(5rem + env(safe-area-inset-bottom)); max-width: 22rem;
+  display: flex; align-items: center; gap: .55rem; padding: .55rem .9rem; border-radius: var(--radius-pill); border: none; cursor: pointer;
+  background: #1A1826; color: #ECE9F7; box-shadow: 0 6px 22px rgba(0,0,0,.35); font: inherit; text-align: left; }
+.sess-mini b { font-variant-numeric: tabular-nums; }
+.sess-mini-t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: .75; font-size: .88rem; }
+@media (min-width: 900px) { .sess-mini { bottom: 1.2rem; left: auto; right: 6.5rem; } }
 .sess-top { display: flex; align-items: center; justify-content: space-between; gap: .5rem; max-width: 30rem; margin: 0 auto; }
 .sess-top .iconbtn { border: none; font-size: 1.15rem; }
 .sess-body { max-width: 26rem; margin: 0 auto; padding-top: 1.2rem; }
@@ -1663,7 +1683,7 @@ const nudgesSeen = () => { try { return JSON.parse(localStorage.getItem('sm.nudg
 /* pop-ups take turns: wait until nothing is open, no Undo is showing, and things have been calm for a moment */
 let lastBusy = 0;
 function calm(ms = 3000) {
-  const busy = !!ui.sheet || !!document.getElementById('cele-root').innerHTML || !!toastUndo || document.body.classList.contains('in-session');
+  const busy = !!ui.sheet || !!document.getElementById('cele-root').innerHTML || !!toastUndo || document.body.classList.contains('in-session') || document.body.classList.contains('sess-minimised');
   if (busy) { lastBusy = Date.now(); return false; }
   return Date.now() - lastBusy > ms;
 }
@@ -1873,7 +1893,7 @@ document.addEventListener('error', e => {
    Render
    ============================================================ */
 function render() {
-  if (db && !document.querySelector('#session-root .sess') && sessGet()) setTimeout(sessRender, 0);
+  if (db && !document.querySelector('#session-root > *') && sessGet()) setTimeout(sessRender, 0);
   /*ADMIN{*/if (PORTAL) { renderPortal(); return; }/*}ADMIN*/
   const app = document.getElementById('app');
   app.classList.toggle('no-nav', !!ui.loading || !db);
@@ -2824,6 +2844,8 @@ function sessStart(bookId) {
   if (!b) { openSheet('add'); toast('Add the book you’re reading first'); return; }
   if (b.status !== 'reading') updBook(b.id, { status: 'reading' });
   const cur = sessGet();
+  if (cur && cur.bookId !== b.id && cur.step === 'run') { cur.min = false; sessSet(cur); sessRender(); toast('Finish this session first'); return; }
+  if (cur && cur.bookId === b.id) { cur.min = false; sessSet(cur); }
   if (!cur || cur.bookId !== b.id) sessSet({ bookId: b.id, startedAt: Date.now(), pausedMs: 0, pausedAt: null, step: 'run', hidden: !!(cur && cur.hidden) });
   ui.sheet = null; ui.sheetData = {}; render();
   sessRender(); keepAwake(true); rnPush(true);
@@ -2864,47 +2886,66 @@ function sessHTML(s) {
   }
   const ask = db.me.showReadingNow == null && CLOUD && !PREVIEW && realClubs().length;
   const started = new Date(s.startedAt).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
-  return `<div class="sess-top"><button class="iconbtn" data-act="sess-cancel" aria-label="Stop without saving">✕</button>
+  return `<div class="sess-top sess-fade"><button class="iconbtn" data-act="sess-min" aria-label="Minimise. The timer keeps running">⌄</button>
       <span class="small">🔒 Only you see your reading time</span>
-      <button class="iconbtn" data-act="sess-hide" aria-label="${s.hidden ? 'Show the timer' : 'Hide the timer'}">${s.hidden ? '⏱' : '🙈'}</button></div>
+      <span class="row" style="gap:.2rem"><button class="iconbtn" data-act="sess-hide" aria-label="${s.hidden ? 'Show the timer' : 'Hide the timer'}">${s.hidden ? '⏱' : '🙈'}</button>
+      <button class="iconbtn" data-act="sess-cancel" aria-label="Stop without saving">✕</button></span></div>
     <div class="sess-body">
-      <div class="sess-cover">${fcover(b)}</div>
-      <div class="item-title" style="text-align:center;font-size:1.1rem">${esc(b.title)}</div>
-      <div class="meta" style="justify-content:center">${esc(b.author || '')}</div>
+      <div class="sess-cover small-cover">${fcover(b)}</div>
+      <div class="item-title sess-book">${esc(b.title)}</div>
       <div class="sess-time ${s.hidden ? 'soft' : ''}" id="sess-time" aria-live="off">${s.hidden ? (paused ? 'Paused' : 'Reading…') : clock(ms)}</div>
       <div class="small" style="text-align:center">${paused ? '⏸ Paused' : '📖 Reading'} · started ${esc(started)}</div>
+      <div class="small sess-count" id="sess-count" style="text-align:center;margin-top:.4rem">${paused ? '' : sessCountText()}</div>
       ${ask ? `<div class="banner accent" style="margin-top:1rem"><span class="b-icon">🟢</span><div class="grow"><div class="item-title">Let your clubs see when you're reading?</div>
           <div class="sub" style="color:var(--ink)">They'd see "reading right now" while a session is on. Never your time or pages.</div>
           <div class="actions" style="margin-top:.5rem"><button class="btn primary" data-act="rn-choose" data-id="1">Yes, show them</button><button class="btn" data-act="rn-choose" data-id="0">Not now</button></div></div></div>` : ''}
-      <div class="actions" style="margin-top:1.2rem"><button class="btn" style="flex:1" data-act="sess-pause">${paused ? '▶ Resume' : '⏸ Pause'}</button>
+      <div class="sess-fade"><div class="actions" style="margin-top:1.4rem"><button class="btn" style="flex:1" data-act="sess-pause">${paused ? '▶ Resume' : '⏸ Pause'}</button>
         <button class="btn" style="flex:1" data-act="line-open" data-id="${b.id}">✍️ Save a line</button></div>
       <button class="btn accent block big" style="margin-top:.6rem" data-act="sess-done">Done reading</button>
+      <p class="small" style="text-align:center;margin:.7rem 0 0">Tap ⌄ to use the app while the timer runs</p></div>
     </div>`;
 }
 function sessRender() {
   const root = document.getElementById('session-root'), s = db && sessGet();
   if (!root) return;
-  if (!s || !db.books.some(x => x.id === s.bookId)) { root.innerHTML = ''; document.body.classList.remove('in-session'); clearInterval(sessTick); sessTick = null; return; }
-  root.innerHTML = `<div class="sess" role="dialog" aria-modal="true" aria-label="Reading session">${sessHTML(s)}</div>`;
-  document.body.classList.add('in-session');
+  if (!s || !db.books.some(x => x.id === s.bookId)) { root.innerHTML = ''; document.body.classList.remove('in-session', 'sess-minimised'); clearInterval(sessTick); sessTick = null; return; }
+  const bk = db.books.find(x => x.id === s.bookId);
+  if (s.min && s.step === 'run') {
+    root.innerHTML = `<button class="sess-mini" data-act="sess-max" aria-label="Back to your reading session"><span class="rn-dot" aria-hidden="true" style="${s.pausedAt ? 'animation:none;background:var(--muted)' : ''}"></span>
+      <b id="sess-mini-time">${s.pausedAt ? 'Paused' : clock(sessMs(s))}</b><span class="sess-mini-t">${esc(bk.title)}</span><span aria-hidden="true">⌃</span></button>`;
+    document.body.classList.remove('in-session'); document.body.classList.add('sess-minimised');
+  } else {
+    root.innerHTML = `<div class="sess ${s.step === 'run' ? 'focus' : ''}" role="dialog" aria-modal="true" aria-label="Reading session">${sessHTML(s)}</div>`;
+    document.body.classList.add('in-session'); document.body.classList.remove('sess-minimised');
+    sessWake();
+  }
   clearInterval(sessTick);
   if (s.step === 'run') sessTick = setInterval(() => {
     const x = sessGet(); if (!x || x.step !== 'run') { clearInterval(sessTick); return; }
     const el = document.getElementById('sess-time'); if (el && !x.hidden) el.textContent = clock(sessMs(x));
+    const mt = document.getElementById('sess-mini-time'); if (mt && !x.pausedAt) mt.textContent = clock(sessMs(x));
+    if (!x.min && !x.pausedAt && Date.now() - sessIdleAt > 5000) { const v = document.querySelector('.sess.focus'); if (v && !v.querySelector('.banner') && !v.contains(document.activeElement && document.activeElement !== document.body ? document.activeElement : null)) v.classList.add('idle'); }
     if (!x.pausedAt && Date.now() - rnLastPush > 5 * 60000) rnPush(true);
   }, 1000);
 }
+/* focus mode: the buttons fade after a few quiet seconds and come back on any tap */
+let sessIdleAt = Date.now();
+function sessWake() { sessIdleAt = Date.now(); document.querySelector('.sess.idle')?.classList.remove('idle'); }
+let sessSwallow = 0;   // the tap that wakes the buttons doesn't also press one
+['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, e => { if (document.querySelector('.sess.idle') && e.target.closest && e.target.closest('.sess')) { sessWake(); if (ev === 'pointerdown') sessSwallow = Date.now(); } else if (document.querySelector('.sess')) sessIdleAt = Date.now(); }, true));
+document.addEventListener('click', e => { if (sessSwallow && Date.now() - sessSwallow < 700) { sessSwallow = 0; e.preventDefault(); e.stopPropagation(); } }, true);
 function sessEnd() { sessSet(null); keepAwake(false); rnPush(false); sessRender(); render(); }
-document.addEventListener('visibilitychange', () => { const s = db && sessGet(); if (document.visibilityState === 'visible' && s && s.step === 'run' && !s.pausedAt) keepAwake(true); });
+document.addEventListener('visibilitychange', () => { const s = db && sessGet(); if (document.visibilityState === 'visible' && s && s.step === 'run' && !s.pausedAt && !s.min) keepAwake(true); });
 
 /* ---------- 🟢 reading right now ---------- */
 async function rnPush(on) {
   if (!CLOUD || !sb || PREVIEW || !authUser || !db) return;
   const s = sessGet(), b = s && db.books.find(x => x.id === s.bookId);
   try {
-    if (on && db.me.showReadingNow && b && !s.pausedAt) {
-      rnLastPush = Date.now();
-      await sb.from('reading_now').upsert({ user_id: ME, title: b.title, author: b.author || '', cover_url: /^https?:/.test(b.coverUrl || '') ? b.coverUrl : '', started_at: new Date(s.startedAt).toISOString(), until: new Date(Date.now() + 20 * 60000).toISOString() });
+    if (on && b && !s.pausedAt && s.step === 'run') {
+      rnLastPush = Date.now(); const show = !!db.me.showReadingNow;
+      await sb.from('reading_now').upsert({ user_id: ME, title: show ? b.title : '', author: show ? (b.author || '') : '', cover_url: show && /^https?:/.test(b.coverUrl || '') ? b.coverUrl : '', started_at: new Date(s.startedAt).toISOString(), until: new Date(Date.now() + 20 * 60000).toISOString() });
+      rnCountRefresh();
     } else { rnLastPush = 0; await sb.from('reading_now').delete().eq('user_id', ME); }
   } catch (e) {}
 }
@@ -2913,25 +2954,44 @@ async function rnRefresh() {
   const { data, error } = await sb.from('reading_now').select('user_id,title,until').gt('until', new Date().toISOString());
   if (error) return;
   const mates = new Set(myClubs().filter(g => !g.demo).flatMap(g => g.members));
-  const list = (data || []).filter(r => r.user_id !== ME && mates.has(r.user_id) && userById(r.user_id)).map(r => ({ userId: r.user_id, title: r.title }));
+  const list = (data || []).filter(r => r.user_id !== ME && r.title && mates.has(r.user_id) && userById(r.user_id)).map(r => ({ userId: r.user_id, title: r.title }));
+  rnCountRefresh();
   const before = JSON.stringify(ui.readingNow || []);
   ui.readingNow = list;
   if (before !== JSON.stringify(list) && ui.tab === 'home' && !ui.clubPage && !ui.sheet) render();
 }
-setInterval(() => { if (db && ui.tab === 'home' && !ui.clubPage && document.visibilityState === 'visible') rnRefresh(); }, 60000);
+setInterval(() => { if (db && ui.tab === 'home' && !ui.clubPage && document.visibilityState === 'visible') rnRefresh(); else if (db && sessGet() && document.visibilityState === 'visible') rnCountRefresh(); }, 60000);
+/* how many people are reading on Shelfmates right now: a number only (supabase-update-20) */
+let rnCountAt = 0;
+async function rnCountRefresh() {
+  if (!CLOUD || !sb || PREVIEW || !authUser || Date.now() - rnCountAt < 20000) return;
+  rnCountAt = Date.now();
+  const { data, error } = await sb.rpc('readers_now');
+  if (error || typeof data !== 'number') return;
+  const s = sessGet(), meIn = !!(s && s.step === 'run' && !s.pausedAt), others = Math.max(0, data - (meIn ? 1 : 0));
+  if (ui.readersNow === others) return;
+  ui.readersNow = others;
+  const el = document.getElementById('sess-count'); if (el) el.innerHTML = sessCountText();
+  if (ui.tab === 'home' && !ui.clubPage && !ui.sheet && !s) render();
+}
+const sessCountText = () => ui.readersNow == null ? '' : ui.readersNow ? `📖 You and ${ui.readersNow} ${ui.readersNow === 1 ? 'other' : 'others'} are reading on Shelfmates right now` : '📖 You’re reading on Shelfmates right now';
 function readingNowHTML() {
+  if (sessGet()) return '';   // you're already reading (the bar at the bottom brings you back)
+  const n0 = ui.readersNow || 0, appLine = n0 ? `📖 ${n0} ${n0 === 1 ? 'person is' : 'people are'} reading on Shelfmates right now` : '';
   let list = (ui.readingNow || []).slice(), demo = false;
   if (!list.length) {   // demo clubs: one of the pretend readers is reading, so new people see how it looks
     const g = myClubs().find(x => x.demo), h = new Date().getHours();
     if (g && h >= 6) { const bs = db.books.filter(b => b.demo && b.status === 'reading' && g.members.includes(b.userId) && b.userId !== ME);
       const b = bs.length && bs[(new Date().getDate() + h) % bs.length]; if (b) { list = [{ userId: b.userId, title: b.title }]; demo = true; } }
   }
-  if (!list.length) return '';
+  if (!list.length) return appLine ? `<button class="card rn-card" data-act="read-along"><span class="rn-dot" aria-hidden="true"></span>
+      <span class="grow" style="min-width:0"><span class="item-title" style="display:block">${appLine}</span><span class="meta" style="display:block">Read with them, each with your own book</span></span>
+      <span class="btn primary rn-btn">Join them</span></button>` : '';
   const names = list.map(r => (userById(r.userId) || { name: 'A clubmate' }).name), n = names.length;
   const who = n === 1 ? names[0] : n === 2 ? `${names[0]} and ${names[1]}` : `${names[0]}, ${names[1]} and ${n - 2} more`;
   return `<button class="card rn-card" data-act="read-along"><span class="rn-dot" aria-hidden="true"></span>
       <span class="grow" style="min-width:0"><span class="item-title" style="display:block">${esc(who)} ${n === 1 ? 'is' : 'are'} reading right now</span>
-      <span class="meta" style="display:block">${n === 1 ? esc(list[0].title) : 'Join them with your own book'}${demo ? ' · demo club' : ''}</span></span>
+      <span class="meta" style="display:block">${n === 1 ? esc(list[0].title) : 'Join them with your own book'}${demo ? ' · demo club' : ''}</span>${appLine ? `<span class="meta" style="display:block">${appLine}</span>` : ''}</span>
       <span class="btn primary rn-btn">Read along</span></button>`;
 }
 
@@ -3097,6 +3157,8 @@ async function storyImage(span, withCovers = true) {
 const rtActions = {
   'sess-start'(id) { sessStart(id || sessCurrentBookId()); },
   'read-along'() { const id = sessCurrentBookId(); if (id) { sessStart(id); toast('📖 Reading along. Enjoy!'); } else { openSheet('add'); toast('Add the book you’re reading, then read along'); } },
+  'sess-min'() { const s = sessGet(); if (!s) return; s.min = true; sessSet(s); keepAwake(false); sessRender(); render(); },
+  'sess-max'() { const s = sessGet(); if (!s) return; s.min = false; sessSet(s); sessRender(); if (!s.pausedAt) keepAwake(true); },
   'sess-pause'() { const s = sessGet(); if (!s) return; if (s.pausedAt) { s.pausedMs = (s.pausedMs || 0) + (Date.now() - s.pausedAt); s.pausedAt = null; } else s.pausedAt = Date.now(); sessSet(s); sessRender(); rnPush(!s.pausedAt); },
   'sess-hide'() { const s = sessGet(); if (!s) return; s.hidden = !s.hidden; sessSet(s); sessRender(); },
   'sess-done'() { const s = sessGet(); if (!s) return; if (!s.pausedAt) s.pausedAt = Date.now(); s.step = 'page'; sessSet(s); sessRender(); keepAwake(false); setTimeout(() => document.getElementById('sess-pg')?.focus(), 60); },
