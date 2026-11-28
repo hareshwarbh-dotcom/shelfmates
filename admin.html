@@ -524,12 +524,57 @@ div.cr-card { cursor: default; }
 .cr-compose { margin-top: .7rem; }
 .cr-spoil { display: inline-flex; align-items: center; gap: .35rem; flex-wrap: wrap; }
 .cr-spoil input[type=number] { width: 5rem; min-height: 2.2rem; padding: .2rem .5rem; }
+/* ⏱ reading session, lines, up next, story */
+.sess { position: fixed; inset: 0; z-index: 19; background: var(--bg); overflow-y: auto; padding: calc(env(safe-area-inset-top) + .6rem) calc(1rem + env(safe-area-inset-right)) calc(env(safe-area-inset-bottom) + 1.4rem) calc(1rem + env(safe-area-inset-left)); }
+body.in-session { overflow: hidden; }
+.sess-top { display: flex; align-items: center; justify-content: space-between; gap: .5rem; max-width: 30rem; margin: 0 auto; }
+.sess-top .iconbtn { border: none; font-size: 1.15rem; }
+.sess-body { max-width: 26rem; margin: 0 auto; padding-top: 1.2rem; }
+.sess-cover { width: 8.5rem; margin: 0 auto 1rem; }
+.sess-cover .fcover { width: 100%; }
+.sess-time { font-family: var(--font-display); font-size: 3.6rem; text-align: center; margin: 1.2rem 0 .2rem; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+.sess-time.soft { font-size: 2rem; color: var(--muted); }
+.sess-h { font-family: var(--font-display); text-align: center; font-size: 1.5rem; margin: .2rem 0 .4rem; }
+.sess-sum { text-align: center; font-size: 1.15rem; margin: .3rem 0 0; color: var(--ink); }
+.sess-step { display: flex; align-items: center; justify-content: center; gap: .5rem; margin-top: .3rem; }
+.sess-step input { width: 6.5rem; text-align: center; font-size: 1.3rem; }
+.btn.big { min-height: 3.2rem; font-size: 1.05rem; }
+.tweek.bars .tday { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 3.6rem; gap: .25rem; }
+.tweek.bars .tday i.bar-d { width: .6rem; border-radius: 4px; min-height: 5px; order: 1; }
+.tweek.bars .tday small { order: 2; }
+.rn-card { display: flex; align-items: center; gap: .7rem; width: 100%; text-align: left; color: var(--ink); cursor: pointer; margin-top: .3rem; }
+.rn-dot { width: .7rem; height: .7rem; border-radius: 50%; background: #3fbf6f; box-shadow: 0 0 0 0 rgba(63,191,111,.6); animation: rnpulse 2s infinite; flex-shrink: 0; }
+@keyframes rnpulse { 0% { box-shadow: 0 0 0 0 rgba(63,191,111,.55); } 70% { box-shadow: 0 0 0 .55rem rgba(63,191,111,0); } 100% { box-shadow: 0 0 0 0 rgba(63,191,111,0); } }
+@media (prefers-reduced-motion: reduce) { .rn-dot { animation: none; } }
+.rn-btn { pointer-events: none; min-height: 2.2rem; padding: 0 .8rem; font-size: .85rem; flex-shrink: 0; }
+.line-quote { margin: .4rem 0; padding: .5rem .8rem; border-left: 3px solid var(--accent); background: var(--soft); border-radius: 0 var(--radius-md) var(--radius-md) 0; font-family: var(--font-display); font-style: italic; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.line-quote small { display: block; font-family: var(--font-body, inherit); font-style: normal; color: var(--muted); margin-top: .25rem; }
+.line-photo { display: block; max-width: 100%; max-height: 16rem; border-radius: var(--radius-md); margin: .4rem 0; border: 1px solid var(--line); }
+.lines-book { margin-top: .9rem; padding-top: .7rem; border-top: 1px solid var(--line); }
+.line-item { padding: .4rem 0 .2rem; }
+.ln-photo-prev { position: relative; }
+.ln-photo-prev img { height: 4.5rem; border-radius: var(--radius-md); border: 1px solid var(--line); display: block; }
+.ln-photo-prev button { position: absolute; top: -.4rem; right: -.4rem; width: 1.6rem; height: 1.6rem; border-radius: 50%; border: none; background: var(--ink); color: var(--bg); cursor: pointer; }
+.lines-card { width: 100%; text-align: left; color: var(--ink); cursor: pointer; }
+.upn-row { gap: .5rem; }
+.upn-n { width: 1.4rem; text-align: center; font-weight: 700; color: var(--muted); flex-shrink: 0; }
+.upn-open { all: unset; cursor: pointer; display: flex; align-items: center; gap: .6rem; flex: 1; min-width: 0; }
+.upn-open:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+.upn-move { display: flex; gap: .2rem; flex-shrink: 0; }
+.upn-move .iconbtn { width: 2.4rem; height: 2.4rem; }
+.upn-move .iconbtn:disabled { opacity: .3; }
+.story-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+.story-stat { background: var(--soft); border-radius: var(--radius-md); padding: .8rem; }
+.story-stat b { display: block; font-family: var(--font-display); font-size: 1.6rem; }
+.story-stat span { color: var(--muted); font-size: .85rem; }
+.story-covers { display: grid; grid-template-columns: repeat(auto-fill, minmax(4.2rem, 1fr)); gap: .5rem; }
 </style>
 </head>
 <body>
 <div id="tex" aria-hidden="true"></div><div id="tw" aria-hidden="true"></div>
 <div class="app" id="app"></div>
 <div id="sheet-root"></div>
+<div id="session-root"></div>
 <div id="cele-root"></div>
 <div class="toast fixed hide" id="toast" role="status" aria-live="polite"><span id="toast-msg"></span></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -822,7 +867,7 @@ let dailyPending = false;   // stamps and other pop-ups wait while today's remin
 function countOpen() { const st = dailyGet(); st.opens = (st.opens || 0) + 1; dailySet(st); dailyPending = st.day !== dayStr() && !pendingJoin && !!dailyKind(); }
 function dailyAsk(tries = 0) {
   const st = dailyGet(), today = dayStr();
-  if (st.day === today || pendingJoin) { dailyPending = false; return; }
+  if (st.day === today || pendingJoin || (db && sessGet())) { dailyPending = false; return; }   // never during a reading session
   const kind = dailyKind(); if (!kind) { dailyPending = false; return; }
   if (ui.loading || !calm(dailyPending ? 800 : 2000) || (!dailyPending && stampQueue.length)) { if (tries < 90) setTimeout(() => dailyAsk(tries + 1), 1000); else dailyPending = false; return; }
   st.day = today; dailySet(st); dailyPending = false;
@@ -1086,14 +1131,31 @@ function save() {
 let synced = {};            // 'b:<id>' -> JSON of what Supabase has
 let syncTimer, syncing = false, syncAgain = false, syncErrShown = false;
 const iso = ts => new Date(ts || Date.now()).toISOString();
-const bookRow = b => ({ id: b.id, user_id: ME, title: b.title, author: b.author || '', pages: b.pages || 0, page: b.page || 0, percent: b.percent || 0, track: !!tracked(b), status: b.status, cover_url: b.coverUrl || '', photo_url: b.photo || '', from_note: b.from || '', genre: b.genre || '', updated_at: iso(b.updatedAt), ...(b.visibleTo !== undefined ? { visible_to: b.visibleTo } : {}) });
-const postRow = p => ({ id: p.id, user_id: ME, title: p.title, author: p.author || '', pages: p.pages || 0, cover_url: p.coverUrl || '', reaction: p.reaction, text: p.text || '', photo_url: p.photo || '', private: !!p.private, created_at: iso(p.createdAt), ...(p.visibleTo !== undefined ? { visible_to: p.visibleTo } : {}) });
+const bookRow = b => ({ id: b.id, user_id: ME, title: b.title, author: b.author || '', pages: b.pages || 0, page: b.page || 0, percent: b.percent || 0, track: !!tracked(b), status: b.status, cover_url: b.coverUrl || '', photo_url: b.photo || '', from_note: b.from || '', genre: b.genre || '', updated_at: iso(b.updatedAt), ...(b.visibleTo !== undefined ? { visible_to: b.visibleTo } : {}), ...(b.upRank != null ? { up_rank: b.upRank } : {}) });
+const postRow = p => ({ id: p.id, user_id: ME, title: p.title, author: p.author || '', pages: p.pages || 0, cover_url: p.coverUrl || '', reaction: p.reaction, text: p.text || '', photo_url: p.photo || '', private: !!p.private, created_at: iso(p.createdAt), ...(p.visibleTo !== undefined ? { visible_to: p.visibleTo } : {}), ...(p.kind ? { kind: p.kind } : {}) });
 const groupRow = g => ({ id: g.id, name: g.name, code: g.code, created_by: ME, created_at: iso(g.createdAt) });
-const profileRow = () => ({ id: ME, name: db.me.name, show_progress: db.me.showProgress !== false, theme: db.me.theme || 'teal', daily_goal: db.me.goal || null, show_clubs: !!db.me.showClubs, avatar_url: db.me.avatar || '', bio: db.me.bio || '', fav_genres: db.me.genres || [], stamps: db.me.stamps || {}, show_stamps: !!db.me.showStamps, hidden_demos: db.me.hiddenDemos || [] });
-const logRow = l => ({ id: l.id, user_id: ME, book_id: l.bookId, title: l.title, day: l.day, pages: l.pages, updated_at: iso(l.updatedAt) });
-const rowToBook = r => ({ cloud: true, id: r.id, userId: r.user_id, title: r.title, author: r.author || '', pages: r.pages || 0, page: r.page || 0, percent: r.percent || 0, track: r.track, status: r.status, coverUrl: r.cover_url || '', photo: r.photo_url || '', from: r.from_note || '', genre: r.genre || '', updatedAt: Date.parse(r.updated_at) || Date.now(), ...('visible_to' in r ? { visibleTo: r.visible_to } : {}) });
-const rowToPost = r => ({ cloud: true, private: !!r.private, id: r.id, userId: r.user_id, title: r.title, author: r.author || '', pages: r.pages || 0, coverUrl: r.cover_url || '', reaction: r.reaction, text: r.text || '', photo: r.photo_url || '', createdAt: Date.parse(r.created_at) || Date.now(), ...('visible_to' in r ? { visibleTo: r.visible_to } : {}) });
+const profileRow = () => ({ id: ME, name: db.me.name, show_progress: db.me.showProgress !== false, theme: db.me.theme || 'teal', daily_goal: db.me.goal || null, show_clubs: !!db.me.showClubs, avatar_url: db.me.avatar || '', bio: db.me.bio || '', fav_genres: db.me.genres || [], stamps: db.me.stamps || {}, show_stamps: !!db.me.showStamps, hidden_demos: db.me.hiddenDemos || [], ...(typeof db.me.showReadingNow === 'boolean' ? { show_reading_now: db.me.showReadingNow } : {}) });
+const logRow = l => ({ id: l.id, user_id: ME, book_id: l.bookId, title: l.title, day: l.day, pages: l.pages, updated_at: iso(l.updatedAt), ...(l.minutes ? { minutes: l.minutes } : {}) });
+const rowToBook = r => ({ cloud: true, id: r.id, userId: r.user_id, title: r.title, author: r.author || '', pages: r.pages || 0, page: r.page || 0, percent: r.percent || 0, track: r.track, status: r.status, coverUrl: r.cover_url || '', photo: r.photo_url || '', from: r.from_note || '', genre: r.genre || '', updatedAt: Date.parse(r.updated_at) || Date.now(), ...('visible_to' in r ? { visibleTo: r.visible_to } : {}), ...(r.up_rank != null ? { upRank: r.up_rank } : {}) });
+const rowToPost = r => ({ cloud: true, private: !!r.private, id: r.id, userId: r.user_id, title: r.title, author: r.author || '', pages: r.pages || 0, coverUrl: r.cover_url || '', reaction: r.reaction, text: r.text || '', photo: r.photo_url || '', createdAt: Date.parse(r.created_at) || Date.now(), ...('visible_to' in r ? { visibleTo: r.visible_to } : {}), ...(r.kind ? { kind: r.kind } : {}) });
 
+const lineRow = l => ({ id: l.id, user_id: ME, book_id: l.bookId || null, title: l.title || '', author: l.author || '', text: l.text || '', page: l.page ?? null, photo_path: l.photoPath || null, shared_post: l.sharedPost || null, created_at: iso(l.createdAt) });
+const sessRow = x => ({ id: x.id, user_id: ME, book_id: x.bookId || null, title: x.title || '', started_at: iso(x.start), minutes: x.mins || 0, pages: x.pages || 0 });
+/* write a row; if the database doesn't have a new column yet (update not run), leave that column out and carry on */
+const NOCOL = {};
+async function upsertSafe(table, row, opts) {
+  let r = { ...row }; (NOCOL[table] || []).forEach(k => delete r[k]);
+  for (let i = 0; i < 4; i++) {
+    const { error } = await sb.from(table).upsert(r, opts);
+    if (!error) return null;
+    const m = /'(\w+)' column|column "?(\w+)"? (?:of relation \S+ )?does not exist/i.exec(error.message || '');
+    const k = m && (m[1] || m[2]);
+    if (!k || !(k in r)) return error;
+    (NOCOL[table] = NOCOL[table] || []).push(k); delete r[k];
+  }
+  return null;
+}
+const noTable = e => e && (/42P01|PGRST205/.test(e.code || '') || /does not exist|could not find the table|schema cache/i.test(e.message || ''));
 function queueSync() { clearTimeout(syncTimer); syncTimer = setTimeout(sync, 500); }
 
 async function uploadPhoto(dataUrl) {
@@ -1113,7 +1175,7 @@ async function sync() {
     // profile (upload a new photo first)
     if (db.me.avatar && db.me.avatar.startsWith('data:')) { db.me.avatar = await uploadPhoto(db.me.avatar); localStorage.setItem(cacheKey(), JSON.stringify(db)); }
     const pr = profileRow(), prJ = JSON.stringify(pr);
-    if (synced['p:me'] !== prJ) { const { error } = await sb.from('profiles').upsert(pr); if (error) throw error; synced['p:me'] = prJ; }
+    if (synced['p:me'] !== prJ) { const error = await upsertSafe('profiles', pr); if (error) throw error; synced['p:me'] = prJ; }
 
     // groups I created (+ my membership)
     for (const g of db.groups.filter(g => !g.demo && (g.createdBy || ME) === ME)) {
@@ -1132,7 +1194,7 @@ async function sync() {
       if (b.photo && b.photo.startsWith('data:')) { b.photo = await uploadPhoto(b.photo); localStorage.setItem(cacheKey(), JSON.stringify(db)); }
       const row = bookRow(b), j = JSON.stringify(row);
       if (synced['b:' + b.id] === j) continue;
-      const { error } = await sb.from('books').upsert(row); if (error) throw error;
+      const error = await upsertSafe('books', row); if (error) throw error;
       synced['b:' + b.id] = j; b.cloud = true; delete b.pendingNew;
     }
     const bookIds = new Set(mine.map(b => b.id));
@@ -1147,7 +1209,7 @@ async function sync() {
       if (!synced['b:' + l.bookId]) continue;
       const row = logRow(l), j = JSON.stringify(row);
       if (synced['l:' + l.id] === j) continue;
-      const { error } = await sb.from('reading_log').upsert(row, { onConflict: 'user_id,book_id,day' }); if (error) throw error;
+      const error = await upsertSafe('reading_log', row, { onConflict: 'user_id,book_id,day' }); if (error) throw error;
       synced['l:' + l.id] = j;
     }
 
@@ -1161,13 +1223,41 @@ async function sync() {
       }
       const row = postRow(p), j = JSON.stringify(row);
       if (synced['o:' + p.id] === j) continue;
-      const { error } = await sb.from('posts').upsert(row); if (error) throw error;
+      const error = await upsertSafe('posts', row); if (error) throw error;
       synced['o:' + p.id] = j; p.cloud = true; delete p.pendingNew;
     }
     const postIds = new Set(myPosts.map(p => p.id));
     for (const k of Object.keys(synced).filter(k => k.startsWith('o:') && !postIds.has(k.slice(2)))) {
       const { error } = await sb.from('posts').delete().eq('id', k.slice(2)); if (error) throw error;
       delete synced[k];
+    }
+
+    // my lines (photos go to a private folder) and reading sessions — skipped quietly until supabase-update-19 is run
+    if (!NOCOL._lines) {
+      for (const l of (db.lines || [])) {
+        if (l.photo && l.photo.startsWith('data:')) {
+          const blob = await (await fetch(l.photo)).blob(), path = `${ME}/${l.id}.jpg`;
+          const up = await sb.storage.from('lines').upload(path, blob, { contentType: 'image/jpeg', upsert: true });
+          if (up.error) { if (/not found|bucket/i.test(up.error.message || '')) { NOCOL._lines = true; break; } throw up.error; }
+          l.photoPath = path; l.photo = ''; localStorage.setItem(cacheKey(), JSON.stringify(db));
+        }
+        const row = lineRow(l), j = JSON.stringify(row);
+        if (synced['n:' + l.id] === j) continue;
+        const { error } = await sb.from('lines').upsert(row); if (noTable(error)) { NOCOL._lines = true; break; } if (error) throw error;
+        synced['n:' + l.id] = j;
+      }
+      const lineIds = new Set((db.lines || []).map(l => l.id));
+      for (const k of Object.keys(synced).filter(k => k.startsWith('n:') && !lineIds.has(k.slice(2)))) {
+        const gone = (synced['n:' + k.slice(2)] || '').match(/"photo_path":"([^"]+)"/);
+        const { error } = await sb.from('lines').delete().eq('id', k.slice(2)); if (error && !noTable(error)) throw error;
+        if (gone) sb.storage.from('lines').remove([gone[1]]).then(() => {}, () => {});
+        delete synced[k];
+      }
+    }
+    if (!NOCOL._sessions) for (const x of (db.sessions || [])) {
+      if (!x.id || synced['r:' + x.id]) continue;
+      const { error } = await sb.from('reading_sessions').upsert(sessRow(x)); if (noTable(error)) { NOCOL._sessions = true; break; } if (error) throw error;
+      synced['r:' + x.id] = '1';
     }
     localStorage.setItem(cacheKey(), JSON.stringify(db));
     syncErrShown = false;
@@ -1204,7 +1294,7 @@ async function pull() {
   }
   const userIds = [...new Set([ME, ...members.map(m => m.user_id)])];
   const since = dayStr(Date.now() - 400 * 86400000);
-  const [profs, books, posts, admin, log, likesRes, msRes, crRes] = await Promise.all([
+  const [profs, books, posts, admin, log, likesRes, msRes, crRes, linesRes, sessRes] = await Promise.all([
     sb.from('profiles').select('id,name,show_progress,avatar_url,bio,fav_genres,stamps,show_stamps').in('id', userIds).is('deleted_at', null),
     sb.from('books').select('*').in('user_id', userIds).is('deleted_at', null),
     sb.from('posts').select('*').in('user_id', userIds).is('deleted_at', null).order('created_at', { ascending: false }).limit(300),
@@ -1212,7 +1302,9 @@ async function pull() {
     sb.from('reading_log').select('*').eq('user_id', ME).gte('day', since),
     sb.from('post_likes').select('post_id,user_id').limit(5000),
     sb.from('club_milestones').select('group_id,n,reached_at').gte('reached_at', new Date(Date.now() - 7 * 86400000).toISOString()),
-    sb.rpc('club_read_summary')
+    sb.rpc('club_read_summary'),
+    sb.from('lines').select('*').eq('user_id', ME).order('created_at', { ascending: false }).limit(2000),
+    sb.from('reading_sessions').select('*').eq('user_id', ME).order('started_at', { ascending: false }).limit(500)
   ]);
   if (profs.error) throw profs.error; if (books.error) throw books.error; if (posts.error) throw posts.error;
   isAdmin = !!admin.data;
@@ -1223,8 +1315,8 @@ async function pull() {
 
   db = {
     version: 3,
-    me: { id: ME, name: prof.name, showProgress: prof.show_progress !== false, theme: prof.theme || 'teal', goal: prof.daily_goal || 0, showClubs: !!prof.show_clubs, avatar: prof.avatar_url || '', bio: prof.bio || '', genres: prof.fav_genres || [], stamps: prof.stamps || {}, showStamps: !!prof.show_stamps, hiddenDemos: prof.hidden_demos || (prev && prev.me && prev.me.hiddenDemos) || [] },
-    log: (log.data || []).map(r => ({ id: r.id, bookId: r.book_id, title: r.title, day: r.day, pages: r.pages, updatedAt: Date.parse(r.updated_at) || 0 })),
+    me: { id: ME, name: prof.name, showProgress: prof.show_progress !== false, theme: prof.theme || 'teal', goal: prof.daily_goal || 0, showClubs: !!prof.show_clubs, avatar: prof.avatar_url || '', bio: prof.bio || '', genres: prof.fav_genres || [], stamps: prof.stamps || {}, showStamps: !!prof.show_stamps, hiddenDemos: prof.hidden_demos || (prev && prev.me && prev.me.hiddenDemos) || [], showReadingNow: typeof prof.show_reading_now === 'boolean' ? prof.show_reading_now : (prev && prev.me ? prev.me.showReadingNow : undefined) },
+    log: (log.data || []).map(r => ({ id: r.id, bookId: r.book_id, title: r.title, day: r.day, pages: r.pages, ...(r.minutes ? { minutes: r.minutes } : {}), updatedAt: Date.parse(r.updated_at) || 0 })),
     users: [...profs.data.filter(p => p.id !== ME).map(p => ({ id: p.id, name: p.name, showProgress: p.show_progress !== false, avatar: p.avatar_url || '', bio: p.bio || '', genres: p.fav_genres || [], stamps: p.show_stamps ? (p.stamps || {}) : null }))],
     groups: [...groups.map(g => { const gm = members.filter(m => m.group_id === g.id && (m.user_id === ME || profs.data.some(p => p.id === m.user_id)));
       return { id: g.id, name: g.name, code: g.code, about: g.about || '', photo: g.photo_url || '', createdBy: g.created_by, createdAt: Date.parse(g.created_at),
@@ -1234,7 +1326,9 @@ async function pull() {
     posts: posts.data.map(rowToPost),
     milestones: msRes && !msRes.error ? msRes.data : (prev && prev.milestones) || [],
     likes: likesRes && !likesRes.error ? likesRes.data.map(r => ({ p: r.post_id, u: r.user_id })) : (prev && prev.likes) || [],
-    reads: crRes && !crRes.error && crRes.data && crRes.data.reads ? readsFromSummary(crRes.data) : (prev && prev.reads) || { reads: [], members: [], rsvp: [], suggestions: [] }
+    reads: crRes && !crRes.error && crRes.data && crRes.data.reads ? readsFromSummary(crRes.data) : (prev && prev.reads) || { reads: [], members: [], rsvp: [], suggestions: [] },
+    lines: linesRes && !linesRes.error ? linesRes.data.map(r => ({ id: r.id, bookId: r.book_id, title: r.title, author: r.author || '', text: r.text || '', page: r.page, photoPath: r.photo_path || '', sharedPost: r.shared_post || null, createdAt: Date.parse(r.created_at) || Date.now(), cloud: true })) : (prev && prev.lines) || [],
+    sessions: sessRes && !sessRes.error ? sessRes.data.map(r => ({ id: r.id, bookId: r.book_id, title: r.title, start: Date.parse(r.started_at), mins: r.minutes, pages: r.pages, cloud: true })).reverse() : (prev && prev.sessions) || []
   };
   applyDemos();
   // what the cloud has now
@@ -1243,8 +1337,13 @@ async function pull() {
   // keep newer local log entries
   ((prev && prev.log) || []).forEach(ll => {
     const cl = db.log.find(l => l.bookId === ll.bookId && l.day === ll.day);
-    if (!cl) db.log.push(ll); else if ((ll.updatedAt || 0) > (cl.updatedAt || 0)) { cl.pages = ll.pages; cl.updatedAt = ll.updatedAt; }
+    if (!cl) db.log.push(ll); else if ((ll.updatedAt || 0) > (cl.updatedAt || 0)) { cl.pages = ll.pages; if (ll.minutes) cl.minutes = ll.minutes; cl.updatedAt = ll.updatedAt; }
   });
+  db.lines.forEach(l => synced['n:' + l.id] = JSON.stringify(lineRow(l)));
+  db.sessions.forEach(x => { if (x.id) synced['r:' + x.id] = '1'; });
+  ((prev && prev.lines) || []).filter(l => !l.cloud && !db.lines.some(x => x.id === l.id)).forEach(l => db.lines.push(l));
+  ((prev && prev.sessions) || []).filter(x => !x.cloud && !db.sessions.some(y => y.id === x.id)).forEach(x => db.sessions.push(x));
+  setTimeout(rnRefresh, 0);
   db.groups.filter(g => !g.demo && g.createdBy === ME).forEach(g => synced['g:' + g.id] = JSON.stringify(groupRow(g)));
   db.books.filter(b => b.userId === ME && !b.demo).forEach(b => synced['b:' + b.id] = JSON.stringify(bookRow(b)));
   db.posts.filter(p => p.userId === ME && !p.demo).forEach(p => synced['o:' + p.id] = JSON.stringify(postRow(p)));
@@ -1564,7 +1663,7 @@ const nudgesSeen = () => { try { return JSON.parse(localStorage.getItem('sm.nudg
 /* pop-ups take turns: wait until nothing is open, no Undo is showing, and things have been calm for a moment */
 let lastBusy = 0;
 function calm(ms = 3000) {
-  const busy = !!ui.sheet || !!document.getElementById('cele-root').innerHTML || !!toastUndo;
+  const busy = !!ui.sheet || !!document.getElementById('cele-root').innerHTML || !!toastUndo || document.body.classList.contains('in-session');
   if (busy) { lastBusy = Date.now(); return false; }
   return Date.now() - lastBusy > ms;
 }
@@ -1613,8 +1712,8 @@ function celebrate(kind, b, undo) {
       <h2>${head.replace('{t}', t)}</h2>
       <p>${body.replace('{t}', t)}</p>
       ${kind === 'finish' ? `<div class="ccover">${fcover(b)}</div>
-        <div class="formbtns"><button class="btn" data-act="cele-close">Later</button><button class="btn accent" data-act="cele-share" data-id="${b.id}">✍️ Share what stayed</button></div>
-        ${undo ? '<button class="link" style="margin-top:.5rem" data-act="cele-undo">Oops, not finished yet</button>' : ''}${keepLine()}` : undo ? '<button class="link" style="margin-top:.7rem" data-act="cele-undo">Oops, undo</button>' : '<p class="small" style="margin-top:.8rem">Tap anywhere to close</p>'}
+        <div class="formbtns"><button class="btn" data-act="cele-next" data-id="${b.id}">📚 What's next?</button><button class="btn accent" data-act="cele-share" data-id="${b.id}">✍️ Share what stayed</button></div>
+        <div style="display:flex;justify-content:center;gap:1rem;flex-wrap:wrap;margin-top:.5rem"><button class="link" data-act="cele-close">Close</button>${undo ? '<button class="link" data-act="cele-undo">Oops, not finished yet</button>' : ''}</div>${keepLine()}` : undo ? '<button class="link" style="margin-top:.7rem" data-act="cele-undo">Oops, undo</button>' : '<p class="small" style="margin-top:.8rem">Tap anywhere to close</p>'}
     </div></div>`;
   clearTimeout(celeTimer);
   if (kind === 'start') celeTimer = setTimeout(() => { root.innerHTML = ''; celeUndo = null; }, 4500);
@@ -1649,6 +1748,8 @@ const STAMPS = [
     '<rect x="15" y="54" width="34" height="5" rx="1" fill="#7F77DD"/><rect x="16" y="48" width="32" height="6" rx="1" fill="#D85A30"/><rect x="18" y="42" width="28" height="6" rx="1" fill="#378ADD"/><ellipse cx="32" cy="34" rx="13" ry="9" fill="#639922"/><circle cx="25" cy="26" r="5" fill="#639922"/><circle cx="39" cy="26" r="5" fill="#639922"/><circle cx="25" cy="26" r="3" fill="#fff"/><circle cx="39" cy="26" r="3" fill="#fff"/><circle cx="25.5" cy="26.5" r="1.5" fill="#173404"/><circle cx="39.5" cy="26.5" r="1.5" fill="#173404"/><path d="M26 36 Q32 40 38 36" stroke="#173404" stroke-width="1.4" fill="none" stroke-linecap="round"/><circle cx="22" cy="34" r="1.8" fill="#ED93B1"/><circle cx="42" cy="34" r="1.8" fill="#ED93B1"/>'],
   ['resume', 'Picked up again', 'Resume a book you paused', 'Tilly the turtle takes her time', 'teal',
     '<ellipse cx="30" cy="44" rx="19" ry="4" fill="#5DCAA5"/><ellipse cx="18" cy="47" rx="3" ry="4" fill="#5DCAA5"/><ellipse cx="40" cy="47" rx="3" ry="4" fill="#5DCAA5"/><path d="M12 43 Q30 14 48 43 Z" fill="#1D9E75"/><path d="M22 42 L26 31 L34 31 L38 42 M26 31 L30 24 L34 31" stroke="#9FE1CB" stroke-width="1.3" fill="none"/><circle cx="51" cy="38" r="6" fill="#5DCAA5"/><circle cx="52.5" cy="36.5" r="1.3" fill="#04342C"/><path d="M50 40.5 Q52 42 54 40.5" stroke="#04342C" fill="none" stroke-linecap="round"/>'],
+  ['session', 'Settled in', 'Finish a reading session', 'Lumi the moth finds the lamp', 'purple',
+    '<path d="M24 52 L40 52 L37 46 L27 46 Z" fill="#534AB7"/><rect x="31" y="30" width="2.5" height="16" fill="#534AB7"/><path d="M19 30 Q32 12 45 30 Z" fill="#FAC775"/><ellipse cx="32" cy="31" rx="9" ry="3" fill="#FFF3D6"/><path d="M44 18 Q50 12 52 18 Q50 22 44 20 Z M44 18 Q38 12 36 18 Q38 22 44 20 Z" fill="#CECBF6"/><ellipse cx="44" cy="19" rx="1.4" ry="3" fill="#3C3489"/>'],
   ['feedback', 'Helped build Shelfmates', 'Send us feedback', 'Buzz the bee says thank you', 'amber',
     '<defs><clipPath id="bzc"><ellipse cx="30" cy="38" rx="13" ry="10"/></clipPath></defs><ellipse cx="25" cy="24" rx="6" ry="9" fill="#E6F1FB" stroke="#85B7EB" transform="rotate(-20 25 24)"/><ellipse cx="35" cy="24" rx="6" ry="9" fill="#E6F1FB" stroke="#85B7EB" transform="rotate(20 35 24)"/><ellipse cx="30" cy="38" rx="13" ry="10" fill="#EF9F27"/><g clip-path="url(#bzc)" fill="#412402"><rect x="23" y="26" width="4" height="24"/><rect x="31" y="26" width="4" height="24"/></g><circle cx="45" cy="36" r="7" fill="#EF9F27"/><circle cx="47" cy="34.5" r="1.6" fill="#412402"/><path d="M44.5 39 Q47 40.5 49.5 39" stroke="#412402" fill="none" stroke-linecap="round"/><path d="M44 30 Q42 24 39 23 M48 30 Q49 24 52 23" stroke="#412402" fill="none"/><rect x="12" y="46" width="12" height="3" rx="1" fill="#5F5E5A" transform="rotate(-35 18 47)"/><rect x="9" y="50" width="4" height="7" rx="1" fill="#854F0B" transform="rotate(-35 11 53)"/>']
 ];
@@ -1672,7 +1773,8 @@ function stampConditions() {
     founder: groups.some(g => g.createdBy === ME),
     chair: groups.some(g => g.createdBy && g.createdBy !== ME && g.members.includes(ME)),
     home: isInstalled(),
-    genres: new Set(mine.filter(b => b.genre && (b.status === 'reading' || b.status === 'finished')).map(b => b.genre)).size >= 3
+    genres: new Set(mine.filter(b => b.genre && (b.status === 'reading' || b.status === 'finished')).map(b => b.genre)).size >= 3,
+    session: (db.log || []).some(l => (l.minutes || 0) > 0)
   };
 }
 const stampQueue = [];
@@ -1753,6 +1855,7 @@ function editableFcover(b) {
 }
 const clubBadge = (g, cls = '') => g && g.photo ? `<img class="club-badge ${cls}" src="${esc(g.photo)}" alt="" loading="lazy">` : `<span class="club-badge ${cls}" aria-hidden="true">${g && g.emoji ? esc(g.emoji) : initial(g ? g.name : '?')}</span>`;
 const avatar = (u, cls = '') => u && u.emoji && !u.avatar ? `<span class="av ${cls}" style="font-size:1.05em">${esc(u.emoji)}</span>` : u && u.avatar ? `<img class="av ${cls}" src="${esc(u.avatar)}" alt="" style="object-fit:cover;padding:0">` : `<span class="av ${cls} ${u && u.id === ME ? 'me' : ''}">${initial(u ? u.name : '?')}</span>`;
+const postPill = p => p.kind === 'line' ? '<span class="pill info">✍️ a line</span>' : reactionPill(p.reaction);
 const reactionPill = k => REACT[k] ? `<span class="pill ${REACT[k].pill}">${REACT[k].emoji} ${REACT[k].label}</span>` : '';
 document.addEventListener('error', e => {
   const t = e.target;
@@ -1770,6 +1873,7 @@ document.addEventListener('error', e => {
    Render
    ============================================================ */
 function render() {
+  if (db && !document.querySelector('#session-root .sess') && sessGet()) setTimeout(sessRender, 0);
   /*ADMIN{*/if (PORTAL) { renderPortal(); return; }/*}ADMIN*/
   const app = document.getElementById('app');
   app.classList.toggle('no-nav', !!ui.loading || !db);
@@ -1817,7 +1921,7 @@ const WELCOME_BOOKS = [
 const PILLARS = `<div class="mgroup">
   <div class="mrow static"><span class="mi">📖</span><span class="mt">Read<small>at your own pace, your own books</small></span></div>
   <div class="mrow static"><span class="mi">🧭</span><span class="mt">Discover<small>through friends, coworkers and family</small></span></div>
-  <div class="mrow static"><span class="mi">🔔</span><span class="mt">Build the habit<small>a gentle reminder on the days you pick</small></span></div>
+  <div class="mrow static"><span class="mi">⏱</span><span class="mt">Build the habit<small>a calm reading timer, and a gentle reminder on the days you pick</small></span></div>
 </div>`;
 function welcomeHTML() {
   return `<div class="welcome">
@@ -1827,7 +1931,7 @@ function welcomeHTML() {
     <div class="mgroup">
       <div class="mrow static"><span class="mi">📖</span><span class="mt">Read<small>at your own pace, your own books</small></span></div>
       <div class="mrow static"><span class="mi">🧭</span><span class="mt">Discover<small>through friends, coworkers and family</small></span></div>
-      <div class="mrow static"><span class="mi">🔔</span><span class="mt">Build the habit<small>a gentle reminder on the days you pick</small></span></div>
+      <div class="mrow static"><span class="mi">⏱</span><span class="mt">Build the habit<small>a calm reading timer, and a gentle reminder on the days you pick</small></span></div>
     </div>
     <label class="hb-label" for="ob-name">What should your clubs call you?</label>
     <input class="hb-input" id="ob-name" placeholder="Your first name" autocomplete="given-name" maxlength="40" enterkeyhint="go">
@@ -1852,8 +1956,8 @@ function todayCardHTML() {
     <button class="btn accent" data-act="add-open">＋ Add the book you're reading</button></div>`;
   const today = dayStr(), n = pagesOn(today), goal = db.me.goal || 0;
   const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setDate(d.getDate() - 6 + i); return d; });
-  const vals = days.map(d => pagesOn(dayStr(d)));
-  const wk = vals.reduce((a, b) => a + b, 0);
+  const vals = days.map(d => pagesOn(dayStr(d))), mvals = days.map(d => minutesOn(dayStr(d)));
+  const wk = vals.reduce((a, b) => a + b, 0), wkm = mvals.reduce((a, b) => a + b, 0), tm = minutesOn(today), mmax = Math.max(...mvals, 1), ms = readMilestone();
   const slides = reading.map(b => {
     const bt = pagesForBookToday(b.id);
     return `<div class="tslide">
@@ -1868,7 +1972,9 @@ function todayCardHTML() {
       </div>
     </div>`;
   }).join('');
-  const dots = days.map((d, i) => `<span class="tday ${i === 6 ? 'on' : ''}"><small>${d.toLocaleDateString('en-IN', { weekday: 'narrow' })}</small><i class="${vals[i] ? 'read' : ''}" title="${vals[i]} pages"></i></span>`).join('');
+  const dots = days.map((d, i) => `<span class="tday ${i === 6 ? 'on' : ''}"><small>${d.toLocaleDateString('en-IN', { weekday: 'narrow' })}</small>${wkm
+    ? `<i class="bar-d ${vals[i] || mvals[i] ? 'read' : ''}" style="height:${mvals[i] ? Math.max(8, Math.round(mvals[i] / mmax * 34)) : vals[i] ? 8 : 5}px" title="${mvals[i]} min · ${vals[i]} pages"></i>`
+    : `<i class="${vals[i] ? 'read' : ''}" title="${vals[i]} pages"></i>`}</span>`).join('');
   return `<section class="card today-card" style="margin-top:.3rem" aria-label="Your reading today. Only you can see this.">
     <div class="row" style="justify-content:space-between">
       <span class="section-label" style="margin:0">Today</span>
@@ -1876,9 +1982,11 @@ function todayCardHTML() {
     </div>
     <div class="tslides">${slides}</div>
     ${reading.length > 1 ? `<div class="tpager" aria-hidden="true">${reading.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div>` : ''}
-    <button class="btn accent block" style="margin-top:.7rem" data-act="today-open">🔖 Move my bookmark</button>
-    <div class="tweek" aria-label="Days you read this week">${dots}</div>
-    <p class="sub" style="text-align:center;margin:.5rem 0 0;font-size:.8rem">${goal && n >= goal ? `${n} pages today 🎉 goal reached` : `${n}${goal ? ` of ${goal}` : ''} ${n === 1 && !goal ? 'page' : 'pages'} today`} · ${wk} this week · 🔒 only you see this</p>
+    <div class="row" style="gap:.5rem;margin-top:.7rem"><button class="btn accent big" style="flex:2" data-act="sess-start">▶ Start reading</button><button class="btn" style="flex:1" data-act="today-open" aria-label="Move my bookmark">🔖 Bookmark</button></div>
+    <div class="tweek ${wkm ? 'bars' : ''}" aria-label="Days you read this week">${dots}</div>
+    <p class="sub" style="text-align:center;margin:.5rem 0 0;font-size:.8rem">${goal && n >= goal ? `${n} pages today 🎉 goal reached` : `${n}${goal ? ` of ${goal}` : ''} ${n === 1 && !goal ? 'page' : 'pages'} today`}${tm ? ` · ⏱ ${fmtMins(tm)}` : ''} · ${wkm ? `${fmtMins(wkm)} this week` : `${wk} this week`} · 🔒 only you</p>
+    ${ms ? `<p class="small" style="text-align:center;margin:.3rem 0 0">${esc(ms)}</p>` : ''}
+    <button class="link small" style="display:block;margin:.3rem auto 0" data-act="story-open">📈 My reading story</button>
   </section>`;
 }
 const soloCardDismissed = () => { try { return localStorage.getItem('sm.soloCard') === 'x'; } catch (e) { return false; } };
@@ -1905,7 +2013,7 @@ function homeHTML() {
   return `
     ${!isInstalled() && !installHintDone() && myBooks().some(b => !b.demo) && platform() !== 'desktop' ? `<div class="banner accent"><span class="b-icon">📱</span><div class="grow"><div class="item-title">Install Shelfmates as an app</div><div class="sub" style="color:var(--ink)">Opens like an app, one tap away.</div>
       <div class="actions" style="margin-top:.4rem"><button class="btn primary" data-act="install-show">Show me</button></div></div><button class="iconbtn" style="border:none" aria-label="Dismiss" data-act="install-dismiss">✕</button></div>` : remindOfferHTML()}
-    <div class="home-grid"><div class="home-left">${todayCardHTML()}</div><div class="home-right">
+    <div class="home-grid"><div class="home-left">${readingNowHTML()}${todayCardHTML()}</div><div class="home-right">
     <div class="section-label">Your clubs</div>
     ${clubCards || (soloCardDismissed() ? `<div class="card empty">No clubs yet. Start one and send the link to a few friends.</div>`
       : `<div class="card" style="position:relative;padding-right:2.6rem"><button class="iconbtn" style="border:none;position:absolute;top:.3rem;right:.3rem" aria-label="Dismiss" data-act="solo-dismiss">✕</button>
@@ -1933,24 +2041,27 @@ function shelfHTML() {
           ${tracked(b) ? progControl(b, 'c') : `<div class="meta" style="margin-top:.5rem">Progress not tracked</div><button class="link" style="padding-left:0" data-act="track-toggle" data-id="${b.id}">＋ Track progress</button>`}
         </div>
       </div>
+      <div class="actions"><button class="btn accent" style="flex:1" data-act="sess-start" data-id="${b.id}">▶ Start reading</button></div>
       <div class="actions">
         <button class="btn" style="flex:1" data-act="book" data-id="${b.id}">More</button>
         <button class="btn primary" style="flex:1" data-act="finish" data-id="${b.id}">✓ I finished it</button>
       </div>
     </div>`).join('');
-  const labels = { want: 'Want to read', paused: 'Paused', finished: 'Finished', ...(shelves.aside.length ? { aside: 'Set aside' } : {}) };
+  const labels = { want: 'Up next', paused: 'Paused', finished: 'Finished', ...(shelves.aside.length ? { aside: 'Set aside' } : {}) };
   const any = shelves.want.length + shelves.paused.length + shelves.finished.length + shelves.aside.length;
   const items = shelves[ui.shelfTab].map(b => `<button class="shelf-item" data-act="book" data-id="${b.id}">
       ${fcover(b)}<span class="item-title clamp2">${esc(b.title)}</span>
       <span class="meta">${esc(b.status === 'want' ? (b.from || b.author || '') : b.status === 'paused' || b.status === 'aside' ? (tracked(b) && pct(b) ? pct(b) + '% read' : b.status === 'aside' ? 'Set aside' : 'Paused') : (b.author || ''))}</span>
     </button>`).join('');
-  const hint = { want: 'Save books from Discover, or tap + to add one.', paused: 'Books you pause wait here.', finished: 'Books you finish land here.', aside: 'Started, not for now. No guilt.' };
+  const hint = { want: 'Your next books, in order. Save books from Discover, or tap + to add one.', paused: 'Books you pause wait here.', finished: 'Books you finish land here.', aside: 'Started, not for now. No guilt.' };
   return `
     <div class="section-label" style="margin-top:.3rem">Reading now</div>
     ${nowCards || `<div class="card empty">Nothing on the go.<br>Tap <b>+</b> to add the book you're reading.</div>`}
     ${any ? `<div class="section-label">On my shelf</div>
       <div class="chips">${Object.keys(labels).map(k => `<button class="chip ${ui.shelfTab === k ? 'on' : ''}" data-act="shelf" data-id="${k}">${labels[k]} · ${shelves[k].length}</button>`).join('')}</div>
-      ${items ? `<div class="shelf">${items}</div>` : `<div class="empty">${hint[ui.shelfTab]}</div>`}` : ''}`;
+      ${ui.shelfTab === 'want' && shelves.want.length ? upNextHTML() : items ? `<div class="shelf">${items}</div>` : `<div class="empty">${hint[ui.shelfTab]}</div>`}` : ''}
+    <div class="section-label">Lines that stay with you</div>
+    ${myLinesCardHTML()}`;
 }
 
 /* ----- Discover ----- */
@@ -1970,12 +2081,12 @@ function postCard(p, club) {
   const u = userById(p.userId) || { name: 'Member' }, isMe = p.userId === ME, saved = onMyShelf(p.title);
   const modBtn = !isMe && !p.demo && (CLOUD || (club && canManage(club))) ? `<button class="iconbtn" style="border:none;font-size:1.3rem;letter-spacing:1px" aria-label="Options for this thought" data-act="post-menu" data-club="${club ? club.id : ''}" data-id="${p.id}">⋯</button>` : '';
   return `<article class="card">
-    <div class="row"><button style="all:unset;cursor:pointer" data-act="member" data-id="${p.userId}" aria-label="See ${esc(u.name)}'s shelf">${avatar(u)}</button><div class="grow"><div class="item-title">${isMe ? 'You' : esc(u.name)} <span style="font-weight:400;color:var(--muted)">shared a thought</span></div><div class="meta">${timeAgo(p.createdAt)}</div></div>
+    <div class="row"><button style="all:unset;cursor:pointer" data-act="member" data-id="${p.userId}" aria-label="See ${esc(u.name)}'s shelf">${avatar(u)}</button><div class="grow"><div class="item-title">${isMe ? 'You' : esc(u.name)} <span style="font-weight:400;color:var(--muted)">${p.kind === 'line' ? 'saved a line' : 'shared a thought'}</span></div><div class="meta">${timeAgo(p.createdAt)}</div></div>
     ${isMe ? `<button class="iconbtn" style="border:none" aria-label="Delete this post" data-act="delete-post" data-id="${p.id}">🗑️</button>` : modBtn}</div>
     ${p.photo ? `<img class="photo" src="${esc(p.photo)}" alt="Photo shared with ${esc(p.title)}">` : ''}
-    ${p.text ? `<p class="thought">${esc(p.text)}</p>` : ''}
+    ${p.text ? (p.kind === 'line' ? `<blockquote class="line-quote">${esc(p.text)}</blockquote>` : `<p class="thought">${esc(p.text)}</p>`) : ''}
     <div class="book-strip">${isMe ? coverHTML(p, 36, 54) : `<button class="cover-btn" data-act="fbook" data-k="p" data-id="${p.id}" aria-label="About ${esc(p.title)}">${coverHTML(p, 36, 54)}</button>`}
-      <div class="grow">${isMe ? `<div class="item-title" style="font-size:.9rem">${esc(p.title)}</div>` : `<button class="cover-btn item-title" style="font-size:.9rem;text-align:left" data-act="fbook" data-k="p" data-id="${p.id}">${esc(p.title)} <span style="color:var(--muted);font-weight:400">›</span></button>`}<div class="meta">${reactionPill(p.reaction)}</div></div>
+      <div class="grow">${isMe ? `<div class="item-title" style="font-size:.9rem">${esc(p.title)}</div>` : `<button class="cover-btn item-title" style="font-size:.9rem;text-align:left" data-act="fbook" data-k="p" data-id="${p.id}">${esc(p.title)} <span style="color:var(--muted);font-weight:400">›</span></button>`}<div class="meta">${postPill(p)}</div></div>
       ${isMe ? '' : saveBtn(p.title, 'save-post', p.id, '＋ Save', 'font-size:.78rem')}
     </div>
     ${likeRowHTML(p)}
@@ -2663,6 +2774,415 @@ document.addEventListener('input', e => {
 });
 document.addEventListener('change', e => { if (e.target.id === 'cr-spoil') ui.crSpoil = e.target.checked; });
 
+/* ============================================================
+   ⏱ Reading sessions · ✍️ Lines that stay with you · 📚 Up next · 📈 Reading story · 🟢 Reading right now
+   Reading time is private (like pages). Lines are private unless you share one.
+   ============================================================ */
+const minutesOn = day => (db.log || []).filter(l => l.day === day).reduce((n, l) => n + (l.minutes || 0), 0);
+const fmtMins = m => { m = Math.round(m || 0); return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h${m % 60 ? ' ' + (m % 60) + ' min' : ''}`; };
+function logMinutes(b, mins) {
+  if (!db || !b || b.userId !== ME || !(mins > 0)) return;
+  db.log = db.log || [];
+  const day = dayStr();
+  let e = db.log.find(l => l.bookId === b.id && l.day === day);
+  if (!e) { e = { id: uid(), bookId: b.id, title: b.title, day, pages: 0 }; db.log.push(e); }
+  e.minutes = Math.min(1440, (e.minutes || 0) + Math.round(mins)); e.updatedAt = Date.now();
+}
+const weekDays = () => Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setDate(d.getDate() - 6 + i); return d; });
+const weekMinutes = () => weekDays().reduce((n, d) => n + minutesOn(dayStr(d)), 0);
+/* a gentle line now and then; never about how much others read */
+function readMilestone() {
+  const wk = weekMinutes(), ss = (db.sessions || []).filter(s => s.start > Date.now() - 30 * 86400000);
+  const longest = ss.reduce((m, s) => Math.max(m, s.mins || 0), 0), last = ss[ss.length - 1];
+  if (last && Date.now() - last.start < 18 * 3600000 && last.mins >= 15 && last.mins === longest && ss.length > 2) return `🌟 Your longest session lately: ${fmtMins(longest)}`;
+  if (wk >= 60) return `🎉 Over an hour of reading this week`;
+  if (longest >= 20) return `Longest session lately: ${fmtMins(longest)}`;
+  return '';
+}
+
+/* ---------- a reading session ---------- */
+const sessKey = () => 'sm.session:' + ME;
+const sessGet = () => { try { return JSON.parse(localStorage.getItem(sessKey()) || 'null'); } catch (e) { return null; } };
+const sessSet = s => { try { s ? localStorage.setItem(sessKey(), JSON.stringify(s)) : localStorage.removeItem(sessKey()); } catch (e) {} };
+const sessMs = s => Math.max(0, (s.pausedAt || Date.now()) - s.startedAt - (s.pausedMs || 0));
+const clock = ms => { const t = Math.floor(ms / 1000), h = Math.floor(t / 3600), m = Math.floor(t / 60) % 60, s = t % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(s).padStart(2, '0'); };
+let sessTick = null, wakeLock = null, rnLastPush = 0;
+async function keepAwake(on) {
+  try {
+    if (on && 'wakeLock' in navigator && !wakeLock) { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); }
+    if (!on && wakeLock) { await wakeLock.release(); wakeLock = null; }
+  } catch (e) { wakeLock = null; }
+}
+function sessCurrentBookId() {
+  const reading = myBooks().filter(b => b.status === 'reading').sort((a, b) => b.updatedAt - a.updatedAt);
+  const el = document.querySelector('.today-card .tslides');
+  const i = el ? Math.round(el.scrollLeft / Math.max(1, el.clientWidth)) : 0;
+  return (reading[i] || reading[0] || {}).id;
+}
+function sessStart(bookId) {
+  const b = db.books.find(x => x.id === bookId && x.userId === ME);
+  if (!b) { openSheet('add'); toast('Add the book you’re reading first'); return; }
+  if (b.status !== 'reading') updBook(b.id, { status: 'reading' });
+  const cur = sessGet();
+  if (!cur || cur.bookId !== b.id) sessSet({ bookId: b.id, startedAt: Date.now(), pausedMs: 0, pausedAt: null, step: 'run', hidden: !!(cur && cur.hidden) });
+  ui.sheet = null; ui.sheetData = {}; render();
+  sessRender(); keepAwake(true); rnPush(true);
+}
+function sessHTML(s) {
+  const b = db.books.find(x => x.id === s.bookId); if (!b) return '';
+  const paused = !!s.pausedAt, ms = sessMs(s), mins = Math.max(0, Math.round(ms / 60000));
+  if (s.step === 'page') {
+    const pg = tracked(b) && b.pages ? b.page : tracked(b) ? (b.percent || 0) : '';
+    return `<div class="sess-body">
+      <div class="sess-cover">${fcover(b)}</div>
+      <h2 class="sess-h">${mins >= 1 ? `${fmtMins(mins)} of reading 🌿` : 'A short one 🌿'}</h2>
+      ${mins < 1 ? '<p class="sub" style="text-align:center;margin:.2rem 0 0">Under a minute, so the time isn’t counted. Your bookmark still moves.</p>' : ''}
+      ${tracked(b) && b.pages ? `<label class="hb-label" for="sess-pg" style="text-align:center">Which page did you reach?</label>
+        <div class="sess-step"><button class="iconbtn" data-act="sess-pg" data-id="-1" aria-label="One page back">−</button>
+          <input class="hb-input" id="sess-pg" type="number" inputmode="numeric" min="0" max="${b.pages}" value="${pg}"><span class="sub">of ${b.pages}</span>
+          <button class="iconbtn" data-act="sess-pg" data-id="1" aria-label="One page on">＋</button></div>`
+      : tracked(b) ? `<label class="hb-label" for="sess-pg" style="text-align:center">How far are you?</label>
+        <div class="sess-step"><input class="hb-input" id="sess-pg" type="number" inputmode="numeric" min="0" max="100" value="${pg}"><span class="sub">%</span></div>`
+      : `<label class="hb-label" for="sess-pg" style="text-align:center">Which page did you reach? <span class="sub">(optional)</span></label>
+        <div class="sess-step"><input class="hb-input" id="sess-pg" type="number" inputmode="numeric" min="0" placeholder="Page"><span class="sub">of</span>
+          <input class="hb-input" id="sess-total" type="number" inputmode="numeric" min="1" placeholder="Total"></div>`}
+      <button class="btn accent block" style="margin-top:1rem" data-act="sess-save">Save</button>
+      <button class="link" style="display:block;margin:.4rem auto 0" data-act="sess-back">‹ Keep reading</button>
+    </div>`;
+  }
+  if (s.step === 'done') {
+    const r = s.result || {}, atEnd = b.status === 'reading' && tracked(b) && pct(b) >= 100;
+    return `<div class="sess-body">
+      <div class="sess-cover">${fcover(b)}</div>
+      <h2 class="sess-h">${atEnd ? 'Last page! 🎉' : 'Nicely done 🌿'}</h2>
+      <p class="sess-sum">${r.mins >= 1 ? `⏱ ${fmtMins(r.mins)}` : ''}${r.mins >= 1 && r.pages > 0 ? ' · ' : ''}${r.pages > 0 ? `📖 ${r.pages} ${r.pages === 1 ? 'page' : 'pages'}` : ''}</p>
+      <p class="sub" style="text-align:center;margin:.2rem 0 0">This week: ${fmtMins(weekMinutes())} · 🔒 only you see this</p>
+      ${atEnd ? `<button class="btn accent block" style="margin-top:1rem" data-act="sess-finish" data-id="${b.id}">✓ I finished it</button>` : ''}
+      <div class="actions" style="margin-top:${atEnd ? '.5' : '1'}rem"><button class="btn" style="flex:1" data-act="line-open" data-id="${b.id}">✍️ Save a line</button>
+        <button class="btn ${atEnd ? '' : 'primary'}" style="flex:1" data-act="sess-close">Close</button></div>
+    </div>`;
+  }
+  const ask = db.me.showReadingNow == null && CLOUD && !PREVIEW && realClubs().length;
+  const started = new Date(s.startedAt).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
+  return `<div class="sess-top"><button class="iconbtn" data-act="sess-cancel" aria-label="Stop without saving">✕</button>
+      <span class="small">🔒 Only you see your reading time</span>
+      <button class="iconbtn" data-act="sess-hide" aria-label="${s.hidden ? 'Show the timer' : 'Hide the timer'}">${s.hidden ? '⏱' : '🙈'}</button></div>
+    <div class="sess-body">
+      <div class="sess-cover">${fcover(b)}</div>
+      <div class="item-title" style="text-align:center;font-size:1.1rem">${esc(b.title)}</div>
+      <div class="meta" style="justify-content:center">${esc(b.author || '')}</div>
+      <div class="sess-time ${s.hidden ? 'soft' : ''}" id="sess-time" aria-live="off">${s.hidden ? (paused ? 'Paused' : 'Reading…') : clock(ms)}</div>
+      <div class="small" style="text-align:center">${paused ? '⏸ Paused' : '📖 Reading'} · started ${esc(started)}</div>
+      ${ask ? `<div class="banner accent" style="margin-top:1rem"><span class="b-icon">🟢</span><div class="grow"><div class="item-title">Let your clubs see when you're reading?</div>
+          <div class="sub" style="color:var(--ink)">They'd see "reading right now" while a session is on. Never your time or pages.</div>
+          <div class="actions" style="margin-top:.5rem"><button class="btn primary" data-act="rn-choose" data-id="1">Yes, show them</button><button class="btn" data-act="rn-choose" data-id="0">Not now</button></div></div></div>` : ''}
+      <div class="actions" style="margin-top:1.2rem"><button class="btn" style="flex:1" data-act="sess-pause">${paused ? '▶ Resume' : '⏸ Pause'}</button>
+        <button class="btn" style="flex:1" data-act="line-open" data-id="${b.id}">✍️ Save a line</button></div>
+      <button class="btn accent block big" style="margin-top:.6rem" data-act="sess-done">Done reading</button>
+    </div>`;
+}
+function sessRender() {
+  const root = document.getElementById('session-root'), s = db && sessGet();
+  if (!root) return;
+  if (!s || !db.books.some(x => x.id === s.bookId)) { root.innerHTML = ''; document.body.classList.remove('in-session'); clearInterval(sessTick); sessTick = null; return; }
+  root.innerHTML = `<div class="sess" role="dialog" aria-modal="true" aria-label="Reading session">${sessHTML(s)}</div>`;
+  document.body.classList.add('in-session');
+  clearInterval(sessTick);
+  if (s.step === 'run') sessTick = setInterval(() => {
+    const x = sessGet(); if (!x || x.step !== 'run') { clearInterval(sessTick); return; }
+    const el = document.getElementById('sess-time'); if (el && !x.hidden) el.textContent = clock(sessMs(x));
+    if (!x.pausedAt && Date.now() - rnLastPush > 5 * 60000) rnPush(true);
+  }, 1000);
+}
+function sessEnd() { sessSet(null); keepAwake(false); rnPush(false); sessRender(); render(); }
+document.addEventListener('visibilitychange', () => { const s = db && sessGet(); if (document.visibilityState === 'visible' && s && s.step === 'run' && !s.pausedAt) keepAwake(true); });
+
+/* ---------- 🟢 reading right now ---------- */
+async function rnPush(on) {
+  if (!CLOUD || !sb || PREVIEW || !authUser || !db) return;
+  const s = sessGet(), b = s && db.books.find(x => x.id === s.bookId);
+  try {
+    if (on && db.me.showReadingNow && b && !s.pausedAt) {
+      rnLastPush = Date.now();
+      await sb.from('reading_now').upsert({ user_id: ME, title: b.title, author: b.author || '', cover_url: /^https?:/.test(b.coverUrl || '') ? b.coverUrl : '', started_at: new Date(s.startedAt).toISOString(), until: new Date(Date.now() + 20 * 60000).toISOString() });
+    } else { rnLastPush = 0; await sb.from('reading_now').delete().eq('user_id', ME); }
+  } catch (e) {}
+}
+async function rnRefresh() {
+  if (!CLOUD || !sb || PREVIEW || !db || !authUser) return;
+  const { data, error } = await sb.from('reading_now').select('user_id,title,until').gt('until', new Date().toISOString());
+  if (error) return;
+  const mates = new Set(myClubs().filter(g => !g.demo).flatMap(g => g.members));
+  const list = (data || []).filter(r => r.user_id !== ME && mates.has(r.user_id) && userById(r.user_id)).map(r => ({ userId: r.user_id, title: r.title }));
+  const before = JSON.stringify(ui.readingNow || []);
+  ui.readingNow = list;
+  if (before !== JSON.stringify(list) && ui.tab === 'home' && !ui.clubPage && !ui.sheet) render();
+}
+setInterval(() => { if (db && ui.tab === 'home' && !ui.clubPage && document.visibilityState === 'visible') rnRefresh(); }, 60000);
+function readingNowHTML() {
+  let list = (ui.readingNow || []).slice(), demo = false;
+  if (!list.length) {   // demo clubs: one of the pretend readers is reading, so new people see how it looks
+    const g = myClubs().find(x => x.demo), h = new Date().getHours();
+    if (g && h >= 6) { const bs = db.books.filter(b => b.demo && b.status === 'reading' && g.members.includes(b.userId) && b.userId !== ME);
+      const b = bs.length && bs[(new Date().getDate() + h) % bs.length]; if (b) { list = [{ userId: b.userId, title: b.title }]; demo = true; } }
+  }
+  if (!list.length) return '';
+  const names = list.map(r => (userById(r.userId) || { name: 'A clubmate' }).name), n = names.length;
+  const who = n === 1 ? names[0] : n === 2 ? `${names[0]} and ${names[1]}` : `${names[0]}, ${names[1]} and ${n - 2} more`;
+  return `<button class="card rn-card" data-act="read-along"><span class="rn-dot" aria-hidden="true"></span>
+      <span class="grow" style="min-width:0"><span class="item-title" style="display:block">${esc(who)} ${n === 1 ? 'is' : 'are'} reading right now</span>
+      <span class="meta" style="display:block">${n === 1 ? esc(list[0].title) : 'Join them with your own book'}${demo ? ' · demo club' : ''}</span></span>
+      <span class="btn primary rn-btn">Read along</span></button>`;
+}
+
+/* ---------- ✍️ lines that stay with you ---------- */
+const myLines = () => (db.lines || []).filter(l => !l.deleted).sort((a, b) => b.createdAt - a.createdAt);
+const linePhotoUrls = {};
+function lineImgHTML(l, cls = 'line-photo') {
+  if (l.photo) return `<img class="${cls}" src="${esc(l.photo)}" alt="Photo of the page">`;
+  if (l.photoPath) return `<img class="${cls}" data-line-photo="${esc(l.photoPath)}" ${linePhotoUrls[l.photoPath] ? `src="${esc(linePhotoUrls[l.photoPath])}"` : ''} alt="Photo of the page">`;
+  return '';
+}
+async function hydrateLinePhotos() {
+  if (!CLOUD || !sb || PREVIEW) return;
+  for (const img of document.querySelectorAll('img[data-line-photo]:not([src])')) {
+    const p = img.dataset.linePhoto;
+    if (!linePhotoUrls[p]) { const { data } = await sb.storage.from('lines').createSignedUrl(p, 3600).catch(() => ({})) || {}; if (data && data.signedUrl) linePhotoUrls[p] = data.signedUrl; }
+    if (linePhotoUrls[p]) document.querySelectorAll(`img[data-line-photo="${CSS.escape(p)}"]`).forEach(x => { x.src = linePhotoUrls[p]; });
+  }
+}
+function lineSheetHTML(d) {
+  const books = myBooks().filter(b => !b.demo).sort((a, b) => (a.status === 'reading' ? 0 : 1) - (b.status === 'reading' ? 0 : 1) || b.updatedAt - a.updatedAt);
+  const b = books.find(x => x.id === d.bookId) || books[0];
+  if (!b) return `<h2 class="sheet-title">Save a line</h2><div class="card empty">Add a book to your shelf first.</div><div class="formbtns"><button class="btn primary" data-act="close">OK</button></div>`;
+  const canShare = CLOUD && realClubs().length && !isSolo();
+  return `<h2 class="sheet-title">✍️ Save a line</h2>
+    <p class="sub" style="margin-top:0">A line that stayed with you. Only you see it, unless you share it.</p>
+    <label class="hb-label" for="ln-book">Book</label>
+    <select class="hb-input" id="ln-book" data-ln-book="1">${books.map(x => `<option value="${x.id}" ${x.id === b.id ? 'selected' : ''}>${esc(x.title)}</option>`).join('')}</select>
+    <label class="hb-label" for="ln-text">The line</label>
+    <textarea class="hb-input" id="ln-text" rows="4" maxlength="1000" placeholder="Type the words that stayed with you…">${esc(d.text || '')}</textarea>
+    <div class="row" style="gap:.6rem;margin-top:.6rem;align-items:flex-end;flex-wrap:wrap">
+      <div><label class="hb-label" for="ln-page" style="margin-top:0">Page <span class="sub">(optional)</span></label>
+        <input class="hb-input" id="ln-page" type="number" inputmode="numeric" min="0" style="max-width:7rem" value="${d.page ?? (b.pages && b.page ? b.page : '')}"></div>
+      ${d.photo ? `<div class="ln-photo-prev"><img src="${esc(d.photo)}" alt="Photo of the page"><button aria-label="Remove photo" data-act="ln-photo-rm">✕</button></div>`
+        : `<label class="btn" style="cursor:pointer">📷 Snap the page<input class="file" type="file" accept="image/*" capture="environment" data-line-photo-in="1"></label>`}
+    </div>
+    ${canShare ? `<label class="mrow static" style="margin-top:.8rem;border:1px solid var(--line);border-radius:var(--radius-md)"><span class="mt">Also share it with my clubs<small>Shared as a quote. The photo stays private.</small></span>
+      <span class="switch"><input type="checkbox" id="ln-share" ${d.share ? 'checked' : ''}><span></span></span></label>` : ''}
+    <div class="formbtns"><button class="btn" data-act="close">Cancel</button><button class="btn primary" data-act="ln-save">Save</button></div>`;
+}
+function shareLine(l) {
+  const b = db.books.find(x => x.id === l.bookId) || {};
+  const post = { id: uid(), userId: ME, title: l.title, author: l.author, pages: b.pages || 0, coverUrl: b.photo || b.coverUrl || '', reaction: 'up', kind: 'line', text: l.text, photo: '', createdAt: Date.now(), private: !!b.visibleTo && !b.visibleTo.length };
+  if (b.visibleTo !== undefined) post.visibleTo = b.visibleTo;
+  db.posts.push(post); l.sharedPost = post.id; l.updatedAt = Date.now();
+  return post;
+}
+function linesSheetHTML(d) {
+  const all = myLines().filter(l => !d.bookId || l.bookId === d.bookId);
+  const groups = {}; all.forEach(l => { const k = l.bookId || norm(l.title); (groups[k] = groups[k] || []).push(l); });
+  const canShare = CLOUD && realClubs().length && !isSolo();
+  return `<h2 class="sheet-title">✍️ My lines${d.bookId && all[0] ? ' · ' + esc(all[0].title) : ''}</h2>
+    <p class="sub" style="margin-top:0">Lines that stayed with you. 🔒 Only you see them, unless you share one.</p>
+    ${Object.values(groups).map(L => { const b = db.books.find(x => x.id === L[0].bookId) || { title: L[0].title, author: L[0].author };
+      return `<div class="lines-book"><div class="row" style="gap:.6rem">${coverHTML(b, 28, 42)}<div class="grow"><div class="item-title">${esc(L[0].title)}</div><div class="meta">${L.length} ${L.length === 1 ? 'line' : 'lines'}</div></div></div>
+        ${L.map(l => `<div class="line-item">${l.text ? `<blockquote class="line-quote">${esc(l.text)}</blockquote>` : ''}${lineImgHTML(l)}
+          <div class="row" style="justify-content:space-between;gap:.4rem"><span class="small">${l.page != null && l.page !== '' ? 'p. ' + l.page + ' · ' : ''}${new Date(l.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}${l.sharedPost ? ' · 👥 shared' : ''}</span>
+            <span class="row" style="gap:.2rem">${canShare && !l.sharedPost && l.text ? `<button class="link small" data-act="ln-share" data-id="${l.id}">Share</button>` : ''}<button class="iconbtn" style="border:none" aria-label="Delete this line" data-act="ln-del" data-id="${l.id}">🗑️</button></span></div></div>`).join('')}</div>`; }).join('')
+      || `<div class="card empty">No lines yet.<br>Save one from a reading session or any book.</div>`}
+    <button class="btn block" style="margin-top:.6rem" data-act="line-open" data-id="${d.bookId || ''}">✍️ Save a line</button>
+    <div class="formbtns"><button class="btn primary" data-act="close">Done</button></div>`;
+}
+function myLinesCardHTML() {
+  const L = myLines();
+  return `<button class="card row lines-card" data-act="lines-open"><span style="font-size:1.4rem">✍️</span><span class="grow"><span class="item-title" style="display:block">My lines${L.length ? ' · ' + L.length : ''}</span>
+    <span class="meta" style="display:block">${L.length ? esc('“' + (L[0].text || 'A photo of a page').slice(0, 70) + ((L[0].text || '').length > 70 ? '…' : '') + '”') : 'Save the lines that stay with you'}</span></span><span class="mc" style="color:var(--muted)">›</span></button>`;
+}
+
+/* ---------- 📚 Up next ---------- */
+const upNext = () => myBooks().filter(b => b.status === 'want').sort((a, b) => (a.upRank ?? 1e9) - (b.upRank ?? 1e9) || b.updatedAt - a.updatedAt);
+function lovedBy(title) {
+  const k = norm(title);
+  return [...new Set(db.posts.filter(p => p.userId !== ME && p.reaction === 'up' && p.kind !== 'line' && norm(p.title) === k).map(p => p.userId))];
+}
+function upNextHTML() {
+  const L = upNext();
+  if (!L.length) return '';
+  return `<p class="sub" style="margin:.1rem .2rem .5rem">Your next books, in order. Use ↑ ↓ to choose what comes first.</p>
+    <div class="mgroup" style="margin-top:0">${L.map((b, i) => { const lv = lovedBy(b.title).length;
+      return `<div class="mrow static upn-row"><span class="upn-n">${i + 1}</span>
+        <button class="upn-open" data-act="book" data-id="${b.id}">${coverHTML(b, 34, 51)}<span class="mt" style="min-width:0"><span class="clamp2" style="display:block">${esc(b.title)}</span>
+          <small>${lv ? `❤️ ${lv} ${lv === 1 ? 'clubmate' : 'clubmates'} loved this` : esc(b.from || b.author || '')}</small></span></button>
+        <span class="upn-move"><button class="iconbtn" aria-label="Move ${esc(b.title)} up" data-act="up-move" data-id="${b.id}" data-dir="-1" ${i ? '' : 'disabled'}>↑</button>
+          <button class="iconbtn" aria-label="Move ${esc(b.title)} down" data-act="up-move" data-id="${b.id}" data-dir="1" ${i < L.length - 1 ? '' : 'disabled'}>↓</button></span></div>`; }).join('')}</div>`;
+}
+function nextSheetHTML(d) {
+  const fin = db.books.find(x => x.id === d.id), L = upNext().slice(0, 3);
+  const seen = new Set(), loved = db.posts.filter(p => p.userId !== ME && p.reaction === 'up' && p.kind !== 'line' && !onMyShelf(p.title) && !seen.has(norm(p.title)) && seen.add(norm(p.title))).slice(0, 4);
+  return `<h2 class="sheet-title">📚 What's next?</h2>
+    ${fin ? `<p class="sub" style="margin-top:0">You finished <b style="color:var(--ink)">${esc(fin.title)}</b>. Here's what could come next.</p>` : ''}
+    ${L.length ? `<div class="section-label">Up next on your shelf</div><div class="mgroup" style="margin-top:0">${L.map(b => `<div class="mrow static">${coverHTML(b, 34, 51)}<span class="mt">${esc(b.title)}<small>${esc(b.author || '')}</small></span>
+      <button class="btn primary" data-act="next-start" data-id="${b.id}">▶ Start</button></div>`).join('')}</div>` : ''}
+    ${loved.length ? `<div class="section-label">Your clubmates loved</div><div class="mgroup" style="margin-top:0">${loved.map(p => { const u = userById(p.userId) || { name: 'A clubmate' };
+      return `<div class="mrow static">${coverHTML(p, 34, 51)}<span class="mt">${esc(p.title)}<small>❤️ ${esc(u.name)}</small></span>${saveBtn(p.title, 'save-post', p.id, '＋ Up next', 'font-size:.78rem')}</div>`; }).join('')}</div>` : ''}
+    ${!L.length && !loved.length ? `<div class="card empty">Nothing lined up yet.<br><br><button class="btn accent" data-act="next-find">🧭 Find your next book</button></div>` : ''}
+    <div class="formbtns"><button class="btn" data-act="next-find">🧭 Discover</button><button class="btn primary" data-act="close">Done</button></div>`;
+}
+
+/* ---------- 📈 reading story ---------- */
+function storyData(span) {
+  const now = new Date(), y = now.getFullYear(), m = now.getMonth();
+  const from = span === 'year' ? new Date(y, 0, 1) : new Date(y, m, 1), fromS = dayStr(from), fromT = from.getTime();
+  const log = (db.log || []).filter(l => l.day >= fromS);
+  const finished = myBooks().filter(b => !b.demo && b.status === 'finished' && (b.updatedAt || 0) >= fromT).sort((a, b) => a.updatedAt - b.updatedAt);
+  const touched = new Set([...log.filter(l => l.pages > 0 || l.minutes > 0).map(l => l.bookId), ...finished.map(b => b.id)]);
+  const myTitles = myBooks().filter(b => touched.has(b.id)).map(b => norm(b.title));
+  const mates = new Set(myClubs().filter(g => !g.demo).flatMap(g => g.members));
+  const along = {};
+  db.books.filter(b => b.userId !== ME && !b.demo && mates.has(b.userId) && ['reading', 'finished'].includes(b.status) && myTitles.includes(norm(b.title)))
+    .forEach(b => { (along[b.userId] = along[b.userId] || new Set()).add(b.title); });
+  return {
+    label: span === 'year' ? String(y) : from.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }),
+    pages: log.reduce((n, l) => n + (l.pages || 0), 0), mins: log.reduce((n, l) => n + (l.minutes || 0), 0),
+    days: new Set(log.filter(l => l.pages > 0 || l.minutes > 0).map(l => l.day)).size, finished,
+    lines: myLines().filter(l => l.createdAt >= fromT && l.text).slice(0, 3),
+    along: Object.entries(along).map(([u, t]) => ({ name: (userById(u) || { name: 'A clubmate' }).name, titles: [...t] })).slice(0, 6)
+  };
+}
+function storySheetHTML(d) {
+  const span = d.span || 'month', s = storyData(span);
+  const stat = (n, l) => `<div class="story-stat"><b>${n}</b><span>${l}</span></div>`;
+  return `<h2 class="sheet-title">📈 My reading story</h2>
+    <div class="chips" style="margin:0 0 .6rem">${[['month', 'This month'], ['year', 'This year']].map(([k, l]) => `<button class="chip ${span === k ? 'on' : ''}" data-act="story-span" data-id="${k}">${l}</button>`).join('')}</div>
+    <div class="story-grid">${stat(s.finished.length, s.finished.length === 1 ? 'book finished' : 'books finished')}${stat(s.pages, 'pages')}${stat(s.mins ? fmtMins(s.mins) : '0 min', 'reading time')}${stat(s.days, s.days === 1 ? 'day read' : 'days read')}</div>
+    ${s.finished.length ? `<div class="section-label">Finished in ${esc(s.label)}</div><div class="story-covers">${s.finished.map(b => `<button class="cover-btn" data-act="book" data-id="${b.id}" aria-label="${esc(b.title)}">${fcover(b)}</button>`).join('')}</div>` : ''}
+    ${s.lines.length ? `<div class="section-label">Lines that stayed with you</div>${s.lines.map(l => `<blockquote class="line-quote">${esc(l.text)}<small>${esc(l.title)}</small></blockquote>`).join('')}` : ''}
+    ${s.along.length ? `<div class="section-label">Read alongside</div><div class="mgroup" style="margin-top:0">${s.along.map(a => `<div class="mrow static"><span class="mi">👥</span><span class="mt">${esc(a.name)}<small>${esc(a.titles.join(', '))}</small></span></div>`).join('')}</div>` : ''}
+    ${!s.finished.length && !s.pages && !s.mins ? `<div class="card empty">Your story for ${esc(s.label)} starts with your next reading session.</div>` : ''}
+    <p class="sub" style="text-align:center;margin:.8rem 0 0">🔒 Only you see this, unless you share it.</p>
+    <button class="btn accent block" style="margin-top:.6rem" data-act="story-share" data-id="${span}">📤 Share my reading ${span === 'year' ? 'year' : 'month'}</button>
+    <div class="formbtns"><button class="btn primary" data-act="close">Done</button></div>`;
+}
+function loadImg(src) {
+  return new Promise(res => { if (!src) return res(null); const i = new Image(); i.crossOrigin = 'anonymous'; const t = setTimeout(() => res(null), 4000);
+    i.onload = () => { clearTimeout(t); res(i); }; i.onerror = () => { clearTimeout(t); res(null); }; i.src = src; });
+}
+async function storyImage(span, withCovers = true) {
+  const s = storyData(span), W = 1080, H = 1350, c = document.createElement('canvas'); c.width = W; c.height = H;
+  const x = c.getContext('2d'), serif = '"Fraunces", Georgia, serif', sans = '"Inter", system-ui, sans-serif';
+  const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#1d1a3a'); g.addColorStop(1, '#2d2a55'); x.fillStyle = g; x.fillRect(0, 0, W, H);
+  x.fillStyle = '#E2BA5C'; x.font = `600 40px ${sans}`; x.fillText('SHELFMATES & ME', 80, 130);
+  x.fillStyle = '#F4F1FF'; x.font = `700 92px ${serif}`; x.fillText(span === 'year' ? `My reading ${s.label}` : 'My reading month', 80, 250);
+  if (span !== 'year') { x.font = `400 46px ${sans}`; x.fillStyle = '#C9C3F2'; x.fillText(s.label, 80, 320); }
+  const stats = [[s.finished.length, s.finished.length === 1 ? 'book finished' : 'books finished'], [s.pages, 'pages'], [s.mins ? fmtMins(s.mins) : '0 min', 'reading time'], [s.days, s.days === 1 ? 'day with a book' : 'days with a book']];
+  stats.forEach(([n, l], i) => { const cx = 80 + (i % 2) * 470, cy = 420 + Math.floor(i / 2) * 200;
+    x.fillStyle = 'rgba(255,255,255,.08)'; x.beginPath(); x.roundRect ? x.roundRect(cx, cy, 440, 170, 28) : x.rect(cx, cy, 440, 170); x.fill();
+    x.fillStyle = '#F4F1FF'; x.font = `700 72px ${serif}`; x.fillText(String(n), cx + 34, cy + 92); x.fillStyle = '#C9C3F2'; x.font = `400 34px ${sans}`; x.fillText(l, cx + 34, cy + 142); });
+  const covers = s.finished.slice(-6), cw = 140, ch = 210, top = 860;
+  for (let i = 0; i < covers.length; i++) {
+    const b = covers[i], cx = 80 + i * (cw + 24), img = withCovers ? await loadImg(b.photo && !b.photo.startsWith('data:') ? b.photo : b.coverUrl) : null;
+    x.fillStyle = '#3c3870'; x.fillRect(cx, top, cw, ch);
+    if (img) x.drawImage(img, cx, top, cw, ch); else { x.fillStyle = '#F4F1FF'; x.font = `600 22px ${sans}`; const words = b.title.split(' '); let line = '', y = top + 40;
+      for (const w of words) { if (x.measureText(line + w).width > cw - 20) { x.fillText(line, cx + 10, y); line = ''; y += 28; if (y > top + ch - 10) break; } line += w + ' '; } if (y <= top + ch - 10) x.fillText(line, cx + 10, y); }
+  }
+  if (!covers.length) { x.fillStyle = '#C9C3F2'; x.font = `italic 400 40px ${serif}`; x.fillText('Reading at my own pace.', 80, top + 80); }
+  if (s.lines[0]) { x.fillStyle = '#F4F1FF'; x.font = `italic 400 38px ${serif}`; const t = '“' + s.lines[0].text.slice(0, 70) + (s.lines[0].text.length > 70 ? '…' : '') + '”'; x.fillText(t, 80, 1160, W - 160); }
+  x.fillStyle = '#C9C3F2'; x.font = `400 30px ${sans}`; x.fillText('Read at your own pace · shelfmatesandme.pages.dev', 80, 1270);
+  try { return await new Promise((res, rej) => { try { c.toBlob(b => b ? res(b) : rej(new Error('no image')), 'image/png'); } catch (e) { rej(e); } }); }
+  catch (e) { if (withCovers) return storyImage(span, false); throw e; }
+}
+
+/* ---------- actions ---------- */
+const rtActions = {
+  'sess-start'(id) { sessStart(id || sessCurrentBookId()); },
+  'read-along'() { const id = sessCurrentBookId(); if (id) { sessStart(id); toast('📖 Reading along. Enjoy!'); } else { openSheet('add'); toast('Add the book you’re reading, then read along'); } },
+  'sess-pause'() { const s = sessGet(); if (!s) return; if (s.pausedAt) { s.pausedMs = (s.pausedMs || 0) + (Date.now() - s.pausedAt); s.pausedAt = null; } else s.pausedAt = Date.now(); sessSet(s); sessRender(); rnPush(!s.pausedAt); },
+  'sess-hide'() { const s = sessGet(); if (!s) return; s.hidden = !s.hidden; sessSet(s); sessRender(); },
+  'sess-done'() { const s = sessGet(); if (!s) return; if (!s.pausedAt) s.pausedAt = Date.now(); s.step = 'page'; sessSet(s); sessRender(); keepAwake(false); setTimeout(() => document.getElementById('sess-pg')?.focus(), 60); },
+  'sess-back'() { const s = sessGet(); if (!s) return; s.pausedMs = (s.pausedMs || 0) + (Date.now() - s.pausedAt); s.pausedAt = null; s.step = 'run'; sessSet(s); sessRender(); keepAwake(true); },
+  'sess-pg'(d) { const el = document.getElementById('sess-pg'); if (!el) return; const max = +el.max || 1e6; el.value = Math.max(0, Math.min(max, (parseInt(el.value, 10) || 0) + +d)); },
+  'sess-save'() {
+    const s = sessGet(); if (!s) return; const b = db.books.find(x => x.id === s.bookId); if (!b) { sessEnd(); return; }
+    const mins = Math.round(sessMs(s) / 60000), before = b.pages ? b.page : 0;
+    const raw = document.getElementById('sess-pg')?.value, v = parseInt(raw, 10), total = parseInt(document.getElementById('sess-total')?.value, 10);
+    if (mins >= 1) logMinutes(b, mins);
+    if (!tracked(b) && Number.isFinite(v) && v > 0) updBook(b.id, { track: true, ...(total > 0 ? { pages: total } : {}) });
+    if (Number.isFinite(v) && tracked(b)) syncProgress(b.id, v, true);
+    const pages = b.pages ? Math.max(0, (b.page || 0) - before) : 0;
+    if (mins >= 1 || pages > 0) db.sessions = [...(db.sessions || []), { id: uid(), bookId: b.id, title: b.title, start: s.startedAt, mins, pages }].slice(-500);
+    save(); checkStamps();
+    s.step = 'done'; s.result = { mins, pages }; sessSet(s); sessRender(); rnPush(false);
+  },
+  'sess-close'() { sessEnd(); },
+  'sess-finish'(id) { sessEnd(); actions.finish(id); },
+  'sess-cancel'() {
+    const s = sessGet(); if (!s) return;
+    if (sessMs(s) > 60000 && !confirm('Stop without saving this session? Your reading time won’t be counted.')) return;
+    sessEnd(); toast('Session stopped');
+  },
+  'rn-choose'(v) { db.me.showReadingNow = v === '1'; save(); sessRender(); if (v === '1') { rnPush(true); toast('🟢 Your clubs will see when you’re reading'); } else toast('Okay. You can change this in Settings → Preferences.'); },
+  'line-open'(id) { const s = sessGet(); openSheet('line', { bookId: id || (s && s.bookId) || sessCurrentBookId() }); },
+  'lines-open'(id) { openSheet('lines', { bookId: id || null }); setTimeout(hydrateLinePhotos, 30); },
+  'ln-photo-rm'() { ui.sheetData.photo = ''; lnKeep(); renderSheet(); },
+  async 'ln-save'() {
+    const d = ui.sheetData, text = (document.getElementById('ln-text')?.value || '').trim(), share = !!document.getElementById('ln-share')?.checked;
+    const b = db.books.find(x => x.id === (document.getElementById('ln-book')?.value || d.bookId));
+    if (!b) return;
+    if (!text && !d.photo) { toast('Type the line, or snap a photo of the page'); document.getElementById('ln-text')?.focus(); return; }
+    if (share && !text) { toast('Type the words to share them. The photo stays private.'); return; }
+    if (share && !langOK(text)) return;
+    const pg = parseInt(document.getElementById('ln-page')?.value, 10);
+    const l = { id: uid(), bookId: b.id, title: b.title, author: b.author || '', text, page: Number.isFinite(pg) ? pg : null, photo: d.photo || '', createdAt: Date.now(), updatedAt: Date.now() };
+    db.lines = [...(db.lines || []), l];
+    let post = null; if (share) post = shareLine(l);
+    if (!save()) { db.lines = db.lines.filter(x => x.id !== l.id); if (post) db.posts = db.posts.filter(x => x.id !== post.id); return; }
+    ui.sheet = null; ui.sheetData = {}; renderSheet(); render(); sessRender(); checkStamps();
+    toast(share ? '✍️ Saved, and shared with your clubs' : '✍️ Line saved', () => { db.lines = db.lines.filter(x => x.id !== l.id); if (post) db.posts = db.posts.filter(x => x.id !== post.id); save(); render(); });
+  },
+  'ln-share'(id) {
+    const l = (db.lines || []).find(x => x.id === id); if (!l || l.sharedPost || !langOK(l.text)) return;
+    const post = shareLine(l); save(); renderSheet(); render(); hydrateLinePhotos();
+    toast('Shared with your clubs', () => { db.posts = db.posts.filter(x => x.id !== post.id); l.sharedPost = null; l.updatedAt = Date.now(); save(); renderSheet(); render(); });
+  },
+  'ln-del'(id) {
+    const l = (db.lines || []).find(x => x.id === id); if (!l) return;
+    db.lines = db.lines.filter(x => x.id !== id); save(); renderSheet(); render(); hydrateLinePhotos();
+    toast('Line deleted', () => { db.lines.push(l); save(); renderSheet(); render(); hydrateLinePhotos(); });
+  },
+  'up-move'(id, el) {
+    const L = upNext(), i = L.findIndex(b => b.id === id), j = i + (+el.dataset.dir); if (i < 0 || j < 0 || j >= L.length) return;
+    [L[i], L[j]] = [L[j], L[i]]; L.forEach((b, k) => { b.upRank = k + 1; });
+    save(); render();
+    setTimeout(() => document.querySelector(`[data-act="up-move"][data-id="${id}"][data-dir="${el.dataset.dir}"]`)?.focus(), 0);
+  },
+  'cele-next'(id) { document.getElementById('cele-root').innerHTML = ''; openSheet('next', { id }); },
+  'next-start'(id) { ui.sheet = null; ui.sheetData = {}; actions.start(id); },
+  'next-find'() { ui.sheet = null; ui.sheetData = {}; ui.clubPage = null; ui.tab = 'discover'; render(); scrollTo(0, 0); },
+  'story-open'() { openSheet('story', { span: 'month' }); },
+  'story-span'(k) { ui.sheetData.span = k; renderSheet(); },
+  async 'story-share'(span) {
+    toast('Making your picture…');
+    try {
+      const blob = await storyImage(span), name = `my-reading-${span}.png`, file = new File([blob], name, { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: 'My reading ' + span }); } catch (e) {} return; }
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove();
+      toast('Saved the picture to your downloads');
+    } catch (e) { toast("Couldn't make the picture on this phone"); }
+  }
+};
+const lnKeep = () => { const d = ui.sheetData; if (!d) return; const t = document.getElementById('ln-text'), p = document.getElementById('ln-page'), b = document.getElementById('ln-book'), s = document.getElementById('ln-share');
+  if (t) d.text = t.value; if (p) d.page = p.value; if (b) d.bookId = b.value; if (s) d.share = s.checked; };
+document.addEventListener('change', async e => {
+  const t = e.target;
+  if (t.dataset && t.dataset.linePhotoIn && t.files && t.files[0]) {
+    lnKeep();
+    try { ui.sheetData.photo = await readPhoto(t.files[0], 1100); } catch (er) { toast("Couldn't read that photo"); }
+    renderSheet();
+  }
+  if (t.dataset && t.dataset.lnBook) { lnKeep(); const b = db.books.find(x => x.id === t.value); ui.sheetData.page = b && b.pages && b.page ? b.page : ''; renderSheet(); }
+});
+
 /* ----- Share ----- */
 /* draft is kept on the phone as you type, so nothing is lost */
 const draftKey = () => 'sm.draft:' + ME;
@@ -2684,7 +3204,7 @@ function shareHTML() {
   return `<div style="margin:.3rem 0 .2rem">${btn}</div>
     ${Object.entries(months).map(([m, ps]) => `<div class="section-label">${m}</div>${ps.map(p => `<button class="card entry" data-act="entry-edit" data-id="${p.id}" aria-label="Edit entry about ${esc(p.title)}">
       ${coverHTML(p, 40, 60)}
-      <span style="min-width:0"><span class="row" style="justify-content:space-between;gap:.4rem"><span class="item-title clamp2" style="font-size:.95rem">${esc(p.title)}</span>${reactionPill(p.reaction)}</span>
+      <span style="min-width:0"><span class="row" style="justify-content:space-between;gap:.4rem"><span class="item-title clamp2" style="font-size:.95rem">${esc(p.title)}</span>${postPill(p)}</span>
         ${p.text ? `<span class="thought" style="display:block;margin:.3rem 0 0">${esc(p.text)}</span>` : ''}
         <span class="meta" style="display:block">${new Date(p.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} · ${p.private ? '🔒 Only you' : '👥 Your clubs'}</span></span>
     </button>`).join('')}`).join('')}`;
@@ -2738,6 +3258,7 @@ function renderSheet(animate) {
         </div>
         <div class="mgroup">
           ${mrow('set-page', 'prefs', '🔔', 'Preferences', [db.me.showProgress ? 'Progress shared' : 'Progress hidden', db.me.goal ? 'Goal ' + db.me.goal : ''].filter(Boolean).join(' · '))}
+          ${mrow('story-open', '', '📈', 'My reading story', 'This month and this year')}
           ${mrow('set-page', 'display', '🎨', 'Reading mood &amp; display', (display.mood === 'match' ? 'Match my book' : MOODS[display.mood].name) + ' · ' + { dark: 'Dark', light: 'Light', auto: 'Auto' }[display.mode])}
           ${mrow('set-page', 'data', '💾', 'Data &amp; backup', CLOUD ? (syncState === 'error' ? 'Not synced' : 'Synced') : 'This phone only')}
           ${standalone ? '' : mrow('set-page', 'install', '📲', 'Install as app', '')}
@@ -2827,8 +3348,9 @@ function renderSheet(animate) {
           ${row('progress', db.me.showProgress !== false, 'Reading progress', 'Your clubs see how far you are')}
           ${row('clubs', !!db.me.showClubs, 'My clubs list', 'People in your clubs see your other clubs')}
           ${row('stamps', !!db.me.showStamps, 'My stamps', 'Your clubs see the stamps you’ve earned')}
+          ${row('readnow', !!db.me.showReadingNow, 'When I’m reading', 'Your clubs see 🟢 while a reading session is on')}
         </div>
-        <p class="sub" style="margin:.5rem .2rem 0">🔒 Always private: your Today page, calendar, daily goal and journal entries.</p>
+        <p class="sub" style="margin:.5rem .2rem 0">🔒 Always private: your Today page, calendar, reading time, daily goal, saved lines and journal entries.</p>
         <p class="sub" style="margin:.4rem .2rem 0">👁 Each book can be seen by all your clubs, only some, or only you. Change it in the book's details.</p>
         <p class="sub" style="margin:.4rem .2rem 0">❤️ Likes: people in your clubs see who liked a thought. Nobody outside your clubs sees your likes.</p>
         <div class="section-label">Reading</div>
@@ -2886,6 +3408,8 @@ function renderSheet(animate) {
         ${isInstalled() ? '' : `<div class="mgroup"><button class="mrow" data-act="set-page" data-id="install"><span class="mi">📲</span><span class="mt">Install as app<small>Full screen, with its own icon. No app store needed.</small></span><span class="mc">›</span></button></div>`}
         <div class="mgroup">
           ${[['🏠', 'Home', 'Your Today card stacks up the pages you read today. Move your bookmark to update it. Only you see it.'],
+             ['⏱', 'Reading sessions', 'Tap Start reading for a calm timer. When you stop, move your bookmark in one tap. Your reading time is only for you.'],
+             ['✍️', 'Lines', 'Save a line that stayed with you, typed or as a photo of the page. Private unless you share it.'],
              ['📚', 'Shelf', 'Books you are reading, want to read, paused and finished. Tracking progress is optional.'],
              ['🧭', 'Discover', 'What people in your clubs are reading. Save anything to Want to read.'],
              ['✍️', 'Share', 'Finished a book? React and share a line about what stayed with you.'],
@@ -2902,7 +3426,7 @@ function renderSheet(animate) {
       <p class="tag" style="color:var(--muted);margin:.3rem 0 .9rem;font-size:1rem">Your books, your pace, shared with friends.</p>
       <div class="wcovers">${WELCOME_BOOKS.map(fcover).join('')}</div>
       ${PILLARS}
-      <div class="banner accent"><span class="b-icon">🌱</span><div class="sub" style="color:var(--ink)">This isn't about how much anyone reads. It's a calm place to read more, find good books through people you know, and enjoy it together.</div></div>
+      <div class="banner accent"><span class="b-icon">🌱</span><div class="sub" style="color:var(--ink)">This isn't about how much anyone reads. It's a calm place to read more, find good books through people you know, and enjoy it together. Your reading time is only for you.</div></div>
       <p class="sub" style="text-align:center;margin:1rem 0 0">${APP.first} ${esc(APP.second)} · beta</p>
       <button class="btn accent block" style="margin-top:1rem" data-act="about-invite">💌 Invite a friend</button>
       <div class="formbtns"><button class="btn" data-act="settings">‹ Settings</button><button class="btn primary" data-act="close">Done</button></div>`;
@@ -2972,7 +3496,7 @@ function renderSheet(animate) {
           <p class="sub" style="margin:0 0 .5rem">Owners can manage everything. Moderators can remove members and hide thoughts.</p>` : ''}
           <button class="btn danger block" data-act="club-remove" data-club="${g.id}" data-user="${d.id}">Remove from ${esc(g.name)}</button>`; })()}
       <div class="section-label">What stayed with ${isMe ? 'you' : 'them'}</div>
-      ${posts.length ? posts.map(p => `<div class="card"><div class="item-title" style="font-size:.9rem">${esc(p.title)} ${reactionPill(p.reaction)}</div>${p.text ? `<p class="thought" style="margin:.3rem 0 0">${esc(p.text)}</p>` : ''}<div class="meta">${timeAgo(p.createdAt)}</div></div>`).join('') : '<div class="sub">Nothing shared yet.</div>'}
+      ${posts.length ? posts.map(p => `<div class="card"><div class="item-title" style="font-size:.9rem">${esc(p.title)} ${postPill(p)}</div>${p.text ? `<p class="thought" style="margin:.3rem 0 0">${esc(p.text)}</p>` : ''}<div class="meta">${timeAgo(p.createdAt)}</div></div>`).join('') : '<div class="sub">Nothing shared yet.</div>'}
       ${close()}`;
   }
 
@@ -3017,7 +3541,7 @@ function renderSheet(animate) {
   if (ui.sheet === 'book') {
     const b = db.books.find(x => x.id === d.id);
     if (!b) { ui.sheet = null; return renderSheet(); }
-    const status = { reading: ['soon', 'Reading now'], paused: ['later', 'Paused'], want: ['info', 'Want to read'], finished: ['ok', 'Finished'], aside: ['later', 'Set aside'] }[b.status];
+    const status = { reading: ['soon', 'Reading now'], paused: ['later', 'Paused'], want: ['info', 'Up next'], finished: ['ok', 'Finished'], aside: ['later', 'Set aside'] }[b.status];
     const tr = tracked(b);
     inner = `<div style="display:grid;grid-template-columns:5.6rem minmax(0,1fr);gap:.8rem;align-items:start">
         ${editableFcover(b)}
@@ -3031,6 +3555,8 @@ function renderSheet(animate) {
       <div class="mgroup"><div class="mrow static"><label class="mt" for="b-genre">Genre<small>Used by “Match my book”</small></label>
         <select class="hb-input" id="b-genre" style="width:auto;min-height:2.2rem" data-genre-for="${b.id}"><option value="">Not set</option>${GENRES.map(([v, l]) => `<option value="${v}" ${b.genre === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div>
       ${realClubs().length ? `<div class="mgroup"><button class="mrow" data-act="book-vis" data-id="${b.id}"><span class="mi">${!b.visibleTo ? '👥' : b.visibleTo.length ? '🎯' : '🔒'}</span><span class="mt">Who sees this book<small>${esc(visLabel(b.visibleTo))}</small></span><span class="mc">›</span></button></div>` : ''}
+      ${b.status === 'reading' ? `<button class="btn accent block" style="margin-top:.7rem" data-act="sess-start" data-id="${b.id}">▶ Start a reading session</button>` : ''}
+      ${b.status !== 'want' ? (() => { const nl = myLines().filter(l => l.bookId === b.id).length; return `<div class="actions"><button class="btn" style="flex:1" data-act="line-open" data-id="${b.id}">✍️ Save a line</button>${nl ? `<button class="btn" style="flex:1" data-act="lines-open" data-id="${b.id}">My lines · ${nl}</button>` : ''}</div>`; })() : ''}
       <div class="actions">
         ${{ reading: `<button class="btn" style="flex:1" data-act="pause" data-id="${b.id}">⏸ Pause</button><button class="btn primary" style="flex:1" data-act="finish" data-id="${b.id}">✓ I finished it</button>`,
             paused: `<button class="btn primary" style="flex:1" data-act="resume" data-id="${b.id}">▶ Resume reading</button>`,
@@ -3079,7 +3605,7 @@ function renderSheet(animate) {
         : info.failed ? `<p class="sub" style="margin:0">Couldn't load the description. Check your connection.</p><button class="link" style="padding-left:0" data-act="fbook-retry">Try again</button>`
         : '<p class="sub" style="margin:0">No description available for this one.</p>'}
       ${holders.length ? `<div class="section-label">In your clubs</div><div class="mgroup" style="margin-top:0">${holders.map(line).join('')}</div>` : ''}
-      ${thoughts.length ? `<div class="section-label">What stayed with them</div>${thoughts.map(p => { const u = userById(p.userId) || { name: 'Member' }; return `<div class="card"><div class="row">${avatar(u, 'sm')}<b style="font-size:.88rem">${esc(u.name)}</b> ${reactionPill(p.reaction)}</div>${p.text ? `<p class="thought" style="margin:.4rem 0 0">${esc(p.text)}</p>` : ''}<div class="meta">${timeAgo(p.createdAt)}</div></div>`; }).join('')}` : ''}
+      ${thoughts.length ? `<div class="section-label">What stayed with them</div>${thoughts.map(p => { const u = userById(p.userId) || { name: 'Member' }; return `<div class="card"><div class="row">${avatar(u, 'sm')}<b style="font-size:.88rem">${esc(u.name)}</b> ${postPill(p)}</div>${p.text ? `<p class="thought" style="margin:.4rem 0 0">${esc(p.text)}</p>` : ''}<div class="meta">${timeAgo(p.createdAt)}</div></div>`; }).join('')}` : ''}
       <div class="section-label">More</div>
       <div class="mgroup" style="margin-top:0">
         <a class="mrow" href="https://www.google.com/search?q=${q}%20book" target="_blank" rel="noopener"><span class="mi">🔎</span><span class="mt">More about this book<small>Reviews, ratings and where to buy</small></span><span class="mc">↗</span></a>
@@ -3172,6 +3698,10 @@ function renderSheet(animate) {
       <p class="small" style="text-align:center">🔒 Only you can see this</p>${close()}`;
   }
 
+  if (ui.sheet === 'line') { inner = lineSheetHTML(d); }
+  if (ui.sheet === 'lines') { tall = true; inner = linesSheetHTML(d); }
+  if (ui.sheet === 'next') { inner = nextSheetHTML(d); }
+  if (ui.sheet === 'story') { tall = true; inner = storySheetHTML(d); }
   if (ui.sheet && ui.sheet.startsWith('cr-')) { inner = crSheetHTML(ui.sheet, d); if (!inner) { ui.sheet = null; ui.sheetData = {}; return renderSheet(); } tall = ui.sheet === 'cr-pick' && !d.chosen; }
 
   /* ---- owner dashboard ---- */
@@ -4384,6 +4914,10 @@ document.addEventListener('change', async e => {
     return;
   }
 /*}ADMIN*/  if (t.dataset && t.dataset.shareFin) { ui.share.finished = t.checked; ui.share.text = document.getElementById('thought')?.value ?? ui.share.text; draftSave(); }
+  if (t.dataset && t.dataset.pref === 'readnow') {
+    db.me.showReadingNow = t.checked; save(); renderSheet(); if (!t.checked) rnPush(false);
+    toast(t.checked ? '🟢 Your clubs will see when you’re reading' : 'Your reading sessions are private again');
+  }
   if (t.dataset && t.dataset.pref === 'stamps') {
     db.me.showStamps = t.checked; save(); renderSheet();
     toast(t.checked ? 'Your clubs can see your stamps' : 'Your stamps are private again');
@@ -4444,7 +4978,7 @@ document.addEventListener('change', async e => {
 /* ============================================================
    Start
    ============================================================ */
-Object.assign(actions, crActions);
+Object.assign(actions, crActions, rtActions);
 applyDisplay();
 /*ADMIN{*//* ---------- ADMIN PORTAL (admin.html only) ----------
    A full-page admin portal on the same site. Readers' index.html is built without any of this. */
